@@ -1,4 +1,5 @@
 #include "stm32f10x.h"
+#include "led.h"
 #include "gpio_use.h"
 #include "motor.h"
 #include "fifo.h"
@@ -23,14 +24,6 @@ void init_motors()
 	a= TIM3->CCR4;
 }
 
-//---------------------------------------
-void init_led()
-{
-	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
-		//             54321098
-  GPIOC->CRH &= ~0x00F00000;
-	GPIOC->CRH |=  0x00100000;	
-}
 //------------------------------------------------------
 void init_SysTick()
 {
@@ -52,7 +45,7 @@ void init()
 
 	init_motors(); //уже использует ШИМ
 	
-	init_led();
+	led.init();
 }
 
 //---------------------------------------
@@ -74,25 +67,9 @@ struct PointTo Path[10];   //путь фрезы
 
 struct Coord curPos;       //текущее положение резца
 
-volatile int tester = 1;
-volatile int recsen = 0;
-bool flipled = false;
-void flip_led()
-{
-	flipled = !flipled;
-	if(flipled)
-		GPIOC->BRR=1<<13;
-	else
-		GPIOC->BSRR=1<<13;
-}
-
-void show_led() { GPIOC->BRR=1<<13; }
-void hide_led() { GPIOC->BSRR=1<<13; }
-
-
-///const int PWM_VAL = PWM_SIZE/2;
+//---------------------------------------
 const bool ENABLE_VAL = true;
-const bool PIN_VAL = false;
+//const bool PIN_VAL = false;
 void enable_all_pwms(int PWM_VAL)
 {
 	enablePWM<0>(ENABLE_VAL);
@@ -162,8 +139,6 @@ void enable_all_pwms(int PWM_VAL)
 	*/
 }
 //--------------------------------------------------------
-volatile uint32_t takts;
-
 void inline wait_sys_tick(uint32_t time)
 {
 	SysTick->LOAD = time;
@@ -176,7 +151,7 @@ void inline wait_sys_tick(uint32_t time)
 void delay_ms(int ms)
 {
 	static const uint32_t maxDelay = SysTick_LOAD_RELOAD_Msk >> 2;
-	takts = ms*24000;
+	uint32_t takts = ms*24000;
 	while (takts > maxDelay)
 	{
 		takts -= maxDelay;
@@ -190,12 +165,11 @@ int main()
 {
 	init();
 
-//init_usart();
-int coord = 0;
+  int coord = 0;
+	
   while(1)
   for (int i=0;i<PWM_SIZE;i++)
 	{
-		volatile int cnt = 0;
 		delay_ms(50);
 	  //enable_all_pwms(i);
 		coord++;
@@ -205,27 +179,16 @@ int coord = 0;
 	}
 	/*for (int i=0;i<4;i++)
 		motor[i].set_coils_PWM(0, -PWM_SIZE/1.2);*/
-	
-	int cnt = 0, cnt2=0;
+	/*
 	while(1)
-	{	
-		/*cnt+=4;
-		if (cnt > 12000000)
-		{
-			cnt = 0;
-			cnt2++;
-			if (cnt2 >= tester)
-			{
-				cnt2=0;
-			}
-			//USART1->DR = '1';
-		}*/
+	{
 		if(TIM16->CNT > TIM16->CCR1)
-			show_led();
+			led.show();
 		else
-			hide_led();
-		//flip_led();
+			led.hide();
+		//led.flip();
 	}
+	*/
 }
 
 
