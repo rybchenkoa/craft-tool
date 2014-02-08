@@ -136,7 +136,40 @@
           <Name>-S0 -C0 -P0 )  -FN1 -FC1000 -FD20000000 -FF0STM32F10x_16 -FL04000 -FS08000000 -FP0($$Device:STM32F100C4$Flash\STM32F10x_16.FLM)</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint/>
+      <Breakpoint>
+        <Bp>
+          <Number>0</Number>
+          <Type>0</Type>
+          <LineNumber>168</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>0</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>0</BreakIfRCount>
+          <Filename>E:\my_programs\uVision\STM32_CNC\Src\gpio_use.h</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression></Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>170</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>0</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>0</BreakIfRCount>
+          <Filename>E:\my_programs\uVision\STM32_CNC\Src\main.cpp</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression></Expression>
+        </Bp>
+      </Breakpoint>
       <WatchWindow1>
         <Ww>
           <count>0</count>
@@ -189,22 +222,22 @@
         <Wi>
           <IntNumber>0</IntNumber>
           <FirstString>((TIM_TypeDef *) (((uint32_t)0x40000000) + 0x0400))-&gt;CCR1</FirstString>
-          <SecondString>FF00000000000000000000000000000000002E4000000000000000000000000000000000282854494D5F54797065446566202A292028282875696E7433325F74293078343030303030303029202B2030783034303029292D3E4343523100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100000001000000C856040D2775CF3F1B00000000000000000000000000000000000000B20E0008</SecondString>
+          <SecondString>FF000000000000000000000000000000E0FFEF4000000000000000000000000000000000282854494D5F54797065446566202A292028282875696E7433325F74293078343030303030303029202B2030783034303029292D3E4343523100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100000001000000C856040D2775CF3F1900000000000000000000000000000000000000B20E0008</SecondString>
         </Wi>
         <Wi>
           <IntNumber>1</IntNumber>
           <FirstString>((TIM_TypeDef *) (((uint32_t)0x40000000) + 0x0400))-&gt;CCR2</FirstString>
-          <SecondString>0080000000000000000000000000000000002E4000000000000000000000000000000000282854494D5F54797065446566202A292028282875696E7433325F74293078343030303030303029202B2030783034303029292D3E4343523200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100000002000000C856040D2775CF3F1B00000000000000000000000000000000000000B20E0008</SecondString>
+          <SecondString>0080000000000000000000000000000000002E4000000000000000000000000000000000282854494D5F54797065446566202A292028282875696E7433325F74293078343030303030303029202B2030783034303029292D3E4343523200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100000002000000C856040D2775CF3F1900000000000000000000000000000000000000B20E0008</SecondString>
         </Wi>
         <Wi>
           <IntNumber>2</IntNumber>
           <FirstString>((TIM_TypeDef *) (((uint32_t)0x40000000) + 0x0400))-&gt;CCR3</FirstString>
-          <SecondString>0000800000000000000000000000000000002E4000000000000000000000000000000000282854494D5F54797065446566202A292028282875696E7433325F74293078343030303030303029202B2030783034303029292D3E4343523300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100000003000000D57D796C45D0D03F1B00000000000000000000000000000000000000B20E0008</SecondString>
+          <SecondString>00008000000000000000000000000000E0FFEF4000000000000000000000000000000000282854494D5F54797065446566202A292028282875696E7433325F74293078343030303030303029202B2030783034303029292D3E4343523300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100000003000000D57D796C45D0D03F1900000000000000000000000000000000000000B20E0008</SecondString>
         </Wi>
         <Wi>
           <IntNumber>3</IntNumber>
           <FirstString>((TIM_TypeDef *) (((uint32_t)0x40000000) + 0x0400))-&gt;CCR4</FirstString>
-          <SecondString>000000000000000000000000000000000000224000000000000000000000000000000000282854494D5F54797065446566202A292028282875696E7433325F74293078343030303030303029202B2030783034303029292D3E4343523400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100000004000000C856040D2775CF3F1B00000000000000000000000000000000000000B20E0008</SecondString>
+          <SecondString>00000000000000000000000000000000E0FFEF4000000000000000000000000000000000282854494D5F54797065446566202A292028282875696E7433325F74293078343030303030303029202B2030783034303029292D3E4343523400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004100000004000000C856040D2775CF3F1900000000000000000000000000000000000000B20E0008</SecondString>
         </Wi>
       </LogicAnalyzers>
       <SystemViewers>
@@ -240,10 +273,10 @@
       <FileType>8</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>1</ColumnNumber>
+      <ColumnNumber>17</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>164</TopLine>
-      <CurrentLine>187</CurrentLine>
+      <TopLine>154</TopLine>
+      <CurrentLine>168</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\main.cpp</PathWithFileName>
       <FilenameWithoutPath>main.cpp</FilenameWithoutPath>
@@ -256,10 +289,10 @@
       <FileType>5</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>14</ColumnNumber>
+      <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>17</TopLine>
-      <CurrentLine>26</CurrentLine>
+      <TopLine>7</TopLine>
+      <CurrentLine>8</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\hal_0.h</PathWithFileName>
       <FilenameWithoutPath>hal_0.h</FilenameWithoutPath>
@@ -272,10 +305,10 @@
       <FileType>5</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>0</ColumnNumber>
+      <ColumnNumber>20</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>143</TopLine>
-      <CurrentLine>152</CurrentLine>
+      <TopLine>156</TopLine>
+      <CurrentLine>164</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\gpio_use.h</PathWithFileName>
       <FilenameWithoutPath>gpio_use.h</FilenameWithoutPath>
@@ -288,10 +321,10 @@
       <FileType>5</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>0</ColumnNumber>
+      <ColumnNumber>20</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>0</TopLine>
-      <CurrentLine>0</CurrentLine>
+      <TopLine>1</TopLine>
+      <CurrentLine>11</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\fifo.h</PathWithFileName>
       <FilenameWithoutPath>fifo.h</FilenameWithoutPath>
@@ -306,8 +339,8 @@
       <Focus>0</Focus>
       <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>0</TopLine>
-      <CurrentLine>0</CurrentLine>
+      <TopLine>22</TopLine>
+      <CurrentLine>25</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\motor.h</PathWithFileName>
       <FilenameWithoutPath>motor.h</FilenameWithoutPath>
@@ -320,13 +353,29 @@
       <FileType>5</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>0</ColumnNumber>
+      <ColumnNumber>52</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>0</TopLine>
-      <CurrentLine>0</CurrentLine>
+      <TopLine>89</TopLine>
+      <CurrentLine>98</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\USART_module.h</PathWithFileName>
       <FilenameWithoutPath>USART_module.h</FilenameWithoutPath>
+      <RteFlg>0</RteFlg>
+      <bShared>0</bShared>
+    </File>
+    <File>
+      <GroupNumber>1</GroupNumber>
+      <FileNumber>7</FileNumber>
+      <FileType>8</FileType>
+      <tvExp>0</tvExp>
+      <Focus>0</Focus>
+      <ColumnNumber>31</ColumnNumber>
+      <tvExpOptDlg>0</tvExpOptDlg>
+      <TopLine>21</TopLine>
+      <CurrentLine>28</CurrentLine>
+      <bDave2>0</bDave2>
+      <PathWithFileName>.\cos_table.cpp</PathWithFileName>
+      <FilenameWithoutPath>cos_table.cpp</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -348,7 +397,7 @@
     <RteFlg>1</RteFlg>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>7</FileNumber>
+      <FileNumber>8</FileNumber>
       <FileType>5</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
@@ -364,13 +413,13 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>8</FileNumber>
+      <FileNumber>9</FileNumber>
       <FileType>2</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
       <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>141</TopLine>
+      <TopLine>140</TopLine>
       <CurrentLine>146</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>RTE\Device\STM32F100C4\startup_stm32f10x_ld_vl.s</PathWithFileName>
@@ -380,14 +429,14 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>9</FileNumber>
+      <FileNumber>10</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
       <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>586</TopLine>
-      <CurrentLine>594</CurrentLine>
+      <TopLine>0</TopLine>
+      <CurrentLine>0</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>RTE\Device\STM32F100C4\system_stm32f10x.c</PathWithFileName>
       <FilenameWithoutPath>system_stm32f10x.c</FilenameWithoutPath>
@@ -396,7 +445,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>10</FileNumber>
+      <FileNumber>11</FileNumber>
       <FileType>1</FileType>
       <tvExp>1</tvExp>
       <Focus>0</Focus>

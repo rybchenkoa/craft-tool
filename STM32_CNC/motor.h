@@ -1,13 +1,12 @@
-#include "math.h"
-const int DIV_BITS = 6; //число битов, отведённых на "дробную часть" шага
-const int SUB_STEPS = 1<<DIV_BITS;
+//#include "math.h"
+#include "common.h"
 
 //--------------------------------------------------
 int fullStep[4][2] = 
- {{1,0},
-  {0,1},
-  {-1,0},
-  {0,-1}
+ {{ 1,0 },
+  { 0,1 },
+  {-1,0 },
+  { 0,-1}
  }; //обычный режим шагового двигателя, полный шаг
 
 int halfStep[8][2] =
@@ -22,19 +21,8 @@ int halfStep[8][2] =
  }; //полушаг, можно было просто складывать два соседних значения для полного шага
 
 //--------------------------------------------------
-const int COS_AMPLITUDE = 127;
-const int COS_TABLE_COUNT = SUB_STEPS*4;
-int8_t cosTable[COS_TABLE_COUNT]; //один период = 4 шагам, поэтому здесь cos от 0 до 2*Pi
-#define M_PI 3.14f
-
-//заполняет массив значениями косинуса
-void fill_cos_table()
-{
-	int i; //  {i=0,cos=1}, {i=COS_TABLE_COUNT,cos=0}
-	for (i=0; i < COS_TABLE_COUNT; i++)
-	  cosTable[i] = COS_AMPLITUDE * cos((2*M_PI*i)/COS_TABLE_COUNT);
-}
-
+//заполняем таблицу на этапе компиляции
+extern int8_t cosTable[COS_TABLE_COUNT]; //один период = 4 шагам, поэтому здесь cos от 0 до 2*Pi
 //===============================================================
 //всё что относится к одному экземпляру двигателя
 struct Motor
@@ -43,9 +31,9 @@ struct Motor
 	int stepPhase;     //что надо прибавить к текущим координатам, чтобы получить фазу сигналов на обмотках
 	int maxVoltage;    //максимальное напряжение на обмотках 0-255 (регуляция тока)
 	int LRfactor;      //скорость нарастания тока при приложении постоянного напряжения, показатель экспоненты, 0-255
-  int position;      //по каким координатам сейчас расположена гайка
+	int position;      //по каким координатам сейчас расположена гайка
 
-  Motor()
+	Motor()
 	{
 		index = 0;
 		stepPhase = 0;
@@ -76,7 +64,7 @@ struct Motor
 				break;
 		}
 	}
-	int voltage1, voltage2;
+
 	//------------------------------------------------------------
 	//в зависимости от позиции задаёт напряжение
 	void set_sin_voltage(int position, int percent) //доля напряжения изменяется от 0 до 255
@@ -88,8 +76,8 @@ struct Motor
 		int sinIndex = cosIndex - COS_TABLE_COUNT / 4; //синус - это косинус, подвинутый вправо на 1/4, аргумент двигаем влево
 		if (sinIndex < 0) sinIndex += COS_TABLE_COUNT;
 		
-		voltage1 = PWM_SIZE * percent * cosTable[cosIndex]    / (1<<15); //если бы была гарантия, что знак не потеряется...
-		voltage2 = PWM_SIZE * percent * cosTable[sinIndex]    / (1<<15);
+		int voltage1 = PWM_SIZE * percent * cosTable[cosIndex]    / (1<<15); //если бы была гарантия, что знак не потеряется...
+		int voltage2 = PWM_SIZE * percent * cosTable[sinIndex]    / (1<<15);
 		
 		voltage1 = voltage1 * maxVoltage /(1<<7);
 		voltage2 = voltage2 * maxVoltage /(1<<7);

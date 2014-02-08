@@ -5,7 +5,6 @@
 #include "fifo.h"
 #include "USART_module.h"
 
-const int COUNT_DRIVES = 4; //количество двигателей
 Motor motor[COUNT_DRIVES];
 
 //===============================================================
@@ -18,17 +17,13 @@ void init_motors()
 		motor[i].maxVoltage = 128;
 		//сюда же запихнуть измерение индуктивности/сопротивления обмоток
 	}
-	int a = TIM3->CCR1;
-	a= TIM3->CCR2;
-	a= TIM3->CCR3;
-	a= TIM3->CCR4;
 }
 
 //------------------------------------------------------
 void init_SysTick()
 {
-  SysTick->LOAD  = SysTick_LOAD_RELOAD_Msk - 1;      /* set reload register */
-  SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
+	SysTick->LOAD  = SysTick_LOAD_RELOAD_Msk - 1;      /* set reload register */
+	SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
                    SysTick_CTRL_ENABLE_Msk;                    /* Enable SysTick Timer */
 }
 
@@ -39,10 +34,8 @@ void init()
 	
 	usart.init();
 	
-  configurePWM();
+	configurePWM();
 	
-	fill_cos_table();
-
 	init_motors(); //уже использует ШИМ
 	
 	led.init();
@@ -148,10 +141,10 @@ void inline wait_sys_tick(uint32_t time)
 	while(SysTick->VAL > 10);	
 }
 
-void delay_ms(int ms)
+void delay_mss(int mss) //micro_santi_sec :)
 {
 	static const uint32_t maxDelay = SysTick_LOAD_RELOAD_Msk >> 2;
-	uint32_t takts = ms*24000;
+	uint32_t takts = mss*240;
 	while (takts > maxDelay)
 	{
 		takts -= maxDelay;
@@ -165,15 +158,15 @@ int main()
 {
 	init();
 
-  int coord = 0;
+	int coord = 0;
 	
-  while(1)
-  for (int i=0;i<PWM_SIZE;i++)
+	while(1)
+	for (int i=0;i<PWM_SIZE;i++)
 	{
-		delay_ms(50);
-	  //enable_all_pwms(i);
+		delay_mss(100);
+		//enable_all_pwms(i);
 		coord++;
-		for (int j=0;j<4;j++)
+		for (int j=0;j<4;j++) //400 тактов на задание напряжения всех двигателей
 		//int j=1;
 			motor[j].set_sin_voltage(coord, 128);
 	}
