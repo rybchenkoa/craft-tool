@@ -7,7 +7,7 @@ class Usart
 	FIFOBuffer<char, 6> receiveBuffer;  //64 байта на приём
 	FIFOBuffer<char, 6> transmitBuffer; //64 на отправку
 
-  enum Tags
+	enum Tags
 	{
 		OP_CODE = '\\', //признак, что дальше идёт управляющий код, если надо послать 100, надо послать его 2 раза
 		OP_STOP = 'n',  //конец пакета
@@ -94,7 +94,7 @@ class Usart
 			{
 				switch (data)
 				{
-					case OP_CODE:                 //в пересылаемом пакете случайно был такой байт
+					case OP_CODE:                 //в пересылаемом пакете случайно был байт '\'
 						receiveBuffer.Push(data);   //и мы его переслали таким образом
 						receiveState = S_RECEIVING;
 						return;
