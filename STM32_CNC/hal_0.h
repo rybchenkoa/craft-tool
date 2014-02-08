@@ -101,7 +101,7 @@ void __forceinline set_pin_state(GPIO_TypeDef *port, int pinnum, bool state)
 }
 
 template <int pin> void set_pin_state(bool state) {}
-	
+
 //a0
 template <> void set_pin_state<P0> (bool state) { set_pin_state(GPIOA, 0, state); }
 //a1
@@ -146,7 +146,7 @@ template <> void set_pin_state<P15> (bool state) { set_pin_state(GPIOB, 8, state
 //--------------------------------------------------
 //задаёт заполненность с учётом инвертированности вывода (CC1NE например)
 template <int pin> __forceinline void set_pulse_width(int len) {}
-	
+
 FCALL set_pulse_width<P0> (int len) {TIM2->CCR1 = len;}
 FCALL set_pulse_width<P1> (int len) {TIM2->CCR2 = len;}
 
