@@ -94,8 +94,8 @@ struct Motor
 		int cosIndex = fullStep[quart][0];
 		int sinIndex = fullStep[quart][1];
 		
-		int voltage1 = PWM_SIZE * percent * cosTable[cosIndex]    / (1<<8); //если бы была гарантия, что знак не потеряется...
-		int voltage2 = PWM_SIZE * percent * cosTable[sinIndex]    / (1<<8);
+		int voltage1 = PWM_SIZE * percent * cosTable[cosIndex]    / (1<<15); //если бы была гарантия, что знак не потеряется...
+		int voltage2 = PWM_SIZE * percent * cosTable[sinIndex]    / (1<<15);
 		
 		set_coils_PWM(voltage1, voltage2);
 	}
