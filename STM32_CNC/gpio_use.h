@@ -1,14 +1,9 @@
 //#define STM32F10X_LD_VL
 #include "stm32f10x.h"
+#include "common.h"
 
 //разводка пинов для подключения ШИМ
 //пины нумеруются так: [0,1,2,3],[4,5,6,7],[8,9,10,11],[12,13,14,15], каждая группа отвечает за свой двигатель
-
-static const int APB_FREQ = 24000000 ;
-static const int PWM_FREQ = 100000;
-static const int PWM_SIZE = 32 - 1;           //число импульсов на 1 период шим
-
-static const int PWM_PRESCALER = APB_FREQ / (PWM_FREQ * PWM_SIZE)-1;
 
 //--------------------------------------------------
 void connect_timers()
