@@ -14,9 +14,9 @@ struct Led
 	void flip()
 	{
 		if(on)
-			show();
-		else
 			hide();
+		else
+			show();
 	}
 //---------------------------------------
 	void show() { GPIOC->BRR=1<<13; on = true;}
