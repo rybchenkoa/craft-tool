@@ -433,6 +433,16 @@
               <FileType>8</FileType>
               <FilePath>.\cos_table.cpp</FilePath>
             </File>
+            <File>
+              <FileName>led.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\led.h</FilePath>
+            </File>
+            <File>
+              <FileName>common.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
