@@ -32,6 +32,8 @@ void init()
 {
 	init_SysTick();
 	
+	RCC->AHBENR |= RCC_AHBENR_CRCEN;
+	
 	usart.init();
 	
 	configurePWM();
