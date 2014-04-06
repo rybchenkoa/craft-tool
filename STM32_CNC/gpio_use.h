@@ -9,22 +9,22 @@
 void connect_timers()
 {
 	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN
-	              | RCC_APB2ENR_IOPAEN
-	              | RCC_APB2ENR_IOPBEN
+								| RCC_APB2ENR_IOPAEN
+								| RCC_APB2ENR_IOPBEN
 								| RCC_APB2ENR_TIM1EN
 								| RCC_APB2ENR_TIM15EN
 								| RCC_APB2ENR_TIM16EN;   	// включаем тактирование портов и таймеров
 								
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN
-	              | RCC_APB1ENR_TIM3EN;
+								| RCC_APB1ENR_TIM3EN;
 }
 //--------------------------------------------------
 void set_PWM_mode(TIM_TypeDef *TIM)
 {
 	TIM->CR1 |= TIM_CR1_ARPE;   //размер импульса ШИМ меняется в начале нового импульса
 	TIM->CCMR1 = TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1PE   //левый шим на всех каналах
-	            | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE;
-							
+							| TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE;
+
 	TIM->CCMR2 = TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3PE
 							| TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4PE;
 }
@@ -38,7 +38,7 @@ void set_PWM_modes()
 	
 	TIM15->CR1 |= TIM_CR1_ARPE;
 	TIM15->CCMR1 = TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1PE
-	            | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE;
+							 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE;
 	
 	TIM16->CR1 |= TIM_CR1_ARPE;
 	TIM16->CCMR1 = TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 ;//| TIM_CCMR1_OC1PE;
@@ -54,23 +54,23 @@ void connect_PWM_channels()
 	AFIO->MAPR |= AFIO_MAPR_TIM2_REMAP_1; //перекидываем tim2 ch3,ch4 на b10, b11
 	
 	TIM1->CCER |= TIM_CCER_CC1E
-	            | TIM_CCER_CC4E
+							| TIM_CCER_CC4E
 							| TIM_CCER_CC1NE
 							| TIM_CCER_CC2NE
 							| TIM_CCER_CC3NE; //подключаем все каналы
 	
 	TIM2->CCER |= TIM_CCER_CC1E
-	            | TIM_CCER_CC2E
+							| TIM_CCER_CC2E
 							| TIM_CCER_CC3E
 							| TIM_CCER_CC4E;
 	
 	TIM3->CCER |= TIM_CCER_CC1E
-	            | TIM_CCER_CC2E
+							| TIM_CCER_CC2E
 							| TIM_CCER_CC3E
 							| TIM_CCER_CC4E;
 	
 	TIM15->CCER |= TIM_CCER_CC1E
-	             | TIM_CCER_CC2E;
+							 | TIM_CCER_CC2E;
 	
 	TIM16->CCER |= TIM_CCER_CC1E;
 }
