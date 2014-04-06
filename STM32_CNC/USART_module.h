@@ -1,6 +1,30 @@
 #include "stm32f10x.h"
 #include "fifo.h"
 
+uint32_t calc_crc(char *buffer, int size)
+{
+	volatile CRC_TypeDef *calc = CRC;
+	calc->CR |= CRC_CR_RESET;
+	
+	uint32_t wordLength = size>>2;
+	uint32_t *wordBuffer = (uint32_t*) buffer;
+	
+	while(wordLength--)
+	{
+		calc->DR = *(wordBuffer++);
+		__NOP();__NOP();__NOP();__NOP();
+	}
+	
+	switch(size & 3)
+	{
+		case 1: calc->DR = (*wordBuffer) & 0x000000FF; __NOP();__NOP();__NOP();__NOP(); break;
+		case 2: calc->DR = (*wordBuffer) & 0x0000FFFF; __NOP();__NOP();__NOP();__NOP(); break;
+		case 3: calc->DR = (*wordBuffer) & 0x00FFFFFF; __NOP();__NOP();__NOP();__NOP(); break;
+	}
+		
+	return calc->DR;
+}
+
 class Usart
 {
 	public:
