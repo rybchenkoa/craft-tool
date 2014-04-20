@@ -129,7 +129,7 @@ void configurePWM()
 {
 	connect_timers();
 
-	TIM1->CR1 &= ~TIM_CR1_CEN; //запускаем таймеры
+	TIM1->CR1 &= ~TIM_CR1_CEN; //останавливаем таймеры
 	TIM2->CR1 &= ~TIM_CR1_CEN;
 	TIM3->CR1 &= ~TIM_CR1_CEN;
 	TIM15->CR1 &= ~TIM_CR1_CEN;

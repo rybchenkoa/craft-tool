@@ -4,33 +4,85 @@
 #include "motor.h"
 #include "fifo.h"
 #include "USART_module.h"
+#include "stdio.h"
+#include "string.h"
+#include "sys_timer.h"
 
 Motor motor[COUNT_DRIVES];
 
 //===============================================================
+bool __forceinline const_pin_state()
+{
+	return !(GPIOA->IDR & (1<<13));
+}
+
+bool __forceinline float_pin_state()
+{
+	return !(GPIOA->IDR & (1<<12));
+}
 
 void init_motors()
 {
+	//               54321098
+	GPIOA->CRH &= ~0x00FF0000;  //контакты для измерения времени достижения заданного напряжения
+	
+	timer.delay_ms(100); //ждём пока питание стабилизируется
+	
 	for (int i=0; i < COUNT_DRIVES; ++i) //то, что итераторы не имеют оператора "<" - это их недостаток
 	{
 		motor[i].index = i;
 		motor[i].maxVoltage = 128;
 		//сюда же запихнуть измерение индуктивности/сопротивления обмоток
-	}
-}
+		led.hide();
+		for (int numCoils = 0; numCoils < 2; numCoils++)
+		{
+			if (numCoils == 0)
+				motor[i].set_coils_PWM(PWM_SIZE, 0); //подаём напряжение
+			else
+				motor[i].set_coils_PWM(0, PWM_SIZE);
+				
+			int endTime = timer.get_ms(500);             //и засекаем время
+			
+			int timeConst = 0, timeFloat = 0; //время сравнения с диодом, сравнения с питающим напряжением
+			
+			while(timer.check(endTime) && (timeConst == 0 || timeFloat == 0)) //пока есть время для определения параметров, определяем
+			{
+				if (timeConst == 0 && const_pin_state())
+				{
+					timeConst = maxDelay - SysTick->VAL;
+					if (timeFloat != 0)
+						break;
+				}
+					
+				if (timeFloat == 0 && float_pin_state())
+				{
+					timeFloat = maxDelay - SysTick->VAL;
+					if (timeConst != 0)
+						break;
+				}
+			}
+			
+			motor[i].set_coils_PWM(0, 0); //отключаем напряжение
+			
+			char result[50]; *result = 0;
+			sprintf(result, "%i %i\r\n", timeConst, timeFloat);
+			usart.send_data(result, strlen(result));
+			
+			//if (timeConst == 0 && timeFloat == 0)
+				//return;
 
-//------------------------------------------------------
-void init_SysTick()
-{
-	SysTick->LOAD  = SysTick_LOAD_RELOAD_Msk - 1;      /* set reload register */
-	SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
-                   SysTick_CTRL_ENABLE_Msk;                    /* Enable SysTick Timer */
+			endTime = timer.get_ms(500);
+			while(timer.check(endTime) && (const_pin_state() || float_pin_state()));
+		}
+		
+		led.show();
+	}
 }
 
 //------------------------------------------------------
 void init()
 {
-	init_SysTick();
+	timer.init();
 	
 	RCC->AHBENR |= RCC_AHBENR_CRCEN;
 	
@@ -133,28 +185,6 @@ void enable_all_pwms(int PWM_VAL)
 	set_pin_state<15>(PIN_VAL);
 	*/
 }
-//--------------------------------------------------------
-void inline wait_sys_tick(uint32_t time)
-{
-	SysTick->LOAD = time;
-	SysTick->VAL = 0;
-	__nop();
-	SysTick->LOAD = SysTick_LOAD_RELOAD_Msk - 1;
-	while(SysTick->VAL > 10);	
-}
-
-void delay_mss(int mss) //micro_santi_sec :)
-{
-	static const uint32_t maxDelay = SysTick_LOAD_RELOAD_Msk >> 2;
-	uint32_t takts = mss*240;
-	while (takts > maxDelay)
-	{
-		takts -= maxDelay;
-		wait_sys_tick(maxDelay);
-	}
-		
-	wait_sys_tick(takts);
-}
 
 int main()
 {
@@ -162,15 +192,33 @@ int main()
 
 	int coord = 0;
 	
+	
+	
+	
+	char data[]= {1,2,3,4,5,6,7,8}; //Массив данных
+	uint32_t data_crc = calc_crc(data,7); //Вычисляем CRC для массива данных
+	
+	//uint32_t data2 = 1u;
+	
+			char result[50]; *result = 0;
+			sprintf(result, "%X\r\n", data_crc);
+			usart.send_data(result, strlen(result));
+			
+			
+			
+			
+			
 	while(1)
 	for (int i=0;i<PWM_SIZE;i++)
 	{
-		delay_mss(100);
+		timer.delay_ms(1000);
 		//enable_all_pwms(i);
 		coord++;
 		for (int j=0;j<4;j++) //400 тактов на задание напряжения всех двигателей
 		//int j=1;
-			motor[j].set_sin_voltage(coord, 128);
+			motor[j].set_sin_voltage(coord, 50);
+		led.flip();
+		//USART1->DR = '9';
 	}
 	/*for (int i=0;i<4;i++)
 		motor[i].set_coils_PWM(0, -PWM_SIZE/1.2);*/

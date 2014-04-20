@@ -18,3 +18,4 @@ static const int PWM_FREQ = 100000;
 static const int PWM_SIZE = APB_FREQ/PWM_FREQ-1;           //число импульсов на 1 период шим
 
 static const int PWM_PRESCALER = 1;//APB_FREQ / (PWM_FREQ * (PWM_SIZE+1))-1;
+static const uint32_t maxDelay = 1<<30;
