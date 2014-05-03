@@ -7,6 +7,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "sys_timer.h"
+#include "mover.h"
 
 Motor motor[COUNT_DRIVES];
 
@@ -211,6 +212,7 @@ int main()
 	while(1)
 	for (int i=0;i<PWM_SIZE;i++)
 	{
+		mover.queue.Pop();
 		timer.delay_ms(1000);
 		//enable_all_pwms(i);
 		coord++;

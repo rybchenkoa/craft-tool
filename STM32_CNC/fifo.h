@@ -19,6 +19,8 @@ class FIFOBuffer
 	item Pop()     { int index = first; first = (first+1) & mask; return buffer[index]; }
 	item Front()   { return buffer[first]; }
 
+	item& End()    { return buffer[last];}
+	void Push()    { last = (last+1) & mask; }
 //второй вариант
 /*
 	int Size()     { return size; }
