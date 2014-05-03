@@ -154,3 +154,8 @@ extern "C" void USART1_IRQHandler(void)
 		USART1->SR &= ~USART_SR_TXE;
 	}
 }
+
+void send_packet(char *packet, int size)
+{
+	usart.send_data(packet, size);
+}

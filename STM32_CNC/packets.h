@@ -10,6 +10,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SET_PLANE,
 	DeviceCommand_PACKET_RECEIVED,
 	DeviceCommand_PACKET_ERROR_CRC,
+	DeviceCommand_RESET_PACKET_NUMBER,
 };
 enum MoveMode //:char режим движения/интерполяции
 {
@@ -72,7 +73,7 @@ struct PacketReceived //сообщение о том, что пакет прин
 	PacketCount packetNumber; //номер принятого пакета
 	int crc;
 };
-struct PacketErrorCrc //сообщение о том, что пакет принят
+struct PacketErrorCrc //сообщение о том, что пакет испортился при передаче
 {
 	DeviceCommand command;
 	int crc;
