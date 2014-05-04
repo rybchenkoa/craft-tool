@@ -89,6 +89,8 @@ void init()
 	
 	usart.init();
 	
+	receiver.init();
+	
 	configurePWM();
 	
 	init_motors(); //уже использует ШИМ
@@ -191,12 +193,25 @@ int main()
 {
 	init();
 
-	int coord = 0;
+	//int coord = 0;
+	
+	while(1)
+	{
+		if(!receiver.queue.IsEmpty())
+		{
+			PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
+			
+			switch(common->command)
+			{
+				case DeviceCommand_MOVE:
+					break;
+			}
+		}
+		receiver.queue.Pop();
+	}
 	
 	
-	
-	
-	char data[]= {1,2,3,4,5,6,7,8}; //Массив данных
+	/*char data[]= {1,2,3,4,5,6,7,8}; //Массив данных
 	uint32_t data_crc = calc_crc(data,7); //Вычисляем CRC для массива данных
 	
 	//uint32_t data2 = 1u;
@@ -212,7 +227,7 @@ int main()
 	while(1)
 	for (int i=0;i<PWM_SIZE;i++)
 	{
-		mover.queue.Pop();
+		receiver.queue.Pop();
 		timer.delay_ms(1000);
 		//enable_all_pwms(i);
 		coord++;
@@ -221,7 +236,7 @@ int main()
 			motor[j].set_sin_voltage(coord, 50);
 		led.flip();
 		//USART1->DR = '9';
-	}
+	}*/
 	/*for (int i=0;i<4;i++)
 		motor[i].set_coils_PWM(0, -PWM_SIZE/1.2);*/
 	/*
