@@ -9,8 +9,6 @@
 #include "sys_timer.h"
 #include "mover.h"
 
-Motor motor[COUNT_DRIVES];
-
 //===============================================================
 bool __forceinline const_pin_state()
 {
@@ -197,6 +195,8 @@ int main()
 	
 	while(1)
 	{
+		if(mover.stopTime <= timer.get())
+			mover.update();
 		if(!receiver.queue.IsEmpty())
 		{
 			PacketCommon* common = (PacketCommon*)&receiver.queue.Front();

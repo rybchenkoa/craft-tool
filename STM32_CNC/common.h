@@ -19,3 +19,5 @@ static const int PWM_SIZE = APB_FREQ/PWM_FREQ-1;           //число импу
 
 static const int PWM_PRESCALER = 1;//APB_FREQ / (PWM_FREQ * (PWM_SIZE+1))-1;
 static const uint32_t maxDelay = 1<<30;
+
+const int NUM_COORDS = 3;

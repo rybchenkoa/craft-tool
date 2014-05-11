@@ -37,13 +37,13 @@ struct PacketMove
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
-	int coord[3];
+	int coord[NUM_COORDS];
 };
 struct PacketCircleMove //30 байт
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
-	int coord[3];
+	int coord[NUM_COORDS];
 	int circle[3];//I,J,K
 };
 struct PacketWait

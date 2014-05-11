@@ -100,3 +100,5 @@ struct Motor
 		set_coils_PWM(voltage1, voltage2);
 	}
 };
+
+Motor motor[COUNT_DRIVES];
