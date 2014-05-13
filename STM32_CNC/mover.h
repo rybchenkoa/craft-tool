@@ -95,6 +95,7 @@ public:
 	int from[NUM_COORDS];     //откуда двигаемся
 	int to[NUM_COORDS];       //куда двигаемся
 	
+	//----------------------------------
 	enum State
 	{
 		FAST = 0,
@@ -104,12 +105,14 @@ public:
 		
 	};
 	
+	//----------------------------------
 	enum OperateResult
 	{
 		END = 1,
 		WAIT,
 	};
 	
+	//----------------------------------
 	struct LinearData
 	{
 		int refCoord;          //индекс координаты, по которой шагаем
@@ -120,6 +123,7 @@ public:
 	};
 	LinearData linearData;
 	
+	//----------------------------------
 	int linear()
 	{
 		int reference = linearData.refCoord;
@@ -139,6 +143,7 @@ public:
 		return WAIT;
 	}
 	
+	//----------------------------------
 	void init_linear(int dest[3])
 	{
 		for(int i = 0; i < NUM_COORDS; ++i)
@@ -168,18 +173,30 @@ public:
 			}
 	}
 
-	//typedef int (*Handler)(Mover *t);
+	//----------------------------------
 	typedef int (Mover::*Handler)();
 	Handler handler;
 	
 	void update()
 	{
-		//void (*f)(Mover *t) = linear;
-		//handler = linear;
-		//int (Mover::*f)() = &Mover::linear;
-		//(this->*f)();
-		//handler(this);
 		(this->*handler)();
+	}
+	
+	void init()
+	{
+		for(int i = 0; i < NUM_COORDS; i++)
+		{
+			minCoord[i] = 0;
+			maxCoord[i] = 0;
+			coord[i] = 0;
+			bufCoord[i] = 0;
+			velocity[i] = 0;
+			nextBound[i] = 0;
+		}
+		
+		needStop = false;
+		stopTime = 0;
+		handler = &Mover::linear;
 	}
 };
 
