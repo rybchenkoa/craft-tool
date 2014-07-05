@@ -1,7 +1,6 @@
 #include "stm32f10x.h"
 #include "led.h"
 #include "gpio_use.h"
-#include "motor.h"
 #include "fifo.h"
 #include "USART_module.h"
 #include "stdio.h"
@@ -192,7 +191,7 @@ int main()
 	init();
 
 	//int coord = 0;
-	
+
 	while(1)
 	{
 		if(mover.stopTime <= timer.get())
