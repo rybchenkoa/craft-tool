@@ -112,6 +112,11 @@ int iabs(int value)
 {
 	return value>0 ? value : -value;
 }
+
+int ipow2(int value)
+{
+	return value*value;
+}
 //=========================================================================================
 class Mover
 {
@@ -132,6 +137,10 @@ public:
 	
 	int from[NUM_COORDS];     //откуда двигаемся
 	int to[NUM_COORDS];       //куда двигаемся
+	
+	MoveMode interpolation;
+	int rFeed;    //подача для G1
+	int maxrFeed; //подача для G0
 	
 	//----------------------------------
 	enum State
@@ -167,7 +176,7 @@ public:
 	LinearData linearData;
 	
 	//----------------------------------
-	int linear()
+	OperateResult linear()
 	{
 		int currentTime = timer.get();
 		int reference = linearData.refCoord;
@@ -198,7 +207,7 @@ public:
 	}
 	
 	//----------------------------------
-	void init_linear(int dest[3])
+	void init_linear(int dest[3], bool isMax)
 	{
 		for(int i = 0; i < NUM_COORDS; ++i) //для алгоритма рисования
 		{
@@ -228,16 +237,24 @@ public:
 		
 		//для алгоритма ускорения
 		int ref = linearData.refCoord;
+		int refLen = iabs(to[ref] - from[ref]); //проекция отрезка на опорную координату
 		
 		//находим максимальную скорость по опорной координате
 		int timeMax = iabs(to[0] - from[0]) * maxrVelocity[0];
+		int sqLen = ipow2(to[0] - from[0]);
 		for(int i = 0; i < NUM_COORDS; ++i)
 		{
 			int time = iabs(to[i] - from[i]) * maxrVelocity[i];
 			if(timeMax < time)
 				timeMax = time;
+			sqLen += ipow2(to[i] - from[i]);
 		}
-		linearData.maxrVelocity = timeMax / iabs(to[ref] - from[ref]);
+		linearData.maxrVelocity = timeMax / refLen;
+		
+		int length = isqrt(sqLen);    //длина отрезка
+		int projFeedVelocity = rFeed * length / refLen; //проекция скорости подачи на опорную координату
+		if(linearData.maxrVelocity < projFeedVelocity) //скорость подачи < макс. достижимой
+			linearData.maxrVelocity = projFeedVelocity;
 		
 		//находим максимальное ускорение по опорной координате
 		timeMax = iabs(to[0] - from[0]) * maxrAcceleration[0];
@@ -251,18 +268,34 @@ public:
 		
 		//теперь смотрим, достигнем ли такой скорости, когда дойдём до середины отрезка
 		//v=a*t, s=a*t^2/2 =v^2/2a
-		int length = iabs(to[ref]-from[ref])/2;
 		int accLength = linearData.maxrAcceleration/(2*linearData.maxrVelocity*linearData.maxrVelocity);
-		if(accLength > length)
+		if(accLength > refLen/2)
 		{
-			accLength = length;
-			linearData.maxrVelocity = isqrt(linearData.maxrAcceleration / (2*length));
+			accLength = refLen/2;
+			linearData.maxrVelocity = isqrt(linearData.maxrAcceleration / refLen);
 		}
 		linearData.accLength = accLength;
+		
+		handler = &Mover::linear;
 	}
 
 	//----------------------------------
-	typedef int (Mover::*Handler)();
+	OperateResult empty()
+	{
+		if(receiver.queue.IsEmpty())
+			return WAIT;
+		else
+			return END;
+	}
+	
+	//----------------------------------
+	void init_empty()
+	{
+		handler = &Mover::empty;
+	}
+	
+	//----------------------------------
+	typedef OperateResult (Mover::*Handler)();
 	Handler handler;
 	
 	void update()
@@ -275,8 +308,56 @@ public:
 		for(int i = 0; i < NUM_COORDS; ++i)
 			coord[i] = bufCoord[i];
 			
-		if((this->*handler)() != END)
-			;
+		if((this->*handler)() == END && this->handler != &Mover::empty) //если у нас что-то шло и кончилось
+		{
+			
+			if(receiver.queue.IsEmpty())
+			{
+				init_empty();
+				empty();
+			}
+			else
+			{
+				PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
+				switch(common->command)
+				{
+					case DeviceCommand_MOVE:
+					{
+						switch (interpolation)
+						{
+							case MoveMode_FAST:
+							case MoveMode_LINEAR:
+							{
+								PacketMove *packet = (PacketMove*)common;
+								init_linear(packet->coord, interpolation == MoveMode_FAST);
+								break;
+							}
+							case MoveMode_CW_ARC:
+							case MoveMode_CCW_ARC:
+							{
+								break;
+							}
+						}
+						receiver.queue.Pop();
+						break;
+					}
+					case DeviceCommand_MOVE_MODE:
+					{
+						interpolation = ((PacketInterpolationMode*)common)->mode;
+						receiver.queue.Pop();
+						break;
+					}
+					case DeviceCommand_SET_PLANE:
+					{
+					}
+					case DeviceCommand_WAIT:
+					case DeviceCommand_PACKET_ERROR_CRC:
+					case DeviceCommand_PACKET_RECEIVED:
+					case DeviceCommand_RESET_PACKET_NUMBER:
+					break;
+				}
+			}
+		}
 	}
 	
 	//----------------------------------
@@ -294,7 +375,7 @@ public:
 		
 		needStop = false;
 		stopTime = 0;
-		handler = &Mover::linear;
+		handler = &Mover::empty;
 	}
 };
 

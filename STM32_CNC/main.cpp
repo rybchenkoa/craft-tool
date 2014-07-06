@@ -192,6 +192,7 @@ int main()
 
 	//int coord = 0;
 
+	mover.init();
 	while(1)
 	{
 		if(mover.stopTime <= timer.get())
