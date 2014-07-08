@@ -308,10 +308,10 @@ public:
 		
 		for(int i = 0; i < NUM_COORDS; ++i)
 			coord[i] = bufCoord[i];
-			
-		if((this->*handler)() == END && this->handler != &Mover::empty) //если у нас что-то шло и кончилось
+		
+		OperateResult result = (this->*handler)();
+		if(result == END /* && this->handler != &Mover::empty*/) //если у нас что-то шло и кончилось
 		{
-			
 			if(receiver.queue.IsEmpty())
 			{
 				init_empty();
