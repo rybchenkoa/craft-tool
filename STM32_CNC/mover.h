@@ -252,7 +252,8 @@ public:
 		linearData.maxrVelocity = timeMax / refLen;
 		
 		int length = isqrt(sqLen);    //длина отрезка
-		int projFeedVelocity = rFeed * length / refLen; //проекция скорости подачи на опорную координату
+		int feed = isMax ? maxrFeed : rFeed;
+		int projFeedVelocity = feed * length / refLen; //проекция скорости подачи на опорную координату
 		if(linearData.maxrVelocity < projFeedVelocity) //скорость подачи < макс. достижимой
 			linearData.maxrVelocity = projFeedVelocity;
 		
