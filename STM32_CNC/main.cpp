@@ -197,17 +197,24 @@ int main()
 	{
 		if(mover.stopTime <= timer.get())
 			mover.update();
-		if(!receiver.queue.IsEmpty())
+		/*if(!receiver.queue.IsEmpty())
 		{
 			PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
 			
 			switch(common->command)
 			{
+				case DeviceCommand_RESET_PACKET_NUMBER:
+				case DeviceCommand_PACKET_ERROR_CRC:
+				case DeviceCommand_PACKET_RECEIVED:
 				case DeviceCommand_MOVE:
-					break;
+				case DeviceCommand_MOVE_MODE:
+				case DeviceCommand_SET_PLANE:
+				case DeviceCommand_WAIT:
+								
+				break;
 			}
 		}
-		receiver.queue.Pop();
+		receiver.queue.Pop();*/
 	}
 	
 	

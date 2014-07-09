@@ -2,7 +2,6 @@
 #include "packets.h"
 #include "motor.h"
 #include "sys_timer.h"
-#include <math.h>
 
 void send_packet(char *packet, int size);
 
@@ -377,6 +376,22 @@ public:
 		needStop = false;
 		stopTime = 0;
 		handler = &Mover::empty;
+		
+		//это должно задаваться с компьютера
+		for(int i = 0; i < NUM_COORDS; i++)
+		{
+			const float stepSize = 0.1f / SUB_STEPS; //0.1 мм на шаг
+			const float mmsec = 100; //мм/сек
+			const float delay = 0.000001; //1 тик - 1 микросекунда
+			const float accel = 10000000;//мм/сек^2
+			
+			maxrVelocity[i] = 1/((mmsec/stepSize)*delay);
+			maxrAcceleration[i] = 1/(accel/stepSize*delay*delay);
+		}
+		interpolation = FAST;
+		maxrFeed = maxrVelocity[0];
+		rFeed = maxrFeed/5;
+		
 	}
 };
 

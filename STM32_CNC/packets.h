@@ -4,13 +4,13 @@
 typedef char PacketCount;
 enum DeviceCommand //:char какие команды получает устройство
 {
-	DeviceCommand_MOVE = 1,
-	DeviceCommand_WAIT,
-	DeviceCommand_MOVE_MODE,
-	DeviceCommand_SET_PLANE,
-	DeviceCommand_PACKET_RECEIVED,
-	DeviceCommand_PACKET_ERROR_CRC,
-	DeviceCommand_RESET_PACKET_NUMBER,
+	DeviceCommand_MOVE = 1,         //in
+	DeviceCommand_WAIT,             //in
+	DeviceCommand_MOVE_MODE,        //in
+	DeviceCommand_SET_PLANE,        //in
+	DeviceCommand_PACKET_RECEIVED,  //out
+	DeviceCommand_PACKET_ERROR_CRC, //out
+	DeviceCommand_RESET_PACKET_NUMBER,//in
 };
 enum MoveMode //:char режим движения/интерполяции
 {
