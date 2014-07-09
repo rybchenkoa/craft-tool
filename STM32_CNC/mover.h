@@ -388,7 +388,7 @@ public:
 			maxrVelocity[i] = 1/((mmsec/stepSize)*delay);
 			maxrAcceleration[i] = 1/(accel/stepSize*delay*delay);
 		}
-		interpolation = FAST;
+		interpolation = MoveMode_FAST;
 		maxrFeed = maxrVelocity[0];
 		rFeed = maxrFeed/5;
 		
