@@ -5,38 +5,38 @@
 class SysTimer
 {
 	public:
+		int highCounter; //таймер тикает на уменьшение, поэтому здесь лежит накопленное время + макс. значение
 		void init()
 		{
-			RCC->APB2ENR |= RCC_APB2ENR_TIM17EN; //подключаем
-			TIM17->PSC = APB_FREQ/1000000-1;      //выставляем частоту тиков
-			TIM17->CR1 |= TIM_CR1_CEN;           //запускаем
+			highCounter = SysTick_LOAD_RELOAD_Msk + 1;
+			SysTick_Config(SysTick_LOAD_RELOAD_Msk);
 		}
 		
 		inline int get()
 		{
-			return TIM17->CNT;
+			return (highCounter - SysTick->VAL); //mks*24
 		}
 		
 		void delay_ms(int ms)
 		{
-			int endTime = ms*1000 + get();
+			int endTime = get_ms(ms);
 			while(endTime - get() > 0);
 		}
 		
 		void delay_mks(int mks)
 		{
-			int endTime = mks + get();
+			int endTime = get_mks(mks);
 			while(endTime - get() > 0);
 		}
 		
 		inline int get_ms(int ms)
 		{
-			return ms*1000 + get();
+			return ms*1000*24 + get();
 		}
 		
 		inline int get_mks(int mks)
 		{
-			return mks + get();
+			return mks*24 + get();
 		}
 		
 		inline bool check(int endTime)
@@ -46,3 +46,8 @@ class SysTimer
 };
 
 SysTimer timer;
+
+extern "C" void SysTick_Handler(void)
+{
+	timer.highCounter += SysTick_LOAD_RELOAD_Msk + 1;
+}
