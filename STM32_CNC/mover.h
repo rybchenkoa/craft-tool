@@ -2,6 +2,7 @@
 #include "packets.h"
 #include "motor.h"
 #include "sys_timer.h"
+#include "led.h"
 
 void send_packet(char *packet, int size);
 
@@ -14,7 +15,7 @@ class Receiver
 	void init()
 	{
 		queue.Clear();
-		packetNumber = 0;
+		packetNumber = char(-1);
 	}
 };
 
@@ -40,6 +41,16 @@ void send_packet_received(int number)
 }
 
 //=========================================================================================
+void send_packet_error_number(int number)
+{
+	PacketErrorPacketNumber packet;
+	packet.command = DeviceCommand_ERROR_PACKET_NUMBER;
+	packet.packetNumber = number;
+	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
+	send_packet((char*)&packet, sizeof(packet));
+}
+
+//=========================================================================================
 void push_received_packet(char *packet, int size)
 {
 	int size4 = (size+3)/4; //копируем сразу по 4 байта
@@ -53,31 +64,52 @@ void push_received_packet(char *packet, int size)
 //=========================================================================================
 void on_packet_received(char *packet, int size)
 {
-	int crc = calc_crc(packet, size);
-	if(crc != 0xFFFFFFFF)
+	led.show();
+	int crc = calc_crc(packet, size-4);
+	int receivedCrc = *(int*)(packet+size-4);
+	if(crc != receivedCrc)
 	{
+	/*char result[30];
+	sprintf(result, "\n0x%X, 0x%X\n", receivedCrc, crc);
+	usart.send_packet(result, strlen(result));*/		
 		send_wrong_crc();
 		return;
 	}
 	
 	if(*packet == DeviceCommand_RESET_PACKET_NUMBER)
 	{
-		receiver.packetNumber = 0;
-		send_packet_received(0);
+		receiver.packetNumber = PacketCount(-1);
+		send_packet_received(-1);
 	}
 	else
 	{
 		PacketCommon* common = (PacketCommon*)packet;
 		if (common->packetNumber == receiver.packetNumber) //до хоста не дошёл ответ о принятом пакете
+		{
 			send_packet_received(receiver.packetNumber);                       //шлём ещё раз
-		else if(common->packetNumber == receiver.packetNumber + 1) //принят следующий пакет
+			
+			/*char result[30];
+			sprintf(result, "\nBYLO %d %d\n", common->packetNumber, receiver.packetNumber);
+			send_packet(result, strlen(result));*/
+		}
+		else if(common->packetNumber == PacketCount(receiver.packetNumber + 1)) //принят следующий пакет
 		{
 			if(!receiver.queue.IsFull())
 			{
-				++receiver.packetNumber;
+				++(receiver.packetNumber);
 				push_received_packet(packet, size); //при использовании указателей можно было бы не копировать ещё раз
 				send_packet_received(receiver.packetNumber); //говорим, что приняли пакет
+			/*char result[30];
+			sprintf(result, "\nGOTOV %d %d\n", common->packetNumber, receiver.packetNumber);
+			send_packet(result, strlen(result));*/
 			}
+		}
+		else
+		{
+			send_packet_error_number(receiver.packetNumber);
+			/*char result[30];
+			sprintf(result, "\n%d %d\n", common->packetNumber, receiver.packetNumber);
+			send_packet(result, strlen(result));*/
 		}
 	}
 }
@@ -311,6 +343,7 @@ public:
 		OperateResult result = (this->*handler)();
 		if(result == END /* && this->handler != &Mover::empty*/) //если у нас что-то шло и кончилось
 		{
+			led.hide();
 			if(receiver.queue.IsEmpty())
 			{
 				init_empty();
@@ -329,6 +362,7 @@ public:
 							case MoveMode_LINEAR:
 							{
 								PacketMove *packet = (PacketMove*)common;
+								led.show();
 								init_linear(packet->coord, interpolation == MoveMode_FAST);
 								break;
 							}

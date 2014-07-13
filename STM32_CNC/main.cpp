@@ -51,7 +51,7 @@ void init_motors()
 					if (timeFloat != 0)
 						break;
 				}
-					
+				
 				if (timeFloat == 0 && float_pin_state())
 				{
 					timeFloat = maxDelay - SysTick->VAL;
@@ -64,7 +64,11 @@ void init_motors()
 			
 			char result[50]; *result = 0;
 			sprintf(result, "%i %i\r\n", timeConst, timeFloat);
-			usart.send_data(result, strlen(result));
+			usart.send_packet(result, strlen(result));
+			
+			char test[4] = {6,0,0,0};
+		  sprintf(result, "%x", calc_crc(test, 1));
+			usart.send_packet(result, strlen(result));
 			
 			//if (timeConst == 0 && timeFloat == 0)
 				//return;
@@ -80,6 +84,8 @@ void init_motors()
 //------------------------------------------------------
 void init()
 {
+	led.init();	
+	
 	timer.init();
 	
 	RCC->AHBENR |= RCC_AHBENR_CRCEN;
@@ -92,27 +98,8 @@ void init()
 	
 	init_motors(); //уже использует ШИМ
 	
-	led.init();
+
 }
-
-//---------------------------------------
-struct Coord
-{
-	int x,y,z; //текущие координаты
-};
-
-struct PointTo
-{
-	int x;    //куда доехать
-	int y;    //измеряется в шагах
-	int z;
-	int time; //за сколько доехать
-};
-
-
-struct PointTo Path[10];   //путь фрезы
-
-struct Coord curPos;       //текущее положение резца
 
 //---------------------------------------
 const bool ENABLE_VAL = true;

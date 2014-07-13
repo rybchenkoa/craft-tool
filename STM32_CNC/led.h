@@ -1,3 +1,4 @@
+#pragma once
 #include "stm32f10x.h"
 
 struct Led

@@ -1,5 +1,6 @@
 #include "stm32f10x.h"
 #include "fifo.h"
+#include "led.h"
 
 void on_packet_received(char *packet, int size);
 
@@ -34,7 +35,7 @@ class Usart
 		USART1->BRR = 208;//2500;//417;//94;// // 24 000 000/115200
 		
 		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE | 	// usart on, rx on, tx on, 
-									USART_CR1_RXNEIE | USART_CR1_TXEIE; 														//прерывание: байт принят
+									USART_CR1_RXNEIE | USART_CR1_TCIE; 														//прерывание: байт принят
 									
 		RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;   	// подключаем к usart pin porta								
 
@@ -59,7 +60,7 @@ class Usart
 			if(USART_SR_TXE & USART1->SR)
 			{
 				USART1->DR = transmitBuffer.Pop();
-				USART1->SR &= ~USART_SR_TXE;
+				//USART1->SR &= ~USART_SR_TXE;
 			}
 	}
 
@@ -71,6 +72,18 @@ class Usart
 		start_send();
 	}
 
+//----------------------------------------------------------
+	void send_packet(char *data, int size)
+	{
+		transmitBuffer.Push(OP_CODE);
+		transmitBuffer.Push(OP_RUN);
+		for(char *endp = data+size; data != endp; data++)
+			transmitBuffer.Push(*data);
+		transmitBuffer.Push(OP_CODE);
+		transmitBuffer.Push(OP_STOP);
+		start_send();
+	}
+	
 //----------------------------------------------------------
 	void process_receive_byte(char data)
 	{
@@ -148,14 +161,15 @@ extern "C" void USART1_IRQHandler(void)
 		usart.process_receive_byte(USART1->DR);
 		USART1->SR &= ~USART_SR_RXNE;
 	}
-	if (USART1->SR & USART_SR_TXE) //байт послан
+	if (USART1->SR & USART_SR_TC) //байт послан
 	{
 		usart.process_send_byte();
-		USART1->SR &= ~USART_SR_TXE;
+		USART1->SR &= ~USART_SR_TC;
 	}
 }
 
+//----------------------------------------------------------
 void send_packet(char *packet, int size)
 {
-	usart.send_data(packet, size);
+	usart.send_packet(packet, size);
 }
