@@ -64,7 +64,7 @@ void push_received_packet(char *packet, int size)
 //=========================================================================================
 void on_packet_received(char *packet, int size)
 {
-	led.show();
+	//led.show();
 	int crc = calc_crc(packet, size-4);
 	int receivedCrc = *(int*)(packet+size-4);
 	if(crc != receivedCrc)
@@ -228,7 +228,10 @@ public:
 		
 		if((length = iabs(coord[reference] - to[reference])) < linearData.accLength ||
 			 (length = iabs(coord[reference] - from[reference])) < linearData.accLength)
+		{
+			if(length == 0) length = 1;
 			linearData.rVelocity = isqrt(linearData.maxrAcceleration / (2*length));
+		}
 		else
 			linearData.rVelocity = linearData.maxrVelocity;
 		
@@ -314,6 +317,11 @@ public:
 	//----------------------------------
 	OperateResult empty()
 	{
+		if(timer.get() % 12000000 > 6000000)
+			led.show();
+		else
+			led.hide();
+			
 		if(receiver.queue.IsEmpty())
 			return WAIT;
 		else
@@ -343,7 +351,7 @@ public:
 		OperateResult result = (this->*handler)();
 		if(result == END /* && this->handler != &Mover::empty*/) //если у нас что-то шло и кончилось
 		{
-			led.hide();
+			//led.hide();
 			if(receiver.queue.IsEmpty())
 			{
 				init_empty();
@@ -362,7 +370,7 @@ public:
 							case MoveMode_LINEAR:
 							{
 								PacketMove *packet = (PacketMove*)common;
-								led.show();
+								led.flip();
 								init_linear(packet->coord, interpolation == MoveMode_FAST);
 								break;
 							}
@@ -417,7 +425,7 @@ public:
 			const float stepSize = 0.1f / SUB_STEPS; //0.1 мм на шаг
 			const float mmsec = 100; //мм/сек
 			const float delay = 0.000001; //1 тик - 1 микросекунда
-			const float accel = 10000000;//мм/сек^2
+			const float accel = 10000;//мм/сек^2
 			
 			maxrVelocity[i] = 1/((mmsec/stepSize)*delay);
 			maxrAcceleration[i] = 1/(accel/stepSize*delay*delay);
