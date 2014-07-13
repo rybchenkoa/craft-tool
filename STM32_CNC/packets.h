@@ -11,6 +11,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_PACKET_RECEIVED,  //out
 	DeviceCommand_PACKET_ERROR_CRC, //out
 	DeviceCommand_RESET_PACKET_NUMBER,//in
+	DeviceCommand_ERROR_PACKET_NUMBER,//out
 };
 enum MoveMode //:char режим движения/интерполяции
 {
@@ -29,7 +30,6 @@ enum MovePlane //:char плоскость интерполяции
 #pragma pack(push, 1)
 struct PacketCommon
 {
-	char size;
 	DeviceCommand command;
 	PacketCount packetNumber;
 };
@@ -78,6 +78,12 @@ struct PacketErrorCrc //сообщение о том, что пакет испо
 	DeviceCommand command;
 	int crc;
 };
+struct PacketErrorPacketNumber //сообщение о том, что сбилась очередь пакетов
+{
+	DeviceCommand command;
+	PacketCount packetNumber;
+	int crc;
+};
 #pragma pack(pop)
 
 //=========================================================================================
@@ -98,7 +104,7 @@ uint32_t calc_crc(char *buffer, int size)
 	volatile CRC_TypeDef *calc = CRC;
 	calc->CR |= CRC_CR_RESET;
 	
-	uint32_t wordLength = size>>2;
+	uint32_t wordLength = size/4;
 	uint32_t *wordBuffer = (uint32_t*) buffer;
 	
 	while(wordLength--)
