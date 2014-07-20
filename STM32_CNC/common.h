@@ -21,3 +21,23 @@ static const int PWM_PRESCALER = 1;//APB_FREQ / (PWM_FREQ * (PWM_SIZE+1))-1;
 static const uint32_t maxDelay = 1<<30;
 
 const int NUM_COORDS = 3;
+
+
+#define log_console(format, ...) \
+{\
+	char buffer[64];\
+	int count = sprintf(buffer, format, __VA_ARGS__);\
+	send_packet(buffer, count + 1);\
+}
+
+/*
+void log_console(char *format, ...)
+{
+  char buffer[256];
+  va_list args;
+  va_start (args, format);
+  int count = vsprintf (buffer, format, args);
+  send_packet(buffer, count);
+  va_end (args);
+}
+*/

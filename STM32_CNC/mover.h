@@ -69,9 +69,7 @@ void on_packet_received(char *packet, int size)
 	int receivedCrc = *(int*)(packet+size-4);
 	if(crc != receivedCrc)
 	{
-	/*char result[30];
-	sprintf(result, "\n0x%X, 0x%X\n", receivedCrc, crc);
-	usart.send_packet(result, strlen(result));*/		
+  	//log_console("\n0x%X, 0x%X\n", receivedCrc, crc);
 		send_wrong_crc();
 		return;
 	}
@@ -88,9 +86,7 @@ void on_packet_received(char *packet, int size)
 		{
 			send_packet_received(receiver.packetNumber);                       //шлём ещё раз
 			
-			/*char result[30];
-			sprintf(result, "\nBYLO %d %d\n", common->packetNumber, receiver.packetNumber);
-			send_packet(result, strlen(result));*/
+			//log_console("\nBYLO %d %d\n", common->packetNumber, receiver.packetNumber);
 		}
 		else if(common->packetNumber == PacketCount(receiver.packetNumber + 1)) //принят следующий пакет
 		{
@@ -99,17 +95,13 @@ void on_packet_received(char *packet, int size)
 				++(receiver.packetNumber);
 				push_received_packet(packet, size); //при использовании указателей можно было бы не копировать ещё раз
 				send_packet_received(receiver.packetNumber); //говорим, что приняли пакет
-			/*char result[30];
-			sprintf(result, "\nGOTOV %d %d\n", common->packetNumber, receiver.packetNumber);
-			send_packet(result, strlen(result));*/
+  			//log_console("\nGOTOV %d %d\n", common->packetNumber, receiver.packetNumber);
 			}
 		}
 		else
 		{
 			send_packet_error_number(receiver.packetNumber);
-			/*char result[30];
-			sprintf(result, "\n%d %d\n", common->packetNumber, receiver.packetNumber);
-			send_packet(result, strlen(result));*/
+			//log_console("\n%d %d\n", common->packetNumber, receiver.packetNumber);
 		}
 	}
 }
@@ -243,6 +235,7 @@ public:
 	//----------------------------------
 	void init_linear(int dest[3], bool isMax)
 	{
+		bool isEqual = true;
 		for(int i = 0; i < NUM_COORDS; ++i) //для алгоритма рисования
 		{
 			to[i] = dest[i];       //куда двигаемся
@@ -258,11 +251,16 @@ public:
 				linearData.delta[i] = from[i] - to[i];
 				linearData.add[i] = -1;
 			}
+			if(to[i] != from[i])
+				isEqual = false;
 		}
+		
+		if(isEqual) //если двигаться никуда не надо, то выйдет на первом такте
+			return;
 		
 		linearData.refCoord = 0;
 		linearData.refDelta = linearData.delta[0];     //находим опорную координату (максимальной длины)
-		for(int i = 0; i < NUM_COORDS; ++i)
+		for(int i = 1; i < NUM_COORDS; ++i)
 			if(linearData.refDelta < linearData.delta[i])
 			{
 				linearData.refDelta = linearData.delta[i];
@@ -276,7 +274,7 @@ public:
 		//находим максимальную скорость по опорной координате
 		int timeMax = iabs(to[0] - from[0]) * maxrVelocity[0];
 		int sqLen = ipow2(to[0] - from[0]);
-		for(int i = 0; i < NUM_COORDS; ++i)
+		for(int i = 1; i < NUM_COORDS; ++i)
 		{
 			int time = iabs(to[i] - from[i]) * maxrVelocity[i];
 			if(timeMax < time)
@@ -293,7 +291,7 @@ public:
 		
 		//находим максимальное ускорение по опорной координате
 		timeMax = iabs(to[0] - from[0]) * maxrAcceleration[0];
-		for(int i = 0; i < NUM_COORDS; ++i)
+		for(int i = 1; i < NUM_COORDS; ++i)
 		{
 			int time = iabs(to[i] - from[i]) * maxrAcceleration[i];
 			if(timeMax < time)
@@ -310,20 +308,23 @@ public:
 			linearData.maxrVelocity = isqrt(linearData.maxrAcceleration / refLen);
 		}
 		linearData.accLength = accLength;
-		
+		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
 		handler = &Mover::linear;
 	}
 
 	//----------------------------------
 	OperateResult empty()
 	{
-		if(timer.get() % 12000000 > 6000000)
+		if((unsigned int)timer.get() % 12000000 > 6000000)
 			led.show();
 		else
 			led.hide();
 			
 		if(receiver.queue.IsEmpty())
+		{
+			stopTime = timer.get_ms(10);
 			return WAIT;
+		}
 		else
 			return END;
 	}
@@ -359,7 +360,9 @@ public:
 			}
 			else
 			{
-				PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
+			  //log_console("DO  first %d, last %d\n", receiver.queue.first, receiver.queue.last);	
+
+				const PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
 				switch(common->command)
 				{
 					case DeviceCommand_MOVE:
@@ -371,6 +374,10 @@ public:
 							{
 								PacketMove *packet = (PacketMove*)common;
 								led.flip();
+
+			//log_console("pos %7d, %7d, %5d, time %d init\n",
+			        //packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
+								
 								init_linear(packet->coord, interpolation == MoveMode_FAST);
 								break;
 							}
@@ -381,12 +388,18 @@ public:
 							}
 						}
 						receiver.queue.Pop();
+
+			      //log_console("posle1  first %d, last %d\n", receiver.queue.first, receiver.queue.last);
 						break;
 					}
 					case DeviceCommand_MOVE_MODE:
 					{
 						interpolation = ((PacketInterpolationMode*)common)->mode;
 						receiver.queue.Pop();
+						log_console("mode %d\n", interpolation);
+            //log_console("posle2  first %d, last %d\n",
+			      //     receiver.queue.first, receiver.queue.last);
+						
 						break;
 					}
 					case DeviceCommand_SET_PLANE:
@@ -398,6 +411,9 @@ public:
 					case DeviceCommand_RESET_PACKET_NUMBER:
 					break;
 				}
+				
+			  //log_console("POSLE  first %d, last %d\n",
+			  //      receiver.queue.first, receiver.queue.last);
 			}
 		}
 	}
