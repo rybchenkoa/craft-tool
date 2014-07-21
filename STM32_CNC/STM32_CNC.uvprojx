@@ -443,6 +443,26 @@
               <FileType>5</FileType>
               <FilePath>.\common.h</FilePath>
             </File>
+            <File>
+              <FileName>mover.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\mover.h</FilePath>
+            </File>
+            <File>
+              <FileName>packets.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\packets.h</FilePath>
+            </File>
+            <File>
+              <FileName>sys_timer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\sys_timer.h</FilePath>
+            </File>
+            <File>
+              <FileName>float16.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\float16.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

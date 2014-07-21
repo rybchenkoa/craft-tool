@@ -19,14 +19,14 @@ class SysTimer
 		
 		void delay_ms(int ms)
 		{
-			int endTime = get_ms(ms);
-			while(endTime - get() > 0);
+			volatile int endTime = get_ms(ms);
+			while(check(endTime));
 		}
 		
 		void delay_mks(int mks)
 		{
-			int endTime = get_mks(mks);
-			while(endTime - get() > 0);
+			volatile int endTime = get_mks(mks);
+			while(check(endTime));
 		}
 		
 		inline int get_ms(int ms)
@@ -38,6 +38,11 @@ class SysTimer
 		{
 			return mks*24 + get();
 		}
+		
+		inline int get_mks(int from, int mks)
+		{
+			return mks*24 + from;
+		}		
 		
 		inline bool check(int endTime)
 		{

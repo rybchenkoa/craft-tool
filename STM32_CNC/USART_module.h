@@ -8,7 +8,7 @@ class Usart
 {
 	public:
 	FIFOBuffer<char, 6> receiveBuffer;  //64 байта на приём
-	FIFOBuffer<char, 6> transmitBuffer; //64 на отправку
+	FIFOBuffer<char, 9> transmitBuffer; //512 на отправку
 
 	enum Tags
 	{

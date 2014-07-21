@@ -3,6 +3,7 @@
 #include "motor.h"
 #include "sys_timer.h"
 #include "led.h"
+#include "float16.h"
 
 void send_packet(char *packet, int size);
 
@@ -163,7 +164,6 @@ public:
 	
 	MoveMode interpolation;
 	int rFeed;    //подача для G1
-	int maxrFeed; //подача для G0
 	
 	//----------------------------------
 	enum State
@@ -223,11 +223,12 @@ public:
 		{
 			if(length == 0) length = 1;
 			linearData.rVelocity = isqrt(linearData.maxrAcceleration / (2*length));
+			//log_console("len %d, acc %d\n", length, linearData.rVelocity);
 		}
 		else
 			linearData.rVelocity = linearData.maxrVelocity;
 		
-		stopTime = currentTime + linearData.rVelocity;
+		stopTime = timer.get_mks(currentTime, linearData.rVelocity);
 		
 		return WAIT;
 	}
@@ -236,6 +237,7 @@ public:
 	void init_linear(int dest[3], bool isMax)
 	{
 		bool isEqual = true;
+		float16 lengths[NUM_COORDS];
 		for(int i = 0; i < NUM_COORDS; ++i) //для алгоритма рисования
 		{
 			to[i] = dest[i];       //куда двигаемся
@@ -253,6 +255,8 @@ public:
 			}
 			if(to[i] != from[i])
 				isEqual = false;
+				
+			lengths[i] = linearData.delta[i];
 		}
 		
 		if(isEqual) //если двигаться никуда не надо, то выйдет на первом такте
@@ -269,46 +273,53 @@ public:
 		
 		//для алгоритма ускорения
 		int ref = linearData.refCoord;
-		int refLen = iabs(to[ref] - from[ref]); //проекция отрезка на опорную координату
+		int refLen = linearData.delta[ref]; //проекция отрезка на опорную координату
 		
 		//находим максимальную скорость по опорной координате
-		int timeMax = iabs(to[0] - from[0]) * maxrVelocity[0];
-		int sqLen = ipow2(to[0] - from[0]);
+		float16 timeMax = lengths[0] * float16(maxrVelocity[0]);
+		float16 sqLen = pow2(lengths[0]);
 		for(int i = 1; i < NUM_COORDS; ++i)
 		{
-			int time = iabs(to[i] - from[i]) * maxrVelocity[i];
+			float16 time = lengths[i] * float16(maxrVelocity[i]);
 			if(timeMax < time)
 				timeMax = time;
-			sqLen += ipow2(to[i] - from[i]);
+			sqLen += pow2(lengths[i]);
 		}
-		linearData.maxrVelocity = timeMax / refLen;
+		linearData.maxrVelocity = timeMax / float16(refLen);
 		
-		int length = isqrt(sqLen);    //длина отрезка
-		int feed = isMax ? maxrFeed : rFeed;
-		int projFeedVelocity = feed * length / refLen; //проекция скорости подачи на опорную координату
-		if(linearData.maxrVelocity < projFeedVelocity) //скорость подачи < макс. достижимой
-			linearData.maxrVelocity = projFeedVelocity;
+		if(!isMax)
+		{
+			float16 length = sqrt(sqLen);    //длина отрезка
+			float16 feed = rFeed;
+			int projFeedVelocity = feed * length / float16(refLen); //проекция скорости подачи на опорную координату
+			if(linearData.maxrVelocity < projFeedVelocity) //скорость подачи < макс. достижимой
+				linearData.maxrVelocity = projFeedVelocity;
+		}
 		
 		//находим максимальное ускорение по опорной координате
-		timeMax = iabs(to[0] - from[0]) * maxrAcceleration[0];
+		timeMax = lengths[0] * float16(maxrAcceleration[0]);
 		for(int i = 1; i < NUM_COORDS; ++i)
 		{
-			int time = iabs(to[i] - from[i]) * maxrAcceleration[i];
+			float16 time = lengths[i] * float16(maxrAcceleration[i]);
 			if(timeMax < time)
 				timeMax = time;
 		}
-		linearData.maxrAcceleration = timeMax / iabs(to[ref] - from[ref]);
+		linearData.maxrAcceleration = timeMax / lengths[ref];
 		
 		//теперь смотрим, достигнем ли такой скорости, когда дойдём до середины отрезка
 		//v=a*t, s=a*t^2/2 =v^2/2a
-		int accLength = linearData.maxrAcceleration/(2*linearData.maxrVelocity*linearData.maxrVelocity);
+		int accLength = float16(linearData.maxrAcceleration)/(float16(linearData.maxrVelocity)*float16(linearData.maxrVelocity)) ;
+		//int accLength = linearData.maxrAcceleration/linearData.maxrVelocity;
+		//accLength /= (2 * linearData.maxrVelocity);
+		log_console("acc %d, vel %d\n", linearData.maxrAcceleration, linearData.maxrVelocity);
+		log_console("len %d, len2 %d\n", accLength, refLen);
 		if(accLength > refLen/2)
 		{
 			accLength = refLen/2;
 			linearData.maxrVelocity = isqrt(linearData.maxrAcceleration / refLen);
 		}
 		linearData.accLength = accLength;
-		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
+		log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
 		handler = &Mover::linear;
 	}
 
@@ -441,14 +452,13 @@ public:
 			const float stepSize = 0.1f / SUB_STEPS; //0.1 мм на шаг
 			const float mmsec = 100; //мм/сек
 			const float delay = 0.000001; //1 тик - 1 микросекунда
-			const float accel = 10000;//мм/сек^2
+			const float accel = 100;//мм/сек^2
 			
 			maxrVelocity[i] = 1/((mmsec/stepSize)*delay);
 			maxrAcceleration[i] = 1/(accel/stepSize*delay*delay);
 		}
 		interpolation = MoveMode_FAST;
-		maxrFeed = maxrVelocity[0];
-		rFeed = maxrFeed/5;
+		rFeed = maxrVelocity[0] * 5; //для обычной подачи задержка больше
 		
 	}
 };
