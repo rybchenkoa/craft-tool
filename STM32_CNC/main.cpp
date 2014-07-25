@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include "stm32f10x.h"
 #include "led.h"
 #include "gpio_use.h"
@@ -31,7 +32,8 @@ void init_motors()
 		motor[i].index = i;
 		motor[i].maxVoltage = 128;
 		//сюда же запихнуть измерение индуктивности/сопротивления обмоток
-		led.hide();
+		//led.hide();
+		/*
 		for (int numCoils = 0; numCoils < 2; numCoils++)
 		{
 			if (numCoils == 0)
@@ -62,13 +64,10 @@ void init_motors()
 			
 			motor[i].set_coils_PWM(0, 0); //отключаем напряжение
 			
-			char result[50]; *result = 0;
-			sprintf(result, "%i %i\r\n", timeConst, timeFloat);
-			usart.send_packet(result, strlen(result));
+			log_console("%i %i\r\n", timeConst, timeFloat);
 			
 			char test[4] = {6,0,0,0};
-		  sprintf(result, "%x", calc_crc(test, 1));
-			usart.send_packet(result, strlen(result));
+			log_console("%x", calc_crc(test, 1));
 			
 			//if (timeConst == 0 && timeFloat == 0)
 				//return;
@@ -77,7 +76,8 @@ void init_motors()
 			while(timer.check(endTime) && (const_pin_state() || float_pin_state()));
 		}
 		
-		led.show();
+		//led.flip();
+		*/
 	}
 }
 
@@ -85,7 +85,7 @@ void init_motors()
 void init()
 {
 	led.init();	
-	
+	led.hide();
 	timer.init();
 	
 	RCC->AHBENR |= RCC_AHBENR_CRCEN;
@@ -176,14 +176,32 @@ void enable_all_pwms(int PWM_VAL)
 int main()
 {
 	init();
-
+led.show();
 	//int coord = 0;
 
 	mover.init();
+	//int pos[] = {4000, 6400, 200};
+	//mover.init_linear(pos, false);
+	int timeToSend = timer.get_ms(500);
 	while(1)
 	{
-		if(mover.stopTime <= timer.get())
+		if(!timer.check(mover.stopTime))
 			mover.update();
+			
+		if(!timer.check(timeToSend))
+		{
+			timeToSend = timer.get_ms(100);
+			/*char result[50];
+			sprintf(result, "pos %d, %d, %d, time %d\n",
+			        mover.to[0], mover.to[1], mover.to[2],
+							mover.stopTime - timer.get());*/
+			/*sprintf(result, "first %d, last %d\n",
+			        receiver.queue.first, receiver.queue.last);							
+			send_packet(result, strlen(result));*/
+			//log_console("first %d, last %d, time %d\n", receiver.queue.first, receiver.queue.last, timer.get());
+			log_console("pos %7d, %7d, %5d, time %d\n",
+			            mover.coord[0], mover.coord[1], mover.coord[2], timer.get());
+		}
 		/*if(!receiver.queue.IsEmpty())
 		{
 			PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
