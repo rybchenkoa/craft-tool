@@ -75,9 +75,6 @@ class Usart
 //----------------------------------------------------------
 	void send_packet(char *data, int size)
 	{
-		if(transmitBuffer.Count() + size + 5 > transmitBuffer.Size())
-			return;
-			
 		transmitBuffer.Push(OP_CODE);
 		transmitBuffer.Push(OP_RUN);
 		for(char *endp = data+size; data != endp; data++)

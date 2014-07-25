@@ -149,7 +149,7 @@ public:
 	int maxCoord[NUM_COORDS]; //должны определяться по концевым выключателям
 	int maxrVelocity[NUM_COORDS];    // 1/максимальная скорость передвижения (мкс/шаг)
 	int maxrAcceleration[NUM_COORDS];// 1/максимальное ускорение (мкс^2/шаг)
-	float16 stepLength[NUM_COORDS];      //мм/шаг
+	//int stepLength[NUM_COORDS];  //длина одного шага
 	
 	int coord[NUM_COORDS];    //текущие координаты
 	int bufCoord[NUM_COORDS]; //предрассчитанные новые координаты
@@ -194,6 +194,7 @@ public:
 		int maxrAcceleration;  //ускорение тиков^2/шаг
 		int rVelocity;         //скорость на прошлом шаге
 		int accLength;         //расстояние, в течение которого можно ускоряться
+		//int unitVelocity[NUM_COORDS];  //единичная скорость
 	};
 	LinearData linearData;
 	
@@ -276,25 +277,21 @@ public:
 		
 		//находим максимальную скорость по опорной координате
 		float16 timeMax = lengths[0] * float16(maxrVelocity[0]);
+		float16 sqLen = pow2(lengths[0]);
 		for(int i = 1; i < NUM_COORDS; ++i)
 		{
 			float16 time = lengths[i] * float16(maxrVelocity[i]);
 			if(timeMax < time)
 				timeMax = time;
+			sqLen += pow2(lengths[i]);
 		}
 		linearData.maxrVelocity = timeMax / float16(refLen);
 		
-		//ограничиваем скорость подачей
 		if(!isMax)
 		{
-			float16 sqLen = pow2(lengths[0] * stepLength[0]); //мм
-			for(int i = 1; i < NUM_COORDS; ++i)
-				sqLen += pow2(lengths[i] * stepLength[i]);
-		
-			float16 length = sqrt(sqLen);    //длина отрезка в мм
-			float16 projLen = lengths[ref] * stepLength[ref] / length; //косинус скорости на опорной координате
-			//тик/мм * мм/шаг 
-			int projFeedVelocity = float16(rFeed) * stepLength[ref] / projLen; //проекция скорости подачи на опорную координату
+			float16 length = sqrt(sqLen);    //длина отрезка
+			float16 feed = rFeed;
+			int projFeedVelocity = feed * length / float16(refLen); //проекция скорости подачи на опорную координату
 			if(linearData.maxrVelocity < projFeedVelocity) //скорость подачи < макс. достижимой
 				linearData.maxrVelocity = projFeedVelocity;
 		}
@@ -374,7 +371,7 @@ public:
 			}
 			else
 			{
-			  log_console("DO  first %d, last %d\n", receiver.queue.first, receiver.queue.last);	
+			  //log_console("DO  first %d, last %d\n", receiver.queue.first, receiver.queue.last);	
 
 				const PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
 				switch(common->command)
@@ -392,7 +389,7 @@ public:
 			//log_console("pos %7d, %7d, %5d, time %d init\n",
 			        //packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
 								
-								//init_linear(packet->coord, interpolation == MoveMode_FAST);
+								init_linear(packet->coord, interpolation == MoveMode_FAST);
 								break;
 							}
 							case MoveMode_CW_ARC:
@@ -413,64 +410,17 @@ public:
 						log_console("mode %d\n", interpolation);
             //log_console("posle2  first %d, last %d\n",
 			      //     receiver.queue.first, receiver.queue.last);
-						receiver.queue.Pop();
-						break;
-					}
-					case DeviceCommand_SET_BOUNDS:
-					{
-						PacketSetBounds *packet = (PacketSetBounds*)common;
-						for(int i = 0; i < NUM_COORDS; ++i)
-						{
-							minCoord[i] = packet->minCoord[i];
-							maxCoord[i] = packet->maxCoord[i];
-						}
-						receiver.queue.Pop();
-						break;
-					}
-					case DeviceCommand_SET_VEL_ACC:
-					{
-						PacketSetVelAcc *packet = (PacketSetVelAcc*)common;
-						for(int i = 0; i < NUM_COORDS; ++i)
-						{
-							maxrVelocity[i] = packet->maxrVelocity[i];
-							maxrAcceleration[i] = packet->maxrAcceleration[i];
-							log_console("[%d]: maxVel %d, maxAcc %d\n", i, maxrVelocity[i], maxrAcceleration[i]);
-						}
-						receiver.queue.Pop();
-						break;
-					}
-					case DeviceCommand_SET_FEED:
-					{
-						PacketSetFeed *packet = (PacketSetFeed*)common;
-						rFeed = packet->rFeed;
-						log_console("rFeed %d\n", rFeed);
-						receiver.queue.Pop();
-						break;
-					}
-					case DeviceCommand_SET_STEP_SIZE:
-					{
-						PacketSetStepSize *packet = (PacketSetStepSize*)common;
-						for(int i = 0; i < NUM_COORDS; ++i)
-						{
-							stepLength[i] = packet->stepSize[i];
-							log_console("[%d]: stepLength %d\n", i, int(stepLength[i].exponent));
-						}
-						receiver.queue.Pop();
+						
 						break;
 					}
 					case DeviceCommand_SET_PLANE:
 					{
-						receiver.queue.Pop();
-						break;
 					}
 					case DeviceCommand_WAIT:
-						receiver.queue.Pop();
-						break;
-						
-					default:
-						log_console("undefined packet type %d, %d\n", common->command, common->packetNumber);
-						receiver.queue.Pop();
-						break;
+					case DeviceCommand_PACKET_ERROR_CRC:
+					case DeviceCommand_PACKET_RECEIVED:
+					case DeviceCommand_RESET_PACKET_NUMBER:
+					break;
 				}
 				
 			  //log_console("POSLE  first %d, last %d\n",
