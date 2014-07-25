@@ -13,6 +13,12 @@ struct float16
 		//exponent = 0;
 	}
 
+	float16(short _mantis, short _exponent)
+	{
+		mantis = _mantis;
+		exponent = _exponent;
+	}
+
 	float16(float value)
 	{
 		int input = *(int*)&value;
@@ -54,41 +60,41 @@ struct float16
 
 	float16 operator * (float16 operand)
 	{ //1+15*2 - максимум 31 //1+1+14*2 - минимум 31 знак
-		float16 result;
+		short _mantis, _exponent;
 		int mant = (int(mantis)*operand.mantis)>>14;
 		int mantVal = mant > 0 ? mant : -mant;
-		result.exponent = exponent + operand.exponent;
+		_exponent = exponent + operand.exponent;
 		if(mantVal >= (1<<15))
 		{
-			result.mantis = (mant >> 1);
-			result.exponent++;
+			_mantis = (mant >> 1);
+			_exponent++;
 		}
 		else
-			result.mantis = mant;
+			_mantis = mant;
 		
-		return result;
+		return float16(_mantis, _exponent);
 	}
 
 	float16 operator / (float16 operand)
 	{
-		float16 result;
+		short _mantis, _exponent;
 		int mant = (int(mantis)<<15)/operand.mantis;
 		int mantVal = mant > 0 ? mant : -mant;
-		result.exponent = exponent - operand.exponent;
+		_exponent = exponent - operand.exponent;
 		if(mantVal >= (1<<15))
-			result.mantis = (mant >> 1);
+			_mantis = (mant >> 1);
 		else
 		{
-			result.mantis = mant;
-			result.exponent--;
+			_mantis = mant;
+			_exponent--;
 		}
 
-		return result;
+		return float16(_mantis, _exponent);
 	}
 	
 	float16 operator + (float16 operand) const
 	{
-		float16 result;
+		short _mantis, _exponent;
 		int mant;
 		int exp;
 		if(exponent < operand.exponent)
@@ -105,17 +111,17 @@ struct float16
 		int mantVal = mant > 0 ? mant : -mant;
 		int pos = 17 - __clz(mantVal);
 		if(pos > 16)
-			result.mantis = mant << -pos;
+			_mantis = mant << -pos;
 		else
-			result.mantis = mant >> pos;
-		result.exponent = exp + pos;
+			_mantis = mant >> pos;
+		_exponent = exp + pos;
 
-		return result;
+		return float16(_mantis, _exponent);
 	}
 
 	float16 operator - (float16 operand) const
 	{
-		float16 result;
+		short _mantis, _exponent;
 		int mant;
 		int exp;
 		if(exponent < operand.exponent)
@@ -132,12 +138,12 @@ struct float16
 		int mantVal = mant > 0 ? mant : -mant;
 		int pos = 17 - __clz(mantVal);
 		if(pos > 16)
-			result.mantis = mant << -pos;
+			_mantis = mant << -pos;
 		else
-			result.mantis = mant >> pos;
-		result.exponent = exp + pos;
+			_mantis = mant >> pos;
+		_exponent = exp + pos;
 
-		return result;
+		return float16(_mantis, _exponent);
 	}
 	
 	bool operator < (float16 value) const
@@ -210,18 +216,14 @@ struct float16
 
 float16 sqrt(float16 value)
 {
-	float16 result;
+	short _mantis, _exponent;
 	if(value.mantis <= 0)
-	{
-		result.mantis = 0;
-		result.exponent = 0;
-		return result;
-	}
+		return float16(0, 0);
 
 	unsigned int val = value.mantis << 16;
 	if((value.exponent & 1) == 1)
 		val = val << 1; //бит знака = 0, ничего не затрём
-	result.exponent = value.exponent >> 1;
+	_exponent = value.exponent >> 1;
 
 	unsigned int res = value.mantis;
 	res = (val/res + res)/2;
@@ -231,20 +233,19 @@ float16 sqrt(float16 value)
 	//res = (val/res + res)/2;
 	//res = (val/res + res)/2;
 
-	result.mantis = res>>1;
-	return result;
+	_mantis = res>>1;
+	return float16(_mantis, _exponent);
 }
 
 float16 pow2(float16 value)
 {
-	float16 result = value * value;
-	return result;
+	return value * value;
 }
 
 float16 abs(float16 value)
 {
-	float16 result;
-	result.exponent = value.exponent;
-	result.mantis = (value.mantis > 0 ? value.mantis : -value.mantis);
-	return result;
+	short _mantis, _exponent;
+	_exponent = value.exponent;
+	_mantis = (value.mantis > 0 ? value.mantis : -value.mantis);
+	return float16(_mantis, _exponent);
 }
