@@ -27,7 +27,7 @@ struct float16
 			mantis = -mantis;
 		int exp = (input << 1) & 0xFF000000;
 		exponent = exp>>24;
-		exponent += 0x81;
+		exponent = int8_t(exponent + 0x81);
 	}
 	
 	operator float() const
