@@ -163,7 +163,7 @@ public:
 	int to[NUM_COORDS];       //куда двигаемся
 	
 	MoveMode interpolation;
-	int rFeed;    //подача для G1
+	int rFeed;    //подача (тиков/мм)
 	
 	//----------------------------------
 	enum State
@@ -292,9 +292,9 @@ public:
 				sqLen += pow2(lengths[i] * stepLength[i]);
 		
 			float16 length = sqrt(sqLen);    //длина отрезка в мм
-			float16 projLen = lengths[ref] * stepLength[ref] / length; //косинус скорости на опорной координате
+			float16 projLen = lengths[ref] / length; //косинус скорости на опорной координате
 			//тик/мм * мм/шаг 
-			int projFeedVelocity = float16(rFeed) * stepLength[ref] / projLen; //проекция скорости подачи на опорную координату
+			int projFeedVelocity = int(float16(rFeed) / projLen); //проекция скорости подачи на опорную координату
 			if(linearData.maxrVelocity < projFeedVelocity) //скорость подачи < макс. достижимой
 				linearData.maxrVelocity = projFeedVelocity;
 		}
@@ -312,17 +312,18 @@ public:
 		//теперь смотрим, достигнем ли такой скорости, когда дойдём до середины отрезка
 		//v=a*t, s=a*t^2/2 =v^2/2a
 		int accLength = float16(linearData.maxrAcceleration)/(float16(linearData.maxrVelocity)*float16(linearData.maxrVelocity)) ;
+		accLength /= 2;
 		//int accLength = linearData.maxrAcceleration/linearData.maxrVelocity;
 		//accLength /= (2 * linearData.maxrVelocity);
-		log_console("acc %d, vel %d\n", linearData.maxrAcceleration, linearData.maxrVelocity);
-		log_console("len %d, len2 %d\n", accLength, refLen);
+		//log_console("acc %d, vel %d\n", linearData.maxrAcceleration, linearData.maxrVelocity);
+		//log_console("len %d, len2 %d\n", accLength, refLen);
 		if(accLength > refLen/2)
 		{
 			accLength = refLen/2;
 			linearData.maxrVelocity = isqrt(linearData.maxrAcceleration / refLen);
 		}
 		linearData.accLength = accLength;
-		log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
+		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
 		handler = &Mover::linear;
 	}
 
@@ -355,10 +356,10 @@ public:
 	
 	void update()
 	{
-		motor[0].set_sin_voltage(bufCoord[0], 64);
-		motor[1].set_sin_voltage(bufCoord[0], 64);
-		motor[2].set_sin_voltage(bufCoord[1], 64);
-		motor[3].set_sin_voltage(bufCoord[2], 64);
+		motor[0].set_sin_voltage(bufCoord[0], 255);
+		motor[1].set_sin_voltage(bufCoord[0], 255);
+		motor[2].set_sin_voltage(bufCoord[1], 255);
+		motor[3].set_sin_voltage(bufCoord[2], 255);
 		
 		for(int i = 0; i < NUM_COORDS; ++i)
 			coord[i] = bufCoord[i];
@@ -455,6 +456,17 @@ public:
 							stepLength[i] = packet->stepSize[i];
 							log_console("[%d]: stepLength %d\n", i, int(stepLength[i].exponent));
 						}
+						receiver.queue.Pop();
+						break;
+					}
+					case DeviceCommand_SET_VOLTAGE:
+					{
+						PacketSetVoltage *packet = (PacketSetVoltage*)common;
+						for(int i = 0; i < NUM_COORDS; ++i)
+						{
+							motor[i+1].maxVoltage = packet->voltage[i];
+						}
+						motor[0].maxVoltage = packet->voltage[0];
 						receiver.queue.Pop();
 						break;
 					}

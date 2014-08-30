@@ -17,6 +17,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SET_VEL_ACC,      //in
 	DeviceCommand_SET_FEED,         //in
 	DeviceCommand_SET_STEP_SIZE,    //in
+	DeviceCommand_SET_VOLTAGE,      //in
 };
 enum MoveMode //:char режим движения/интерполяции
 {
@@ -95,6 +96,12 @@ struct PacketSetStepSize
 	DeviceCommand command;
 	PacketCount packetNumber;
 	float stepSize[NUM_COORDS];
+};
+struct PacketSetVoltage
+{
+	DeviceCommand command;
+	PacketCount packetNumber;
+	int voltage[NUM_COORDS];
 };
 
 //принимаемые от мк пакеты-----------------------------------------------------
