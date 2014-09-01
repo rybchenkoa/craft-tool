@@ -164,6 +164,7 @@ public:
 	
 	MoveMode interpolation;
 	int rFeed;    //подача (тиков/мм)
+	int voltage[NUM_COORDS];  //регулировка напряжения на больших оборотах и при простое
 	
 	//----------------------------------
 	enum State
@@ -172,7 +173,6 @@ public:
 		LINEAR,
 		CW,
 		CCW,
-		
 	};
 	
 	//----------------------------------
@@ -324,6 +324,10 @@ public:
 		}
 		linearData.accLength = accLength;
 		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
+		
+		for(int i=0; i<NUM_COORDS; ++i)
+		  voltage[i] = 256;
+			
 		handler = &Mover::linear;
 	}
 
@@ -348,6 +352,9 @@ public:
 	void init_empty()
 	{
 		handler = &Mover::empty;
+		
+		for(int i=0; i<NUM_COORDS; ++i)
+		  voltage[i] = 64;
 	}
 	
 	//----------------------------------
@@ -356,10 +363,10 @@ public:
 	
 	void update()
 	{
-		motor[0].set_sin_voltage(bufCoord[0], 255);
-		motor[1].set_sin_voltage(bufCoord[0], 255);
-		motor[2].set_sin_voltage(bufCoord[1], 255);
-		motor[3].set_sin_voltage(bufCoord[2], 255);
+		motor[0].set_sin_voltage(bufCoord[0], voltage[0]);
+		motor[1].set_sin_voltage(bufCoord[0], voltage[0]);
+		motor[2].set_sin_voltage(bufCoord[1], voltage[1]);
+		motor[3].set_sin_voltage(bufCoord[2], voltage[2]);
 		
 		for(int i = 0; i < NUM_COORDS; ++i)
 			coord[i] = bufCoord[i];
@@ -476,8 +483,13 @@ public:
 						break;
 					}
 					case DeviceCommand_WAIT:
+					{
+						init_empty();
+						PacketWait *packet = (PacketWait*)common;
+						stopTime = timer.get_mks(packet->delay);
 						receiver.queue.Pop();
 						break;
+					}
 						
 					default:
 						log_console("undefined packet type %d, %d\n", common->command, common->packetNumber);
@@ -522,6 +534,8 @@ public:
 		interpolation = MoveMode_FAST;
 		rFeed = maxrVelocity[0] * 5; //для обычной подачи задержка больше
 		
+		for(int i=0; i<NUM_COORDS; ++i)
+		  voltage[i] = 64;
 	}
 };
 
