@@ -29,7 +29,7 @@ struct Motor
 {
 	int index;         //номер для доступа к выводам контроллера
 	int stepPhase;     //что надо прибавить к текущим координатам, чтобы получить фазу сигналов на обмотках
-	int maxVoltage;    //максимальное напряжение на обмотках 0-255 (регуляция тока)
+	int maxVoltage;    //максимальное напряжение на обмотках 0-256 (регуляция тока)
 	int LRfactor;      //скорость нарастания тока при приложении постоянного напряжения, показатель экспоненты, 0-255
 	int position;      //по каким координатам сейчас расположена гайка
 
@@ -37,7 +37,7 @@ struct Motor
 	{
 		index = 0;
 		stepPhase = 0;
-		maxVoltage = 255;
+		maxVoltage = 256;
 		position = 0;
 	}
 	//------------------------------------------------------------
@@ -67,7 +67,7 @@ struct Motor
 
 	//------------------------------------------------------------
 	//в зависимости от позиции задаёт напряжение
-	void set_sin_voltage(int position, int percent) //доля напряжения изменяется от 0 до 255
+	void set_sin_voltage(int position, int percent) //доля напряжения изменяется от 0 до 256
 	{
 		position += stepPhase;
 		//первые биты отвечают за значение косинуса
@@ -76,11 +76,9 @@ struct Motor
 		int sinIndex = cosIndex - COS_TABLE_COUNT / 4; //синус - это косинус, подвинутый вправо на 1/4, аргумент двигаем влево
 		if (sinIndex < 0) sinIndex += COS_TABLE_COUNT;
 		
-		int voltage1 = PWM_SIZE * percent * cosTable[cosIndex]    / (1<<15); //если бы была гарантия, что знак не потеряется...
-		int voltage2 = PWM_SIZE * percent * cosTable[sinIndex]    / (1<<15);
-		
-		voltage1 = voltage1 * maxVoltage /(1<<7);
-		voltage2 = voltage2 * maxVoltage /(1<<7);
+		int level = (PWM_SIZE * percent * maxVoltage) >> 8;
+		int voltage1 = (level * cosTable[cosIndex]) >> 15;
+		int voltage2 = (level * cosTable[sinIndex]) >> 15;
 		
 		set_coils_PWM(voltage1, voltage2);
 	}
@@ -94,8 +92,9 @@ struct Motor
 		int cosIndex = fullStep[quart][0];
 		int sinIndex = fullStep[quart][1];
 		
-		int voltage1 = PWM_SIZE * percent * cosTable[cosIndex]    / (1<<15); //если бы была гарантия, что знак не потеряется...
-		int voltage2 = PWM_SIZE * percent * cosTable[sinIndex]    / (1<<15);
+		int level = (PWM_SIZE * percent * maxVoltage) >> 8;
+		int voltage1 = (level * cosTable[cosIndex]) >> 15;
+		int voltage2 = (level * cosTable[sinIndex]) >> 15;
 		
 		set_coils_PWM(voltage1, voltage2);
 	}
