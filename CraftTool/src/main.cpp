@@ -1,8 +1,9 @@
-#include "mainwindow.h"
 #include <QApplication>
+#include "mainwindow.h"
 
 #include "GCodeInterpreter.h"
 #include "IRemoteDevice.h"
+
 
 void execute()
 {

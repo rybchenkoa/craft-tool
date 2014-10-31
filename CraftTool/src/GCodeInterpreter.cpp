@@ -113,9 +113,9 @@ void FrameParams::reset()
 	flagValue.reset();
 	flagModal.reset();
 	sendWait = false; //G4 readed
-	plane = (Plane)NONE;    //G17
+    plane = Plane_NONE;    //G17
 	absoluteSet = false; //G53
-	motionMode = (MotionMode)NONE;
+    motionMode = MotionMode_NONE;
 }
 
 //формирует параметры перехода в новое состояние
@@ -243,7 +243,7 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
 			return ModalGroup_ACTIVE_PLANE;
 
 		default:
-			return (ModalGroup)NONE;
+            return ModalGroup_NONE;
 		}
 	}
 	else if (letter == 'M')
@@ -263,11 +263,11 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
 			return ModalGroup_GREASER;
 
 		default:
-			return (ModalGroup)NONE;
+            return ModalGroup_NONE;
 		}
 	}
 	else
-		return (ModalGroup)NONE;
+        return ModalGroup_NONE;
 }
 
 //исполняет прочитанный фрейм в нужном порядке
@@ -277,7 +277,7 @@ InterError GCodeInterpreter::run_modal_groups()
 
 	switch (readedFrame.plane) //задаём плоскость обработки
 	{
-		case NONE: break;
+        case Plane_NONE: break;
 
 		case Plane_XY: remoteDevice->set_plane(MovePlane_XY); break;
 		case Plane_ZX: remoteDevice->set_plane(MovePlane_ZX); break;
@@ -294,7 +294,7 @@ InterError GCodeInterpreter::run_modal_groups()
 
 	switch (readedFrame.motionMode)
 	{
-		case NONE: break;
+        case MotionMode_NONE: break;
 
 		case MotionMode_CCW_ARC:
 		case MotionMode_CW_ARC:
@@ -457,7 +457,7 @@ bool Reader::parse_value(double &dst)
 }
 
 //читает строки в список
-bool GCodeInterpreter::read_file(char *name)
+bool GCodeInterpreter::read_file(const char *name)
 {
 	std::ifstream file(name); //открываем файл
 

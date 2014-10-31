@@ -9,7 +9,6 @@
 
 namespace Interpreter
 {
-#define NONE 0
 
 typedef double coord;//чтобы не путаться, координатный тип введём отдельно
 
@@ -54,8 +53,8 @@ enum BitPos //позиции битов во флаговых переменных
 */
 enum MotionMode //режимы перемещения
 {
-	//NONE = 0,
-	MotionMode_FAST = 1,      //быстрое позиционирование
+    MotionMode_NONE = 0,
+    MotionMode_FAST,      //быстрое позиционирование
 	MotionMode_LINEAR,    //линейная интерполяция
 	MotionMode_CW_ARC,    //круговая интерполяция
 	MotionMode_CCW_ARC,
@@ -64,8 +63,8 @@ enum MotionMode //режимы перемещения
 
 enum OpCode  //распознаваемые коды операций
 {
-	//NONE = 0,
-	G0_FAST_MOVE = 1,
+    OpCode_NONE = 0,
+    G0_FAST_MOVE,
 	G1_LINEAR,
 	G2_CW_ARC,
 	G3_CCW_ARC,
@@ -97,8 +96,8 @@ enum OpCode  //распознаваемые коды операций
 
 enum ModalGroup //некоторые операторы не могут одновременно содержаться в одном фрейме
 {
-	//NONE = 0, //g4,g10,g28,g30,g53,g92.[0-3]
-	ModalGroup_MOVE = 1,                 //g0..g3 //G38.2, G80..G89
+    ModalGroup_NONE = 0, //g4,g10,g28,g30,g53,g92.[0-3]
+    ModalGroup_MOVE,                 //g0..g3 //G38.2, G80..G89
 	ModalGroup_INCREMENTAL, //g90..g91
 	ModalGroup_UNITS, //g20..g21
 	//ModalGroup_CYCLE, //g80..g85
@@ -115,8 +114,8 @@ enum ModalGroup //некоторые операторы не могут одновременно содержаться в одном 
 
 enum Plane
 {
-	//NONE = 0,
-	Plane_XY = 1,
+    Plane_NONE = 0,
+    Plane_XY,
 	Plane_ZX,
 	Plane_YZ,
 };
@@ -246,7 +245,7 @@ public:
 	IRemoteDevice *remoteDevice; //устройство, которое исполняет команды
 
 	void init();                            //инициализация для нового файла
-	bool read_file(char *name);             //запоминает строки текстового файла
+    bool read_file(const char *name);             //запоминает строки текстового файла
 	void execute_file();                    //исполняет файл
 	InterError execute_frame(const char *frame);	//выполнение строки
 	InterError make_new_state();            //чтение команд из строки

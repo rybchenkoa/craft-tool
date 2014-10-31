@@ -98,6 +98,7 @@ DWORD WINAPI ComPortConnect::send_thread( LPVOID lpParam )
 	}
 
 	CloseHandle(_this->ovWrite.hEvent);
+    return 0;
 }
 
 void ComPortConnect::send_data(char *buffer, int count)

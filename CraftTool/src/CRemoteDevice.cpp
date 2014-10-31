@@ -319,5 +319,7 @@ DWORD WINAPI CRemoteDevice::send_thread(void *__this)
 
 		_this->canSend = true; //шлём следующий или тот же
 	}
+
+    return 0;
 }
 
