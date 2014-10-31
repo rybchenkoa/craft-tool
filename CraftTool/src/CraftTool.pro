@@ -4,8 +4,9 @@
 #
 #-------------------------------------------------
 
-QT       += core
-QT       -= gui
+QT       += core gui opengl
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 LIBS += -lws2_32
 
@@ -17,14 +18,20 @@ CONFIG   -= app_bundle
 
 QMAKE_CXXFLAGS += -std=c++11
 
-SOURCES += ComPortConnect.cpp\
+SOURCES += main.cpp\
+           mainwindow.cpp\
+           scene3d.cpp\
+           ComPortConnect.cpp\
            GCodeInterpreter.cpp\
-           CRemoteDevice.cpp \
-           main.cpp
+           CRemoteDevice.cpp
 
 
 
-HEADERS  += GCodeInterpreter.h\
+HEADERS  += mainwindow.h\
+            scene3d.h\
+            GCodeInterpreter.h\
             IRemoteDevice.h\
             ComPortConnect.h\
             IPortToDevice.h
+
+FORMS    += mainwindow.ui
