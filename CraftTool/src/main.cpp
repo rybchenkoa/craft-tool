@@ -4,9 +4,9 @@
 #include "GCodeInterpreter.h"
 #include "IRemoteDevice.h"
 
-
-void execute()
+static DWORD WINAPI execute( LPVOID lpParam )
 {
+    Q_UNUSED(lpParam)
 
     Interpreter::GCodeInterpreter inter;             //есть у нас интерпретатор
     CRemoteDevice *remoteDevice = new CRemoteDevice; //он передаёт команды классу связи с устройством
@@ -18,6 +18,7 @@ void execute()
     catch(const char *a)
     {
         qWarning(a);
+        exit(1);
     }
     remoteDevice->comPort = comPort; //говорим устройству, через что слать
     comPort->remoteDevice = remoteDevice; //порту говорим, кто принимает
@@ -39,7 +40,7 @@ int main(int argc, char* argv[])
     MainWindow w;
     w.show();
 
-    execute();
+    CreateThread(NULL, 0, execute, 0, 0, 0);
 
     return a.exec();
 }
