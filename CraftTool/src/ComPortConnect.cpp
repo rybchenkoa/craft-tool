@@ -164,7 +164,7 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
     ComPortConnect *_this = (ComPortConnect*)lpParam;
 
     DWORD eventMask = 0;
-    DWORD dwReaded = 0;
+    DWORD readed = 0;
 
     const int bufferSize = 10;
     char inData[bufferSize+2];
@@ -199,22 +199,22 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
             while(true)
             {
                 memset(inData, 0, sizeof(inData));
-                retcode = ReadFile(_this->hCom, inData, bufferSize, &dwReaded, &_this->ovRead);
-//receiveBPS += dwReaded;
+                retcode = ReadFile(_this->hCom, inData, bufferSize, &readed, &_this->ovRead);
+//receiveBPS += readed;
 
                 if( retcode == 0 && GetLastError() == ERROR_IO_PENDING ) //не успели прочитать
                 {
                     WaitForSingleObject(_this->ovRead.hEvent, INFINITE);
-                    retcode = GetOverlappedResult(_this->hCom, &_this->ovRead, &dwReaded, FALSE) ;
+                    retcode = GetOverlappedResult(_this->hCom, &_this->ovRead, &readed, FALSE) ;
                 }
 
-_this->receiveBPS += dwReaded;
+_this->receiveBPS += readed;
 
-                if (dwReaded > 0) //если прочитали данные
+                if (readed > 0) //если прочитали данные
                 {
-                    //printf("%d байт прочитано: '%s'\n", dwReaded, inData);
+                    //printf("%d байт прочитано: '%s'\n", readed, inData);
                     //printf(inData);
-                    _this->process_bytes(inData, dwReaded);
+                    _this->process_bytes(inData, readed);
                 }
                 else
                     break;
