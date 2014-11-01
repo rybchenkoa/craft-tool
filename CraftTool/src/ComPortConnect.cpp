@@ -62,42 +62,9 @@ int ComPortConnect::init_port(int portNumber)
     if(!SetCommTimeouts(hCom, &timeouts))
         throw("cant write port timeouts");
 
-/*
     DWORD   threadId;
-    HANDLE hThread = CreateThread( 
-            NULL,                   //параметры безопасности
-            0,                      //размер стека
-            send_thread,            //функция потока
-            this,                   //аргумент для этой функции
-            0,                      //какие-то флаги создания
-            &threadId);             //возвращает ид потока
-*/
-    DWORD   threadId2;
-    HANDLE hThread2 = CreateThread(NULL, 0, receive_thread, this, 0, &threadId2);
+    hThread = CreateThread(NULL, 0, receive_thread, this, 0, &threadId);
 
-    return 0;
-}
-
-DWORD WINAPI ComPortConnect::send_thread( LPVOID lpParam )
-{
-    ComPortConnect *_this = (ComPortConnect*)lpParam;
-
-    DWORD write;
-    char data[100];
-    _this->ovWrite.hEvent=CreateEvent(NULL, TRUE, TRUE, NULL);
-
-    while(true)
-    {
-        int result = WriteFile(_this->hCom, data, strlen(data), &write, &_this->ovWrite);
-
-        WaitForSingleObject(_this->ovWrite.hEvent, INFINITE);
-        result = GetOverlappedResult(_this->hCom, &_this->ovWrite, &write, TRUE);
-        _this->transmitBPS += write-4;
-        if(!result)
-            printf("error1: %d\n", GetLastError());
-    }
-
-    CloseHandle(_this->ovWrite.hEvent);
     return 0;
 }
 
@@ -243,7 +210,7 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
 
 _this->receiveBPS += dwReaded;
 
-                if (dwReaded>0) //если прочитали данные
+                if (dwReaded > 0) //если прочитали данные
                 {
                     //printf("%d байт прочитано: '%s'\n", dwReaded, inData);
                     //printf(inData);

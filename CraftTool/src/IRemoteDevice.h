@@ -211,6 +211,7 @@ protected:
     void push_packet_common(T *packet);
 
     static DWORD WINAPI send_thread(void* __this);
+    HANDLE hThread;
 
     std::queue<PacketCommon*> commandQueue;
     std::queue<char*> inputQueue;

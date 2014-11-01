@@ -13,7 +13,7 @@ CRemoteDevice::CRemoteDevice()
     missedHalfSend = 0;
 
     DWORD   threadId;
-    HANDLE hThread2 = CreateThread(NULL, 0, send_thread, this, 0, &threadId);
+    hThread = CreateThread(NULL, 0, send_thread, this, 0, &threadId);
 }
 
 
@@ -231,7 +231,7 @@ void CRemoteDevice::make_crc(char *packet)
 
 bool CRemoteDevice::need_next_command()
 {
-    return (commandQueue.size() < 100);
+    return (commandQueue.size() < 2);
 }
 
 bool CRemoteDevice::queue_empty()

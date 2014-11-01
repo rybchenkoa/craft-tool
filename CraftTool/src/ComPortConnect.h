@@ -14,11 +14,11 @@ public:
     ~ComPortConnect(void);
 
     int init_port(int portNumber);
-    static DWORD WINAPI send_thread( LPVOID lpParam );
-    static DWORD WINAPI receive_thread( LPVOID lpParam );
     void process_bytes(char *buffer, int count);
     void send_data(char *buffer, int count);
+    static DWORD WINAPI receive_thread( LPVOID lpParam );
 
+    HANDLE hThread;
     HANDLE hCom;
     OVERLAPPED ovRead;
     OVERLAPPED ovWrite;
