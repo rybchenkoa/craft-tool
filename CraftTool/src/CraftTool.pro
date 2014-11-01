@@ -24,16 +24,19 @@ SOURCES += main.cpp\
            ComPortConnect.cpp\
            GCodeInterpreter.cpp\
            CRemoteDevice.cpp\
-           LogConsole.cpp
+           LogConsole.cpp\
+           log.cpp
 
 
 
-HEADERS  += mainwindow.h\
+HEADERS  += main.h\
+            mainwindow.h\
             scene3d.h\
             GCodeInterpreter.h\
             IRemoteDevice.h\
             ComPortConnect.h\
             IPortToDevice.h\
-            LogConsole.h
+            LogConsole.h\
+            log.h
 
 FORMS    += mainwindow.ui

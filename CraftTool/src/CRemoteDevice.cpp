@@ -1,4 +1,5 @@
 #include "IRemoteDevice.h"
+#include "log.h"
 
 #include "WinSock.h"
 //#pragma comment(lib, "wsock32.lib")
@@ -97,7 +98,7 @@ void CRemoteDevice::set_position(double x, double y, double z)
     packet->coord[0] = int(x*scale[0]);
     packet->coord[1] = int(y*scale[1]);
     packet->coord[2] = int(z*scale[2]);
-    printf("   GO TO %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2]);
+    log_message("   GO TO %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2]);
     push_packet_common(packet);
 }
 
@@ -248,7 +249,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     if(crc != receivedCrc)
     {
         for(int i=0; i<size; i++)
-            printf("%c", data[i]);
+            log_warning("%c", data[i]);
         missedReceives++;
         //canSend = true;
         return false;
@@ -266,7 +267,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
         }
         else
         {
-            printf("err receive number %d\n", ((PacketReceived*)data)->packetNumber);
+            log_warning("err receive number %d\n", ((PacketReceived*)data)->packetNumber);
             canSend = true;
             return false;
         }
@@ -277,10 +278,10 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
         return true;
 
     case DeviceCommand_ERROR_PACKET_NUMBER:
-        printf("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
+        log_warning("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
         return false;
     default:
-        printf("%s\n", data);
+        log_message("%s\n", data);
     }
     return false;
 }

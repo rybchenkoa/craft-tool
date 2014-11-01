@@ -10,7 +10,7 @@ void LogConsole::mousePressEvent(QMouseEvent *)
     setFocus();
 }
 
-void LogConsole::output(QString s)
+void LogConsole::output(QColor color, QString message)
 {
     bool needScroll;
     QScrollBar *vbar = verticalScrollBar();
@@ -18,9 +18,9 @@ void LogConsole::output(QString s)
 
     textCursor().insertBlock();
     QTextCharFormat format;
-    format.setForeground(Qt::red);
+    format.setForeground(color);
     textCursor().setBlockCharFormat(format);
-    textCursor().insertText(s);
+    textCursor().insertText(message);
 
     if(needScroll)
         scrollDown();

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>412</width>
-    <height>283</height>
+    <height>481</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -41,7 +41,7 @@
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="QListView" name="g_commandList">
+         <widget class="QListView" name="c_commandList">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -53,14 +53,14 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout">
           <item>
-           <widget class="QPushButton" name="g_startButton">
+           <widget class="QPushButton" name="c_startButton">
             <property name="text">
              <string>PushButton</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="g_stopButton">
+           <widget class="QPushButton" name="c_stopButton">
             <property name="text">
              <string>PushButton</string>
             </property>
@@ -69,12 +69,12 @@
          </layout>
         </item>
         <item>
-         <widget class="LogConsole" name="g_logConsole"/>
+         <widget class="LogConsole" name="c_logConsole"/>
         </item>
        </layout>
       </item>
       <item>
-       <widget class="Scene3d" name="g_3dView" native="true">
+       <widget class="Scene3d" name="c_3dView" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
@@ -106,14 +106,14 @@
     <property name="title">
      <string>файл</string>
     </property>
-    <addaction name="g_menuOpenProgram"/>
+    <addaction name="menuOpenProgram"/>
     <addaction name="separator"/>
-    <addaction name="g_menuLoadConfig"/>
-    <addaction name="g_menuSaveConfig"/>
+    <addaction name="c_menuLoadConfig"/>
+    <addaction name="c_menuSaveConfig"/>
    </widget>
    <addaction name="menu"/>
   </widget>
-  <widget class="QToolBar" name="mainToolBar">
+  <widget class="QToolBar" name="c_mainToolBar">
    <attribute name="toolBarArea">
     <enum>LeftToolBarArea</enum>
    </attribute>
@@ -121,18 +121,18 @@
     <bool>false</bool>
    </attribute>
   </widget>
-  <widget class="QStatusBar" name="statusBar"/>
-  <action name="g_menuOpenProgram">
+  <widget class="QStatusBar" name="c_statusBar"/>
+  <action name="menuOpenProgram">
    <property name="text">
     <string>открыть программу...</string>
    </property>
   </action>
-  <action name="g_menuLoadConfig">
+  <action name="c_menuLoadConfig">
    <property name="text">
     <string>загрузить конфиг...</string>
    </property>
   </action>
-  <action name="g_menuSaveConfig">
+  <action name="c_menuSaveConfig">
    <property name="text">
     <string>сохранить конфиг...</string>
    </property>

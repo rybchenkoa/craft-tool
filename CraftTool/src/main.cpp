@@ -1,5 +1,10 @@
 #include <QApplication>
 #include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include "log.h"
+
+QApplication *g_application = 0;
+MainWindow *g_mainWindow = 0;
 
 #include "GCodeInterpreter.h"
 #include "IRemoteDevice.h"
@@ -15,9 +20,11 @@ static DWORD WINAPI execute( LPVOID lpParam )
     {
         comPort->init_port(3);           //открываем порт (+ всё остальное)
     }
-    catch(const char *a)
+    catch(const char *message)
     {
-        qWarning(a);
+        qWarning(message);
+        log_warning(message);
+        return 0;
         exit(1);
     }
     remoteDevice->comPort = comPort; //говорим устройству, через что слать
@@ -36,11 +43,13 @@ static DWORD WINAPI execute( LPVOID lpParam )
 
 int main(int argc, char* argv[])
 {
-    QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
+    g_application = new QApplication(argc, argv);
+    g_mainWindow = new MainWindow();
+    QObject::connect(&g_logger, SIGNAL(send_string(QColor, QString)),
+                     g_mainWindow->ui->c_logConsole, SLOT(output(QColor, QString)));
+    g_mainWindow->show();
 
     CreateThread(NULL, 0, execute, 0, 0, 0);
 
-    return a.exec();
+    return g_application->exec();
 }
