@@ -68,6 +68,9 @@
           </item>
          </layout>
         </item>
+        <item>
+         <widget class="LogConsole" name="g_logConsole"/>
+        </item>
        </layout>
       </item>
       <item>
@@ -142,6 +145,11 @@
    <extends>QWidget</extends>
    <header>scene3d.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>LogConsole</class>
+   <extends>QPlainTextEdit</extends>
+   <header>logconsole.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
