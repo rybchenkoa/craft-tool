@@ -190,17 +190,10 @@ led.show();
 		if(!timer.check(timeToSend))
 		{
 			timeToSend = timer.get_ms(100);
-			/*char result[50];
-			sprintf(result, "pos %d, %d, %d, time %d\n",
-			        mover.to[0], mover.to[1], mover.to[2],
-							mover.stopTime - timer.get());*/
-			/*sprintf(result, "first %d, last %d\n",
-			        receiver.queue.first, receiver.queue.last);							
-			send_packet(result, strlen(result));*/
-			//log_console("first %d, last %d, time %d\n", receiver.queue.first, receiver.queue.last, timer.get());
 			log_console("pos %7d, %7d, %5d, time %d\n",
 			            mover.coord[0], mover.coord[1], mover.coord[2], timer.get());
-		}
+			send_packet_service_coords(mover.coord);
+	}
 		/*if(!receiver.queue.IsEmpty())
 		{
 			PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
@@ -221,45 +214,17 @@ led.show();
 		receiver.queue.Pop();*/
 	}
 	
-	
-	/*char data[]= {1,2,3,4,5,6,7,8}; //Массив данных
-	uint32_t data_crc = calc_crc(data,7); //Вычисляем CRC для массива данных
-	
-	//uint32_t data2 = 1u;
-	
-			char result[50]; *result = 0;
-			sprintf(result, "%X\r\n", data_crc);
-			usart.send_data(result, strlen(result));
-			
-			
-			
-			
-			
+		/*	
 	while(1)
 	for (int i=0;i<PWM_SIZE;i++)
 	{
-		receiver.queue.Pop();
 		timer.delay_ms(1000);
-		//enable_all_pwms(i);
 		coord++;
 		for (int j=0;j<4;j++) //400 тактов на задание напряжения всех двигателей
-		//int j=1;
 			motor[j].set_sin_voltage(coord, 50);
 		led.flip();
-		//USART1->DR = '9';
 	}*/
-	/*for (int i=0;i<4;i++)
-		motor[i].set_coils_PWM(0, -PWM_SIZE/1.2);*/
-	/*
-	while(1)
-	{
-		if(TIM16->CNT > TIM16->CCR1)
-			led.show();
-		else
-			led.hide();
-		//led.flip();
-	}
-	*/
+
 }
 
 
