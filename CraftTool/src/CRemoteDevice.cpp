@@ -126,11 +126,11 @@ void CRemoteDevice::wait(double time)
 }
 
 
-void CRemoteDevice::set_bounds(double rMin[3], double rMax[3])
+void CRemoteDevice::set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS])
 {
     auto packet = new PacketSetBounds;
     packet->command = DeviceCommand_SET_BOUNDS;
-    for(int i = 0; i < 3; ++i)
+    for(int i = 0; i < NUM_COORDS; ++i)
     {
         packet->minCoord[i] = int(rMin[i]*scale[i]);
         packet->maxCoord[i] = int(rMax[i]*scale[i]);
@@ -142,11 +142,11 @@ void CRemoteDevice::set_bounds(double rMin[3], double rMax[3])
 //мм/сек, мм/сек^2
 //переводим в шаг/мкс, шаг/мкс^2
 //значения хранятся в виде 1.0/value, поскольку в int
-void CRemoteDevice::set_velocity_and_acceleration(double velocity[3], double acceleration[3])
+void CRemoteDevice::set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS])
 {
     auto packet = new PacketSetVelAcc;
     packet->command = DeviceCommand_SET_VEL_ACC; //задать макс скорость и ускорение
-    for(int i = 0; i < 3; ++i)
+    for(int i = 0; i < NUM_COORDS; ++i)
     {
         packet->maxrVelocity[i] = int(1.0/(velocity[i]*scale[i]/secToTick));
         packet->maxrAcceleration[i] = int(1.0/(acceleration[i]*scale[i]/(secToTick*secToTick)));
@@ -164,11 +164,11 @@ void CRemoteDevice::set_feed(double feed)
 }
 
 
-void CRemoteDevice::set_step_size(double stepSize[3])
+void CRemoteDevice::set_step_size(double stepSize[NUM_COORDS])
 {
     auto packet = new PacketSetStepSize;
     packet->command = DeviceCommand_SET_STEP_SIZE; //задать макс скорость и ускорение
-    for(int i = 0; i < 3; ++i)
+    for(int i = 0; i < NUM_COORDS; ++i)
     {
         packet->stepSize[i] = float(stepSize[i]);
     }
@@ -176,11 +176,11 @@ void CRemoteDevice::set_step_size(double stepSize[3])
 }
 
 
-void CRemoteDevice::set_voltage(double voltage[3])
+void CRemoteDevice::set_voltage(double voltage[NUM_COORDS])
 {
     auto packet = new PacketSetVoltage;
     packet->command = DeviceCommand_SET_VOLTAGE;
-    for(int i = 0; i < 3; ++i)
+    for(int i = 0; i < NUM_COORDS; ++i)
     {
         packet->voltage[i] = int(voltage[i]*255);
     }
@@ -207,11 +207,11 @@ void CRemoteDevice::init()
     scale[0] = stepsPerMm*(1<<subSteps);
     scale[1] = stepsPerMm*(1<<subSteps);
     scale[2] = stepsPerMm*(1<<subSteps);
-    double maxVelocity[3] = {100.0, 100.0, 100.0};
-    double maxAcceleration[3] = {100.0, 100.0, 100.0};
+    double maxVelocity[NUM_COORDS] = {100.0, 100.0, 100.0};
+    double maxAcceleration[NUM_COORDS] = {100.0, 100.0, 100.0};
     double feed = 100.0;
-    double stepSize[3] = {1.0/scale[0], 1.0/scale[1], 1.0/scale[2]};
-    double voltage[3] = {0.7, 0.7, 0.7};
+    double stepSize[NUM_COORDS] = {1.0/scale[0], 1.0/scale[1], 1.0/scale[2]};
+    double voltage[NUM_COORDS] = {0.7, 0.7, 0.7};
 
     set_velocity_and_acceleration(maxVelocity, maxAcceleration);
     set_feed(feed);
@@ -280,8 +280,15 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     case DeviceCommand_ERROR_PACKET_NUMBER:
         log_warning("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
         return false;
+
+    case DeviceCommand_SERVICE_COORDS:
+    {
+        PacketServiceCoords *packet = (PacketServiceCoords*) data;
+        log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
+        return true;
+    }
     default:
-        log_message("%s\n", data);
+        log_message("%s", data);
     }
     return false;
 }

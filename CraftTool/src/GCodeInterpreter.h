@@ -22,7 +22,7 @@ struct Coords   //все координаты устройства
         };
         struct
         {
-            coord r[3];
+            coord r[NUM_COORDS];
         };
     };
 };

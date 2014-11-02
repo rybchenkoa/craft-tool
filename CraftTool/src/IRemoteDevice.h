@@ -3,6 +3,8 @@
 #include <queue>
 #include "ComPortConnect.h"
 
+#define NUM_COORDS 3
+
 typedef char PacketCount;
 enum DeviceCommand:char //какие команды получает устройство
 {
@@ -19,6 +21,7 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_SET_FEED,
     DeviceCommand_SET_STEP_SIZE,
     DeviceCommand_SET_VOLTAGE,
+    DeviceCommand_SERVICE_COORDS,
 };
 enum MoveMode:char //режим движения/интерполяции
 {
@@ -45,7 +48,7 @@ struct PacketMove
     char size;
     DeviceCommand command;
     PacketCount packetNumber;
-    int coord[3];
+    int coord[NUM_COORDS];
     int crc;
 };
 struct PacketCircleMove
@@ -53,8 +56,8 @@ struct PacketCircleMove
     char size;
     DeviceCommand command;
     PacketCount packetNumber;
-    int coord[3];
-    int circle[3];//I,J,K
+    int coord[NUM_COORDS];
+    int circle[NUM_COORDS];//I,J,K
     int crc;
 };
 struct PacketWait
@@ -93,8 +96,8 @@ struct PacketSetBounds //задать максимальные координаты
     char size;
     DeviceCommand command;
     PacketCount packetNumber;
-    int minCoord[3];
-    int maxCoord[3];
+    int minCoord[NUM_COORDS];
+    int maxCoord[NUM_COORDS];
     int crc;
 };
 struct PacketSetVelAcc //задать ускорение и скорость
@@ -102,8 +105,8 @@ struct PacketSetVelAcc //задать ускорение и скорость
     char size;
     DeviceCommand command;
     PacketCount packetNumber;
-    int maxrVelocity[3];
-    int maxrAcceleration[3];
+    int maxrVelocity[NUM_COORDS];
+    int maxrAcceleration[NUM_COORDS];
     int crc;
 };
 struct PacketSetFeed //задать подачу
@@ -119,7 +122,7 @@ struct PacketSetStepSize
     char size;
     DeviceCommand command;
     PacketCount packetNumber;
-    float stepSize[3];
+    float stepSize[NUM_COORDS];
     int crc;
 };
 struct PacketSetVoltage
@@ -127,7 +130,7 @@ struct PacketSetVoltage
     char size;
     DeviceCommand command;
     PacketCount packetNumber;
-    int voltage[3];
+    int voltage[NUM_COORDS];
     int crc;
 };
 
@@ -149,6 +152,12 @@ struct PacketErrorPacketNumber //сообщение о том, что сбилась очередь пакетов
     PacketCount packetNumber;
     int crc;
 };
+struct PacketServiceCoords //текущие координаты устройства
+{
+    DeviceCommand command;
+    int coords[NUM_COORDS];
+    int crc;
+};
 #pragma pack(pop)
 
 //для теста надо будет сделать отдельную реализацию класса
@@ -162,10 +171,10 @@ public:
     virtual void set_position(double x, double y, double z)=0; //перемещаем фрезу
     virtual void set_circle_position(double x, double y, double z, double i, double j, double k)=0; //перемещаем по дуге
     virtual void wait(double time)=0; //задержка
-    virtual void set_bounds(double rMin[3], double rMax[3])=0; //границы координат
-    virtual void set_velocity_and_acceleration(double velocity[3], double acceleration[3])=0; //задать скорость и ускорение
+    virtual void set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS])=0; //границы координат
+    virtual void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS])=0; //задать скорость и ускорение
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
-    virtual void set_step_size(double stepSize[3])=0; //длина одного шага
+    virtual void set_step_size(double stepSize[NUM_COORDS])=0; //длина одного шага
     virtual bool need_next_command()=0; //есть ли ещё место в очереди команд
     virtual bool queue_empty() = 0; //есть ли ещё команды в очереди
 };
@@ -183,11 +192,11 @@ public:
     void set_position(double x, double y, double z);
     void set_circle_position(double x, double y, double z, double i, double j, double k);
     void wait(double time);
-    void set_bounds(double rMin[3], double rMax[3]);
-    void set_velocity_and_acceleration(double velocity[3], double acceleration[3]);
+    void set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS]);
+    void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS]);
     void set_feed(double feed);
-    void set_step_size(double stepSize[3]);
-    void set_voltage(double voltage[3]);
+    void set_step_size(double stepSize[NUM_COORDS]);
+    void set_voltage(double voltage[NUM_COORDS]);
     bool need_next_command();
     bool queue_empty();
 
@@ -198,7 +207,7 @@ public:
     int missedReceives; //принят битый пакет
     int missedHalfSend; //принято сообщение о битом пакете
 
-    double scale[3];  //шагов на миллиметр
+    double scale[NUM_COORDS];  //шагов на миллиметр
     double secToTick; //тиков таймера в одной секунде
     int subSteps;     //число делений шага на 2
 

@@ -16,7 +16,7 @@ void LogConsole::output(QColor color, QString message)
     QScrollBar *vbar = verticalScrollBar();
     needScroll = vbar->value() == vbar->maximum();
 
-    textCursor().insertBlock();
+    //textCursor().insertBlock();
     QTextCharFormat format;
     format.setForeground(color);
     textCursor().setBlockCharFormat(format);
