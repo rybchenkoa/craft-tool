@@ -63,6 +63,17 @@ void push_received_packet(char *packet, int size)
 }
 
 //=========================================================================================
+void send_packet_service_coords(int coords[NUM_COORDS])
+{
+	PacketServiceCoords packet;
+	packet.command = DeviceCommand_SERVICE_COORDS;
+	for(int i = 0; i < NUM_COORDS; ++i)
+		packet.coords[i] = coords[i];
+	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
+	send_packet((char*)&packet, sizeof(packet));
+}
+
+//=========================================================================================
 void on_packet_received(char *packet, int size)
 {
 	//led.show();

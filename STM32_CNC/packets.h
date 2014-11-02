@@ -18,6 +18,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SET_FEED,         //in
 	DeviceCommand_SET_STEP_SIZE,    //in
 	DeviceCommand_SET_VOLTAGE,      //in
+	DeviceCommand_SERVICE_COORDS,   //out
 };
 enum MoveMode //:char режим движения/интерполяции
 {
@@ -120,6 +121,12 @@ struct PacketErrorPacketNumber //сообщение о том, что сбила
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
+	int crc;
+};
+struct PacketServiceCoords
+{
+	DeviceCommand command;
+	int coords[NUM_COORDS];
 	int crc;
 };
 #pragma pack(pop)
