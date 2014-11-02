@@ -69,7 +69,45 @@
          </layout>
         </item>
         <item>
-         <widget class="LogConsole" name="c_logConsole"/>
+         <widget class="LogConsole" name="c_logConsole">
+          <property name="palette">
+           <palette>
+            <active>
+             <colorrole role="Base">
+              <brush brushstyle="SolidPattern">
+               <color alpha="255">
+                <red>217</red>
+                <green>217</green>
+                <blue>217</blue>
+               </color>
+              </brush>
+             </colorrole>
+            </active>
+            <inactive>
+             <colorrole role="Base">
+              <brush brushstyle="SolidPattern">
+               <color alpha="255">
+                <red>217</red>
+                <green>217</green>
+                <blue>217</blue>
+               </color>
+              </brush>
+             </colorrole>
+            </inactive>
+            <disabled>
+             <colorrole role="Base">
+              <brush brushstyle="SolidPattern">
+               <color alpha="255">
+                <red>236</red>
+                <green>233</green>
+                <blue>216</blue>
+               </color>
+              </brush>
+             </colorrole>
+            </disabled>
+           </palette>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
