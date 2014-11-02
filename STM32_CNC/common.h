@@ -2,7 +2,7 @@
 
 #include "stdint.h"
 
-#define DIV_BITS_COUNT  5
+#define DIV_BITS_COUNT  4
 const int DIV_BITS  =   DIV_BITS_COUNT; //число битов, отведённых на "дробную часть" шага
 const int SUB_STEPS =   1<<DIV_BITS;    //число микрошагов в одном шаге
 
@@ -27,7 +27,8 @@ const int NUM_COORDS = 3;
 {\
 	char buffer[64];\
 	int count = sprintf(buffer, format, __VA_ARGS__);\
-	send_packet(buffer, count + 1);\
+	*(int*)(buffer + count + 1) = calc_crc(buffer, count + 1);\
+	send_packet(buffer, count + 1 + 4);\
 }
 
 /*
