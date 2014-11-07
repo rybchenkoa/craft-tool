@@ -18,6 +18,8 @@ CONFIG   -= app_bundle
 
 QMAKE_CXXFLAGS += -std=c++11
 
+PRECOMPILED_HEADER = StdAfx.h
+
 SOURCES += main.cpp\
            mainwindow.cpp\
            scene3d.cpp\
