@@ -249,19 +249,20 @@ void Object3d::draw()
 }
 
 //--------------------------------------------------------------------
-//из границы в плоскости XY создаёт объект вращения вокруг y
+//из границы в плоскости XZ создаёт объект вращения вокруг z
 void make_cylinder(Object3d& edge, int divs)
 {
     int countPoints = edge.verts.size();
 
     auto push_quad = [&edge, &countPoints](int x1, int x2, int y1, int y2)
     {
-        edge.indices.push_back(x1 * countPoints + y2);
         edge.indices.push_back(x1 * countPoints + y1);
+        edge.indices.push_back(x1 * countPoints + y2);
         edge.indices.push_back(x2 * countPoints + y1);
 
-        edge.indices.push_back(x2 * countPoints + y1);
+
         edge.indices.push_back(x2 * countPoints + y2);
+        edge.indices.push_back(x2 * countPoints + y1);
         edge.indices.push_back(x1 * countPoints + y2);
     };
 
@@ -275,10 +276,11 @@ void make_cylinder(Object3d& edge, int divs)
         {
             auto &from = edge.verts[j];
             glm::vec3 pos;
-            pos.x = from.position.x * cosPhi - from.position.z * sinPhi;
-            pos.y = from.position.y;
-            pos.z = from.position.z * cosPhi + from.position.x * sinPhi;
-            Vertex to(pos, from.color);
+            pos.x = from.position.x * cosPhi - from.position.y * sinPhi;
+            pos.y = from.position.y * cosPhi + from.position.x * sinPhi;
+            pos.z = from.position.z;
+            glm::vec3 color((rand()%1000)/1000.0,0,0);
+            Vertex to(pos, color);
 
             edge.verts.push_back(to);
             if(j != 0)
@@ -302,13 +304,13 @@ void make_tool_simple(Object3d& tool)
 
     glm::vec3 simple[] =
     {
-        {0, 0, 0},
+        {0,  0, 0},
         {10, 0, 0},
-        {10, -100, 0},
-        {0, -100, 0}
+        {10, 0, -100},
+        {0,  0, -100}
     };
 
-    glm::vec3 color(1,0,0);
+    //glm::vec3 color(1,0,0);
     for(int i = 0; i < _countof(simple); ++i)
     {
         glm::vec3 color((rand()%1000)/1000.0,0,0);

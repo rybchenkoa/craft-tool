@@ -89,6 +89,6 @@ public:
     std::vector<TrackPoint> track; //траектория фрезы
 };
 
-void make_cylinder(Object3d& edge, int divs); //из границы в плоскости XY создаёт объект вращения вокруг y
+void make_cylinder(Object3d& edge, int divs); //из границы в плоскости XZ создаёт объект вращения вокруг z
 
 void make_tool_simple(Object3d& tool); //создаёт объект сверло
