@@ -7,6 +7,45 @@ namespace Ui
     class Scene3d;
 }
 
+struct TrackPoint
+{
+    glm::vec3 position;
+    QColor    color;
+};
+
+struct Camera
+{
+    float     scale;          //масштаб изображени€
+    glm::vec3 position;       //где находитс€ камера
+    glm::vec3 look;           //нормализованный вектор взгл€да
+    glm::vec3 top;            //вектор ориентации камеры
+    float     screenAngle;    //поворот экрана
+    glm::mat4 viewProjection; //матрица камеры
+
+    void recalc_matrix(int width, int height);     //пересчитать матрицу проекции
+    void rotate_cursor(float x, float y, float deltaX, float deltaY); //обработка поворота камеры
+};
+
+struct Vertex
+{
+    glm::vec3 position;
+    glm::vec3 color;
+
+    Vertex(glm::vec3 _position, glm::vec3 _color):
+        position(_position), color(_color) {};
+};
+
+struct Object3d
+{
+    glm::vec3           position; //положение
+    glm::vec3           ortX;     //ориентаци€
+    glm::vec3           ortY;
+    std::vector<Vertex> verts;    //вершины
+    std::vector<int>    indices;  //треугольники
+
+    void draw(); //нарисовать треугольники
+};
+
 class Scene3d :  public QGLWidget
 {
     Q_OBJECT
@@ -28,25 +67,28 @@ protected:
     void recalc_matrices();
     void draw_bounds();
     void draw_grid();
+    void draw_track();
 
 public:
-    int m_windowWidth;  //размеры окна
-    int m_windowHeight;
+    int    m_windowWidth;  //размеры окна
+    int    m_windowHeight;
 
-    float m_zoneWidth;  //размеры зоны станка
-    float m_zoneHeight;
-    float m_zoneTop;
+    float  m_zoneWidth;  //размеры зоны станка
+    float  m_zoneHeight;
+    float  m_zoneTop;
 
-    bool m_showGrid;
-    float m_gridStep;   //размер €чейки сетки
+    bool   m_showGrid;
+    float  m_gridStep;   //размер €чейки сетки
 
     QPoint m_lastMousePosition;
-    bool m_mousePressed;
+    bool   m_mousePressed;
 
-    float m_scale;              //масштаб изображени€
-    glm::vec3 m_cameraPosition; //где находитс€ камера
-    glm::vec3 m_cameraLook;     //нормализованный вектор взгл€да
-    glm::vec3 m_cameraTop;      //вектор ориентации камеры
-    float m_screenAngle;        //поворот экрана
-    glm::mat4 m_viewProjection; //матрица камеры
+    Camera camera;
+    Object3d tool;
+
+    std::vector<TrackPoint> track; //траектори€ фрезы
 };
+
+void make_cylinder(Object3d& edge, int divs); //из границы в плоскости XY создаЄт объект вращени€ вокруг y
+
+void make_tool_simple(Object3d& tool); //создаЄт объект сверло

@@ -13,16 +13,18 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
     m_gridStep = 100;
     m_showGrid = true;
 
-    m_scale = 1;
-    m_cameraPosition = glm::vec3(0,0,2000);  //находится сверху
-    m_cameraLook     = glm::vec3(0,0,-1); //смотрит вниз
-    m_cameraTop      = glm::vec3(0,1,0);  //смотрит ровно
+    camera.scale = 1;
+    camera.position = glm::vec3(0,0,2000);  //находится сверху
+    camera.look     = glm::vec3(0,0,-1); //смотрит вниз
+    camera.top      = glm::vec3(0,1,0);  //смотрит ровно
 
     m_lastMousePosition = QPoint(0,0);
     m_mousePressed = false;
 
     m_windowWidth = 0;
     m_windowHeight = 0;
+
+    make_tool_simple(tool); //делаем квадратное сверло )
 }
 
 //--------------------------------------------------------------------
@@ -49,17 +51,7 @@ void Scene3d::initializeGL()
 
 void Scene3d::recalc_matrices()
 {
-    glm::mat4 mView  = glm::lookAt(m_cameraPosition,
-                                   m_cameraPosition + m_cameraLook,
-                                   m_cameraTop);
-
-    float scale = m_scale * 1000; //1пиксель - 1мм
-    glm::mat4 mScale = glm::scale(glm::mat4(), glm::vec3(scale/m_windowWidth, scale/m_windowHeight, 1.f));
-
-    glm::mat4 mProj  = glm::perspective(glm::pi<float>()/4, 1.f, 0.01f, 10000.0f);
-
-    m_viewProjection = mProj * mScale * mView;// * mScale;
-    glLoadMatrixf(glm::value_ptr(m_viewProjection));
+    camera.recalc_matrix(m_windowWidth, m_windowHeight);
 }
 
 //--------------------------------------------------------------------
@@ -85,15 +77,7 @@ void Scene3d::mouseMoveEvent(QMouseEvent* pe)
         float deltaX = scale * float(pe->x() - m_lastMousePosition.x()) / width();
         float deltaY = scale * float(pe->y() - m_lastMousePosition.y()) / height();
 
-        glm::vec3 axisX(1,0,0), axisY(0,1,0);
-        glm::mat4 rotation;
-        rotation = glm::rotate(rotation, deltaX, m_cameraTop);
-        rotation = glm::rotate(rotation, deltaY, glm::cross(m_cameraLook, m_cameraTop));
-
-        m_cameraLook = glm::vec3(glm::vec4(m_cameraLook,0) * rotation);
-        m_cameraPosition = glm::vec3(glm::vec4(m_cameraPosition,0) * rotation);
-        m_cameraTop = glm::vec3(glm::vec4(m_cameraTop,0) * rotation);
-
+        camera.rotate_cursor(0, 0, deltaX, deltaY);
         recalc_matrices();
         updateGL();
 
@@ -105,13 +89,13 @@ void Scene3d::mouseMoveEvent(QMouseEvent* pe)
 void Scene3d::wheelEvent(QWheelEvent* pe)
 {
     if (pe->delta() > 0)
-        m_scale *= 2;
+        camera.scale *= 2;
     else if (pe->delta() < 0)
-        m_scale /= 2;
+        camera.scale /= 2;
 
     recalc_matrices();
     updateGL();
-    log_message("%f\n", m_scale);
+    log_message("%f\n", camera.scale);
 }
 
 //--------------------------------------------------------------------
@@ -146,7 +130,23 @@ void Scene3d::paintGL()
 
     draw_grid();
 
+    draw_track();
+
+    tool.draw();
+
     glFlush();
+}
+
+//--------------------------------------------------------------------
+void Scene3d::draw_track()
+{
+    glBegin(GL_LINE_STRIP);
+    for(size_t i = 0; i < track.size(); ++i)
+    {
+        glColor3f(track[i].color.redF(),track[i].color.greenF(),track[i].color.blueF());
+        glVertex3f(track[i].position.x, track[i].position.y, track[i].position.z);
+    }
+    glEnd();
 }
 
 //--------------------------------------------------------------------
@@ -204,4 +204,117 @@ void Scene3d::draw_grid()
             glVertex3f(m_zoneWidth,y,0);
         }
     glEnd();
+}
+
+//--------------------------------------------------------------------
+void Camera::recalc_matrix(int width, int height)
+{
+    glm::mat4 mView  = glm::lookAt(position,
+                                   position + look,
+                                   top);
+
+    float fscale = scale * 1000; //1пиксель - 1мм
+    glm::mat4 mScale = glm::scale(glm::mat4(), glm::vec3(fscale/width, fscale/height, 1.f));
+
+    glm::mat4 mProj  = glm::perspective(glm::pi<float>()/4, 1.f, 0.01f, 10000.0f);
+
+    viewProjection = mProj * mScale * mView;// * mScale;
+    glLoadMatrixf(glm::value_ptr(viewProjection));
+}
+
+//--------------------------------------------------------------------
+void Camera::rotate_cursor(float x, float y, float deltaX, float deltaY)
+{
+    glm::vec3 axisX(1,0,0), axisY(0,1,0);
+    glm::mat4 rotation;
+    rotation = glm::rotate(rotation, deltaX, top);
+    rotation = glm::rotate(rotation, deltaY, glm::cross(look, top));
+
+    look = glm::vec3(glm::vec4(look,0) * rotation);
+    position = glm::vec3(glm::vec4(position,0) * rotation);
+    top = glm::vec3(glm::vec4(top,0) * rotation);
+}
+
+//--------------------------------------------------------------------
+void Object3d::draw()
+{
+    glBegin(GL_TRIANGLES);
+    for(size_t i = 0; i < indices.size(); ++i)
+    {
+        auto &vert = verts[indices[i]];
+        glColor3fv(&vert.color.x);
+        glVertex3fv(&vert.position.x);
+    }
+    glEnd();
+}
+
+//--------------------------------------------------------------------
+//из границы в плоскости XY создаёт объект вращения вокруг y
+void make_cylinder(Object3d& edge, int divs)
+{
+    int countPoints = edge.verts.size();
+
+    auto push_quad = [&edge, &countPoints](int x1, int x2, int y1, int y2)
+    {
+        edge.indices.push_back(x1 * countPoints + y2);
+        edge.indices.push_back(x1 * countPoints + y1);
+        edge.indices.push_back(x2 * countPoints + y1);
+
+        edge.indices.push_back(x2 * countPoints + y1);
+        edge.indices.push_back(x2 * countPoints + y2);
+        edge.indices.push_back(x1 * countPoints + y2);
+    };
+
+    for(int i = 1; i < divs; ++i)
+    {
+        float phi = float(i) / divs * 2 * glm::pi<float>();
+        float cosPhi = std::cos(phi);
+        float sinPhi = std::sin(phi);
+
+        for(int j = 0; j < countPoints; ++j)
+        {
+            auto &from = edge.verts[j];
+            glm::vec3 pos;
+            pos.x = from.position.x * cosPhi - from.position.z * sinPhi;
+            pos.y = from.position.y;
+            pos.z = from.position.z * cosPhi + from.position.x * sinPhi;
+            Vertex to(pos, from.color);
+
+            edge.verts.push_back(to);
+            if(j != 0)
+                push_quad(i - 1, i, j-1, j);
+        }
+    }
+
+    for(int j = 0; j < countPoints; ++j)
+        push_quad(divs - 1, 0, j, j + 1);
+}
+
+//--------------------------------------------------------------------
+//создаёт объект сверло
+void make_tool_simple(Object3d& tool)
+{
+    tool.ortX = glm::vec3(1,0,0);
+    tool.ortY = glm::vec3(0,1,0);
+    tool.indices.clear();
+    tool.verts.clear();
+    tool.position = glm::vec3(0,0,0);
+
+    glm::vec3 simple[] =
+    {
+        {0, 0, 0},
+        {10, 0, 0},
+        {10, -100, 0},
+        {0, -100, 0}
+    };
+
+    glm::vec3 color(1,0,0);
+    for(int i = 0; i < _countof(simple); ++i)
+    {
+        glm::vec3 color((rand()%1000)/1000.0,0,0);
+        Vertex vert(simple[i], color);
+        tool.verts.push_back(vert);
+    }
+
+    make_cylinder(tool, 4);
 }
