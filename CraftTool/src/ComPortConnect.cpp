@@ -67,6 +67,7 @@ int ComPortConnect::init_port(int portNumber)
 
     receiveBPS = 0;
     transmitBPS = 0;
+    errs = 0;
     return 0;
 }
 
@@ -116,7 +117,10 @@ void ComPortConnect::process_bytes(char *buffer, int count)
                     receivedSize = 0;
                 }
                 else
+                {
                     receiveState = S_READY;
+                    ++errs;
+                }
                 break;
 
             case S_RECEIVING:
@@ -127,8 +131,15 @@ void ComPortConnect::process_bytes(char *buffer, int count)
                     break;
                 }
                 else
+                {
                     if(receivedSize < RECEIVE_SIZE)
                         receiveBuffer[receivedSize++] = data;
+                    else
+                    {
+                        receivedSize = 0;
+                        ++errs;
+                    }
+                }
                 break;
             }
 
@@ -140,7 +151,10 @@ void ComPortConnect::process_bytes(char *buffer, int count)
                         if(receivedSize < RECEIVE_SIZE)
                             receiveBuffer[receivedSize++] = data;   //и мы его переслали таким образом
                         else
+                        {
                             receivedSize = 0;
+                            ++errs;
+                        }
                         receiveState = S_RECEIVING;
                         break;
                     case OP_STOP:

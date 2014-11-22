@@ -23,8 +23,8 @@ public:
     OVERLAPPED ovRead;
     OVERLAPPED ovWrite;
 
-    DWORD receiveBPS;
-    DWORD transmitBPS;
+    int receiveBPS;
+    int transmitBPS;
     int errs;
 
     static const int RECEIVE_SIZE = 100;
