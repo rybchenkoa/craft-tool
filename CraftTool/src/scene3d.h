@@ -87,6 +87,9 @@ public:
     Object3d tool;
 
     std::vector<TrackPoint> track; //траектория фрезы
+
+public slots:
+    void update_tool_coords(float x, float y, float z);
 };
 
 void make_cylinder(Object3d& edge, int divs); //из границы в плоскости XZ создаёт объект вращения вокруг z

@@ -281,16 +281,30 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
         log_warning("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
         return false;
 
+    default:
+        return process_packet(data, size - 4);
+    }
+    return false;
+}
+
+
+bool CRemoteDevice::process_packet(char *data, int size)
+{
+    switch(*data)
+    {
     case DeviceCommand_SERVICE_COORDS:
     {
         PacketServiceCoords *packet = (PacketServiceCoords*) data;
-        log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
+        for(int i = 0; i < NUM_COORDS; ++i)
+            currentCoords[i] = packet->coords[i] / scale[i];
+        emit coords_changed(currentCoords[0], currentCoords[1], currentCoords[2]);
+        //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
         return true;
     }
     default:
         log_message("%s", data);
+        return false;
     }
-    return false;
 }
 
 

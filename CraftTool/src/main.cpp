@@ -3,17 +3,19 @@
 #include "ui_mainwindow.h"
 #include "log.h"
 
-QApplication *g_application = 0;
-MainWindow *g_mainWindow = 0;
-
 #include "GCodeInterpreter.h"
 #include "IRemoteDevice.h"
+
+QApplication *g_application = 0;
+MainWindow *g_mainWindow = 0;
+Interpreter::GCodeInterpreter g_inter;
+
+
 
 static DWORD WINAPI execute( LPVOID lpParam )
 {
     Q_UNUSED(lpParam)
 
-    Interpreter::GCodeInterpreter inter;             //есть у нас интерпретатор
     CRemoteDevice *remoteDevice = new CRemoteDevice; //он передаёт команды классу связи с устройством
     ComPortConnect *comPort = new ComPortConnect;    //устройство доводит данные до реального устройтва через порт
     try
@@ -27,17 +29,27 @@ static DWORD WINAPI execute( LPVOID lpParam )
         return 0;
         exit(1);
     }
+
+    QObject::connect(remoteDevice, SIGNAL(coords_changed(float, float, float)),
+                     g_mainWindow->ui->c_3dView, SLOT(update_tool_coords(float, float, float)));
+
     remoteDevice->comPort = comPort; //говорим устройству, через что слать
     comPort->remoteDevice = remoteDevice; //порту говорим, кто принимает
-    inter.remoteDevice = remoteDevice;
+    g_inter.remoteDevice = remoteDevice;
 
-    inter.read_file("..\\..\\test.nc"); //читаем данные из файла
-    inter.execute_file();           //запускаем интерпретацию
+    g_inter.read_file("..\\..\\test.nc"); //читаем данные из файла
+    g_inter.execute_file();           //запускаем интерпретацию
 
     while(true || !remoteDevice->queue_empty())
     {
         //printf("missed %d\n", remoteDevice->missedSends);
         Sleep(1000);
+        char text[500];
+        sprintf(text, "%d, %d, %d",
+                remoteDevice->missedHalfSend,
+                remoteDevice->missedSends,
+                remoteDevice->missedReceives);
+        //g_mainWindow->ui->c_statusBar->showMessage(text);
     }
 }
 

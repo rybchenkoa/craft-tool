@@ -101,15 +101,12 @@ void Scene3d::wheelEvent(QWheelEvent* pe)
 //--------------------------------------------------------------------
 void Scene3d::resizeGL(int nWidth, int nHeight)
 {
+    m_windowWidth = nWidth;
+    m_windowHeight = nHeight;
+
     glViewport(0,0,nWidth,nHeight);
 
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-
-    glMatrixMode(GL_MODELVIEW);
-
-    m_windowWidth = nWidth;
-    m_windowHeight = nHeight;
 
     recalc_matrices();
 }
@@ -125,6 +122,9 @@ void Scene3d::paintGL()
         glVertex2f(0.05,0.05);
         glVertex2f(0.5,0.5);
     glEnd();*/
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
     draw_bounds();
 
@@ -207,6 +207,13 @@ void Scene3d::draw_grid()
 }
 
 //--------------------------------------------------------------------
+void Scene3d::update_tool_coords(float x, float y, float z)
+{
+    tool.position = glm::vec3(x,y,z);
+    updateGL();
+}
+
+//--------------------------------------------------------------------
 void Camera::recalc_matrix(int width, int height)
 {
     glm::mat4 mView  = glm::lookAt(position,
@@ -219,6 +226,8 @@ void Camera::recalc_matrix(int width, int height)
     glm::mat4 mProj  = glm::perspective(glm::pi<float>()/4, 1.f, 0.01f, 10000.0f);
 
     viewProjection = mProj * mScale * mView;// * mScale;
+
+    glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(glm::value_ptr(viewProjection));
 }
 
@@ -238,6 +247,10 @@ void Camera::rotate_cursor(float x, float y, float deltaX, float deltaY)
 //--------------------------------------------------------------------
 void Object3d::draw()
 {
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glTranslatef(position.x, position.y, position.z);
+
     glBegin(GL_TRIANGLES);
     for(size_t i = 0; i < indices.size(); ++i)
     {
@@ -246,6 +259,8 @@ void Object3d::draw()
         glVertex3fv(&vert.position.x);
     }
     glEnd();
+
+    glPopMatrix();
 }
 
 //--------------------------------------------------------------------

@@ -1,6 +1,7 @@
 #pragma once
 #include <list>
 #include <queue>
+#include <QObject>
 #include "ComPortConnect.h"
 
 #define NUM_COORDS 3
@@ -180,8 +181,9 @@ public:
 };
 
 //класс передаёт команды по com-порту на микроконтроллер, а он уже дальше интерполирует
-class CRemoteDevice : public IRemoteDevice, public IPortToDevice
+class CRemoteDevice : public QObject, public IRemoteDevice, public IPortToDevice
 {
+    Q_OBJECT
 public:
     CRemoteDevice();
 
@@ -202,14 +204,17 @@ public:
 
     bool on_packet_received(char *data, int size);
 
-    ComPortConnect *comPort;
-    int missedSends; //пакет послан, ответ не получен
-    int missedReceives; //принят битый пакет
-    int missedHalfSend; //принято сообщение о битом пакете
+    bool process_packet(char *data, int size);
 
-    double scale[NUM_COORDS];  //шагов на миллиметр
-    double secToTick; //тиков таймера в одной секунде
-    int subSteps;     //число делений шага на 2
+    ComPortConnect *comPort;           //подключение к удалённому устройству
+    int missedSends;                   //пакет послан, ответ не получен
+    int missedReceives;                //принят битый пакет
+    int missedHalfSend;                //принято сообщение о битом пакете
+
+    double scale[NUM_COORDS];          //шагов на миллиметр
+    double secToTick;                  //тиков таймера в одной секунде
+    int subSteps;                      //число делений шага на 2
+    double currentCoords[NUM_COORDS];  //текущие координаты на удалённом устройстве
 
 protected:
     void init_crc();
@@ -228,5 +233,8 @@ protected:
     bool canSend; //пришло подтверждение о принятии пакета, можно слать следующий
 
     unsigned crc32Table[256];
+
+signals:
+    void coords_changed(float x, float y, float z);
 
 };
