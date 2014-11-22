@@ -65,6 +65,8 @@ int ComPortConnect::init_port(int portNumber)
     DWORD   threadId;
     hThread = CreateThread(NULL, 0, receive_thread, this, 0, &threadId);
 
+    receiveBPS = 0;
+    transmitBPS = 0;
     return 0;
 }
 
@@ -91,6 +93,7 @@ void ComPortConnect::send_data(char *buffer, int count)
 
     DWORD write;
     WriteFile(hCom, data, pointer-data, &write, &ovWrite);
+    transmitBPS += pointer-data;
 }
 
 void ComPortConnect::process_bytes(char *buffer, int count)

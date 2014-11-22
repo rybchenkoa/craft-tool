@@ -44,12 +44,6 @@ static DWORD WINAPI execute( LPVOID lpParam )
     {
         //printf("missed %d\n", remoteDevice->missedSends);
         Sleep(1000);
-        char text[500];
-        sprintf(text, "%d, %d, %d",
-                remoteDevice->missedHalfSend,
-                remoteDevice->missedSends,
-                remoteDevice->missedReceives);
-        //g_mainWindow->ui->c_statusBar->showMessage(text);
     }
 }
 

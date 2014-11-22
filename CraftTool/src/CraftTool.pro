@@ -23,22 +23,24 @@ PRECOMPILED_HEADER = StdAfx.h
 SOURCES += main.cpp\
            mainwindow.cpp\
            scene3d.cpp\
+           LogConsole.cpp\
+           StatusBar.cpp\
            ComPortConnect.cpp\
            GCodeInterpreter.cpp\
            CRemoteDevice.cpp\
-           LogConsole.cpp\
-           log.cpp
+           log.cpp\
 
 
 
 HEADERS  += main.h\
             mainwindow.h\
             scene3d.h\
+            LogConsole.h\
+            StatusBar.h\
             GCodeInterpreter.h\
             IRemoteDevice.h\
             ComPortConnect.h\
             IPortToDevice.h\
-            LogConsole.h\
             log.h
 
 FORMS    += mainwindow.ui

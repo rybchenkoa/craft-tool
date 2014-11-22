@@ -48,7 +48,7 @@
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QListView" name="c_commandList">
@@ -179,7 +179,7 @@
     <bool>false</bool>
    </attribute>
   </widget>
-  <widget class="QStatusBar" name="c_statusBar"/>
+  <widget class="StatusBar" name="c_statusBar"/>
   <action name="menuOpenProgram">
    <property name="text">
     <string>открыть программу...</string>
@@ -208,6 +208,11 @@
    <class>LogConsole</class>
    <extends>QPlainTextEdit</extends>
    <header>logconsole.h</header>
+  </customwidget>
+  <customwidget>
+   <class>StatusBar</class>
+   <extends>QStatusBar</extends>
+   <header>StatusBar.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
