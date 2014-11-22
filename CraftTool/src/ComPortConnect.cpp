@@ -162,6 +162,9 @@ void ComPortConnect::process_bytes(char *buffer, int count)
                         remoteDevice->on_packet_received(receiveBuffer, receivedSize); //вот пакет наконец принят
                         receiveState = S_READY;
                         break;
+                    default:
+                        receiveState = S_READY;
+                        ++errs;
                 }
                 break;
             }
