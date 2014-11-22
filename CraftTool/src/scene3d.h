@@ -10,7 +10,7 @@ namespace Ui
 struct TrackPoint
 {
     glm::vec3 position;
-    QColor    color;
+    glm::vec3 color;
 };
 
 struct Camera

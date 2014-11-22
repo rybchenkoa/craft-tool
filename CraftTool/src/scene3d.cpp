@@ -143,7 +143,7 @@ void Scene3d::draw_track()
     glBegin(GL_LINE_STRIP);
     for(size_t i = 0; i < track.size(); ++i)
     {
-        glColor3f(track[i].color.redF(),track[i].color.greenF(),track[i].color.blueF());
+        glColor3f(track[i].color.r,track[i].color.g,track[i].color.b);
         glVertex3f(track[i].position.x, track[i].position.y, track[i].position.z);
     }
     glEnd();
@@ -210,6 +210,10 @@ void Scene3d::draw_grid()
 void Scene3d::update_tool_coords(float x, float y, float z)
 {
     tool.position = glm::vec3(x,y,z);
+    TrackPoint point;
+    point.color = glm::vec3(0.5f, 0.5f + (rand() % 500)/1000.f, 0);
+    point.position = tool.position;
+    track.push_back(point);
     updateGL();
 }
 
