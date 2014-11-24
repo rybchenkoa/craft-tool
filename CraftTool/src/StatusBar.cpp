@@ -13,7 +13,11 @@ void StatusBar::timerEvent(QTimerEvent *event)
     {
         char text[500];
         CRemoteDevice *device = (CRemoteDevice*)g_inter.remoteDevice;
+        if(device == 0)
+            return;
         auto port = device->comPort;
+        if(port == 0)
+            return;
         sprintf(text, "send err: %d, missed: %d, recv err: %d, pack err: %d, read: %u, write: %u",
                 device->missedHalfSend,
                 device->missedSends,
