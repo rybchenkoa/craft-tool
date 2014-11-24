@@ -8,7 +8,7 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
 {
     m_zoneWidth = 2000;
     m_zoneHeight = 1000;
-    m_zoneTop = 100;
+    m_zoneTop = 300;
 
     m_gridStep = 100;
     m_showGrid = true;
@@ -74,10 +74,14 @@ void Scene3d::mouseMoveEvent(QMouseEvent* pe)
     if(m_mousePressed)
     {
         float scale = 5.1;
-        float deltaX = scale * float(pe->x() - m_lastMousePosition.x()) / width();
-        float deltaY = scale * float(pe->y() - m_lastMousePosition.y()) / height();
+        float x = (float(m_lastMousePosition.x()) / width() - 0.5)*2;
+        float y = (1 - float(m_lastMousePosition.y()) / height() - 0.5)*2;
+        float newX = (float(pe->x()) / width() - 0.5)*2;
+        float newY = (1 - float(pe->y()) / height() - 0.5)*2;
+        float deltaX = scale * (newX - x);
+        float deltaY = scale * (newY - y);
 
-        camera.rotate_cursor(0, 0, deltaX, deltaY);
+        camera.rotate_cursor(x, y, deltaX, deltaY);
         recalc_matrices();
         updateGL();
 
@@ -160,29 +164,29 @@ void Scene3d::draw_bounds()
         glVertex3f(0,0,0);
         glVertex3f(0,m_zoneHeight,0);
         glVertex3f(0,0,0);
-        glVertex3f(0,0,m_zoneTop);
+        glVertex3f(0,0,-m_zoneTop);
 
         glVertex3f(m_zoneWidth,0,0);
         glVertex3f(m_zoneWidth,m_zoneHeight,0);
         glVertex3f(m_zoneWidth,0,0);
-        glVertex3f(m_zoneWidth,0,m_zoneTop);
+        glVertex3f(m_zoneWidth,0,-m_zoneTop);
 
         glVertex3f(0,m_zoneHeight,0);
         glVertex3f(m_zoneWidth,m_zoneHeight,0);
         glVertex3f(0,m_zoneHeight,0);
-        glVertex3f(0,m_zoneHeight,m_zoneTop);
+        glVertex3f(0,m_zoneHeight,-m_zoneTop);
 
-        glVertex3f(0,0,m_zoneTop);
-        glVertex3f(m_zoneWidth,0,m_zoneTop);
-        glVertex3f(0,0,m_zoneTop);
-        glVertex3f(0,m_zoneHeight,m_zoneTop);
+        glVertex3f(0,0,-m_zoneTop);
+        glVertex3f(m_zoneWidth,0,-m_zoneTop);
+        glVertex3f(0,0,-m_zoneTop);
+        glVertex3f(0,m_zoneHeight,-m_zoneTop);
 
         glVertex3f(m_zoneWidth,m_zoneHeight,0);
-        glVertex3f(m_zoneWidth,m_zoneHeight,m_zoneTop);
-        glVertex3f(m_zoneWidth,0,m_zoneTop);
-        glVertex3f(m_zoneWidth,m_zoneHeight,m_zoneTop);
-        glVertex3f(0,m_zoneHeight,m_zoneTop);
-        glVertex3f(m_zoneWidth,m_zoneHeight,m_zoneTop);
+        glVertex3f(m_zoneWidth,m_zoneHeight,-m_zoneTop);
+        glVertex3f(m_zoneWidth,0,-m_zoneTop);
+        glVertex3f(m_zoneWidth,m_zoneHeight,-m_zoneTop);
+        glVertex3f(0,m_zoneHeight,-m_zoneTop);
+        glVertex3f(m_zoneWidth,m_zoneHeight,-m_zoneTop);
     glEnd();
 }
 
@@ -194,14 +198,14 @@ void Scene3d::draw_grid()
     glBegin(GL_LINES);
         for(float x = 0; x < m_zoneWidth; x += m_gridStep)
         {
-            glVertex3f(x,0,0);
-            glVertex3f(x,m_zoneHeight,0);
+            glVertex3f(x,0,-m_zoneTop);
+            glVertex3f(x,m_zoneHeight,-m_zoneTop);
         }
 
         for(float y = 0; y < m_zoneHeight; y += m_gridStep)
         {
-            glVertex3f(0,y,0);
-            glVertex3f(m_zoneWidth,y,0);
+            glVertex3f(0,y,-m_zoneTop);
+            glVertex3f(m_zoneWidth,y,-m_zoneTop);
         }
     glEnd();
 }
@@ -238,10 +242,20 @@ void Camera::recalc_matrix(int width, int height)
 //--------------------------------------------------------------------
 void Camera::rotate_cursor(float x, float y, float deltaX, float deltaY)
 {
-    glm::vec3 axisX(1,0,0), axisY(0,1,0);
+    glm::vec3 axisX = glm::cross(look, top);
+    glm::vec3 axisY = top;
+    glm::vec3 axisZ = -look;
+
+    //считаем ось в пространстве камеры,
+    //потом переводим её в глобальное пространство
+    //и поворачиваем вектора камеры относительно этой оси
+    glm::vec3 axisToCursor(x, y, glm::sqrt(glm::abs(1 - x*x - y*y)));
+    glm::vec3 cursorOffset(deltaX, deltaY, 0);
+    glm::vec3 axis = glm::cross(axisToCursor, cursorOffset);
+    glm::vec3 localAxis = axis.x * axisX + axis.y * axisY + axis.z * axisZ;
+
     glm::mat4 rotation;
-    rotation = glm::rotate(rotation, deltaX, top);
-    rotation = glm::rotate(rotation, deltaY, glm::cross(look, top));
+    rotation = glm::rotate(rotation, glm::sqrt(deltaX*deltaX + deltaY*deltaY), localAxis);
 
     look = glm::vec3(glm::vec4(look,0) * rotation);
     position = glm::vec3(glm::vec4(position,0) * rotation);
@@ -325,8 +339,8 @@ void make_tool_simple(Object3d& tool)
     {
         {0,  0, 0},
         {10, 0, 0},
-        {10, 0, 100},
-        {0,  0, 100}
+        {10, 0, -95},
+        {0,  0, -100}
     };
 
     //glm::vec3 color(1,0,0);
