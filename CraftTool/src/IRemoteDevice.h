@@ -186,6 +186,7 @@ class CRemoteDevice : public QObject, public IRemoteDevice, public IPortToDevice
     Q_OBJECT
 public:
     CRemoteDevice();
+    ~CRemoteDevice();
 
     void init();
     void reset_packet_queue();
@@ -228,9 +229,10 @@ protected:
     HANDLE hThread;
 
     std::queue<PacketCommon*> commandQueue;
-    std::queue<char*> inputQueue;
-    PacketCount packetNumber; //номер последнего добавленного пакета
-    bool canSend; //пришло подтверждение о принятии пакета, можно слать следующий
+    CRITICAL_SECTION queueCS;     //защита очереди от порчи
+    HANDLE eventQueueAdd;         //в очередь добавлен пакет
+    HANDLE eventPacketReceived;   //сообщение о принятии пакета
+    PacketCount packetNumber;     //номер последнего добавленного пакета
 
     unsigned crc32Table[256];
 

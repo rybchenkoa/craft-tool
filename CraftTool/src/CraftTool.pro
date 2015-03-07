@@ -41,6 +41,7 @@ HEADERS  += main.h\
             IRemoteDevice.h\
             ComPortConnect.h\
             IPortToDevice.h\
-            log.h
+            log.h \
+            AutoLockCS.h
 
 FORMS    += mainwindow.ui

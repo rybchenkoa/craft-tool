@@ -1,23 +1,33 @@
 #include "IRemoteDevice.h"
 #include "log.h"
+#include "AutoLockCS.h"
 
-#include "WinSock.h"
-//#pragma comment(lib, "wsock32.lib")
-
+//============================================================
 CRemoteDevice::CRemoteDevice()
 {
     init_crc();
     packetNumber = -1;
-    canSend = true;
     missedSends = 0;
     missedReceives = 0;
     missedHalfSend = 0;
 
+    InitializeCriticalSection(&queueCS);
+    eventQueueAdd = CreateEvent(nullptr, false, false, nullptr);
+    eventPacketReceived = CreateEvent(nullptr, false, false, nullptr);
     DWORD   threadId;
     hThread = CreateThread(NULL, 0, send_thread, this, 0, &threadId);
 }
 
+//============================================================
+CRemoteDevice::~CRemoteDevice()
+{
+    TerminateThread(hThread, 0);
+    CloseHandle(eventPacketReceived);
+    CloseHandle(eventQueueAdd);
+    DeleteCriticalSection(&queueCS);
+}
 
+//============================================================
 #define CRC32_POLY 0x04C11DB7
 void CRemoteDevice::init_crc()
 {
@@ -31,7 +41,7 @@ void CRemoteDevice::init_crc()
     }
 }
 
-
+//============================================================
 unsigned CRemoteDevice::crc32_stm32(unsigned init_crc, unsigned *buf, int len)
 {
     unsigned v;
@@ -62,7 +72,7 @@ unsigned CRemoteDevice::crc32_stm32(unsigned init_crc, unsigned *buf, int len)
     return crc;
 }
 
-
+//============================================================
 template<typename T>
 void CRemoteDevice::push_packet_common(T *packet)
 {
@@ -70,9 +80,10 @@ void CRemoteDevice::push_packet_common(T *packet)
     packet->packetNumber = packetNumber++;
     make_crc((char*)packet);
     commandQueue.push((PacketCommon*)packet);
+    SetEvent(eventQueueAdd);
 }
 
-
+//============================================================
 void CRemoteDevice::set_move_mode(MoveMode mode)
 {
     auto packet = new PacketInterpolationMode;
@@ -81,7 +92,7 @@ void CRemoteDevice::set_move_mode(MoveMode mode)
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::set_plane(MovePlane plane)
 {
     auto packet = new PacketSetPlane;
@@ -90,7 +101,7 @@ void CRemoteDevice::set_plane(MovePlane plane)
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::set_position(double x, double y, double z)
 {
     auto packet = new PacketMove;
@@ -102,7 +113,7 @@ void CRemoteDevice::set_position(double x, double y, double z)
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::set_circle_position(double x, double y, double z, double i, double j, double k)
 {
     auto packet = new PacketCircleMove;
@@ -116,7 +127,7 @@ void CRemoteDevice::set_circle_position(double x, double y, double z, double i, 
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::wait(double time)
 {
     auto packet = new PacketWait;
@@ -125,7 +136,7 @@ void CRemoteDevice::wait(double time)
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS])
 {
     auto packet = new PacketSetBounds;
@@ -138,7 +149,7 @@ void CRemoteDevice::set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS])
     push_packet_common(packet);
 }
 
-
+//============================================================
 //мм/сек, мм/сек^2
 //переводим в шаг/мкс, шаг/мкс^2
 //значения хранятся в виде 1.0/value, поскольку в int
@@ -154,6 +165,7 @@ void CRemoteDevice::set_velocity_and_acceleration(double velocity[NUM_COORDS], d
     push_packet_common(packet);
 }
 
+//============================================================
 //мм/сек
 void CRemoteDevice::set_feed(double feed)
 {
@@ -163,7 +175,7 @@ void CRemoteDevice::set_feed(double feed)
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::set_step_size(double stepSize[NUM_COORDS])
 {
     auto packet = new PacketSetStepSize;
@@ -175,7 +187,7 @@ void CRemoteDevice::set_step_size(double stepSize[NUM_COORDS])
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::set_voltage(double voltage[NUM_COORDS])
 {
     auto packet = new PacketSetVoltage;
@@ -187,7 +199,7 @@ void CRemoteDevice::set_voltage(double voltage[NUM_COORDS])
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::reset_packet_queue()
 {
     auto packet = new PacketResetPacketNumber;
@@ -195,7 +207,7 @@ void CRemoteDevice::reset_packet_queue()
     push_packet_common(packet);
 }
 
-
+//============================================================
 void CRemoteDevice::init()
 {
     packetNumber = -1;
@@ -219,7 +231,7 @@ void CRemoteDevice::init()
     set_voltage(voltage);
 }
 
-
+//============================================================
 void CRemoteDevice::make_crc(char *packet)
 {
     int size = *packet-1;
@@ -229,65 +241,19 @@ void CRemoteDevice::make_crc(char *packet)
     crc = crc32_stm32(0xFFFFFFFF, (unsigned int*)(buffer), size-4);
 }
 
-
+//============================================================
 bool CRemoteDevice::need_next_command()
 {
     return (commandQueue.size() < 2);
 }
 
+//============================================================
 bool CRemoteDevice::queue_empty()
 {
     return commandQueue.empty();
 }
 
-bool CRemoteDevice::on_packet_received(char *data, int size)
-{
-    if(size < 4)
-        return false;
-    unsigned crc = crc32_stm32(0xFFFFFFFF, (unsigned*)data, size-4);
-    unsigned receivedCrc = *(unsigned*)(data+size-4);
-    if(crc != receivedCrc)
-    {
-        for(int i=0; i<size; i++)
-            log_warning("%c", data[i]);
-        missedReceives++;
-        //canSend = true;
-        return false;
-    }
-
-    switch(*data)
-    {
-    case DeviceCommand_PACKET_RECEIVED:
-        if(commandQueue.front()->packetNumber == ((PacketReceived*)data)->packetNumber)
-        {
-            //printf("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
-            commandQueue.pop();
-            canSend = true;
-            return true;
-        }
-        else
-        {
-            log_warning("err receive number %d\n", ((PacketReceived*)data)->packetNumber);
-            canSend = true;
-            return false;
-        }
-
-    case DeviceCommand_PACKET_ERROR_CRC:
-        missedHalfSend++;
-        canSend = true;
-        return true;
-
-    case DeviceCommand_ERROR_PACKET_NUMBER:
-        log_warning("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
-        return false;
-
-    default:
-        return process_packet(data, size - 4);
-    }
-    return false;
-}
-
-
+//============================================================
 bool CRemoteDevice::process_packet(char *data, int size)
 {
     switch(*data)
@@ -307,41 +273,83 @@ bool CRemoteDevice::process_packet(char *data, int size)
     }
 }
 
+//============================================================
+//обработка пакетов протокола
+bool CRemoteDevice::on_packet_received(char *data, int size)
+{
+    if(size < 4)
+        return false;
+    unsigned crc = crc32_stm32(0xFFFFFFFF, (unsigned*)data, size-4);
+    unsigned receivedCrc = *(unsigned*)(data+size-4);
+    if(crc != receivedCrc)
+    {
+        for(int i=0; i<size; i++)
+            log_warning("%c", data[i]);
+        missedReceives++;
+        return false;
+    }
 
+    switch(*data)
+    {
+    case DeviceCommand_PACKET_RECEIVED:
+    {
+        AutoLockCS lock(queueCS);
+        if(commandQueue.front()->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
+        {
+            //printf("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
+            commandQueue.pop();
+            SetEvent(eventPacketReceived);
+            return true;
+        }
+        else //устройство приняло какой-то непонятный пакет
+        {
+            log_warning("err receive number %d\n", ((PacketReceived*)data)->packetNumber);
+            SetEvent(eventPacketReceived);
+            return false;
+        }
+    }
+    case DeviceCommand_PACKET_ERROR_CRC:
+        missedHalfSend++;
+        SetEvent(eventPacketReceived);
+        return true;
+
+    case DeviceCommand_ERROR_PACKET_NUMBER:
+        log_warning("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
+        return false;
+
+    default:
+        return process_packet(data, size - 4);
+    }
+    return false;
+}
+
+//============================================================
 DWORD WINAPI CRemoteDevice::send_thread(void *__this)
 {
     CRemoteDevice *_this = (CRemoteDevice*)__this;
 
     while(true)
     {
-        if(!_this->commandQueue.empty())
+        WaitForSingleObject(_this->eventQueueAdd, INFINITE);
+        while(true)
         {
-            auto packet = _this->commandQueue.front();
-            _this->comPort->send_data(&packet->size + 1, packet->size - 1);
-            //printf("send number %d\n", packet->packetNumber);
-            _this->canSend = false;
+            if(_this->commandQueue.empty())
+                break;
+            else
+            {
+                AutoLockCS lock(_this->queueCS);
+                auto packet = _this->commandQueue.front();
+                _this->comPort->send_data(&packet->size + 1, packet->size - 1);
+                //printf("send number %d\n", packet->packetNumber);
+            }
+            DWORD result = WaitForSingleObject(_this->eventPacketReceived, 50);
+            if(result == WAIT_TIMEOUT)
+            {
+                ++_this->missedSends;
+                ResetEvent(_this->eventPacketReceived);
+            }
         }
-        else
-        {
-            Sleep(10);
-            continue;
-        }
-
-        int counter = 10;
-        while(!_this->canSend && counter-- != 0) //ждём ответа о том, что дошёл
-            Sleep(300);
-        //Sleep(4000);
-        if(!_this->canSend)
-            _this->missedSends++; //если не дошёл, регистрируем
-        /*else
-        {
-            delete _this->commandQueue.front();
-            _this->commandQueue.pop();
-        }*/
-
-        _this->canSend = true; //шлём следующий или тот же
     }
-
     return 0;
 }
 
