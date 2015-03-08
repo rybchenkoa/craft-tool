@@ -29,6 +29,7 @@ SOURCES += main.cpp\
            GCodeInterpreter.cpp\
            CRemoteDevice.cpp\
            log.cpp\
+           Config.cpp
 
 
 
@@ -42,6 +43,7 @@ HEADERS  += main.h\
             ComPortConnect.h\
             IPortToDevice.h\
             log.h \
-            AutoLockCS.h
+            AutoLockCS.h \
+            Config.h
 
 FORMS    += mainwindow.ui
