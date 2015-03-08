@@ -184,16 +184,23 @@ led.show();
 	int timeToSend = timer.get_ms(500);
 	while(1)
 	{
+		int deltaTime;
+		int oldTime;
 		if(!timer.check(mover.stopTime))
+		{
+			deltaTime = mover.stopTime - timer.get();
+			oldTime = mover.stopTime;
 			mover.update();
+			oldTime -= mover.stopTime;
+		}
 			
 		if(!timer.check(timeToSend))
 		{
 			timeToSend = timer.get_ms(100);
-			log_console("pos %7d, %7d, %5d, time %d\n",
-			            mover.coord[0], mover.coord[1], mover.coord[2], timer.get());
+			log_console("pos %7d, %7d, %5d, time %d, %d\n",
+			            mover.coord[0], mover.coord[1], mover.coord[2], oldTime, deltaTime);
 			send_packet_service_coords(mover.coord);
-	}
+		}
 		/*if(!receiver.queue.IsEmpty())
 		{
 			PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
