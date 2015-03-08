@@ -2,14 +2,14 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "log.h"
-
+#include "config_defines.h"
 #include "GCodeInterpreter.h"
 #include "IRemoteDevice.h"
 
 QApplication *g_application = 0;
 MainWindow *g_mainWindow = 0;
 Interpreter::GCodeInterpreter g_inter;
-
+Config g_config;
 
 
 static DWORD WINAPI execute( LPVOID lpParam )
@@ -20,7 +20,9 @@ static DWORD WINAPI execute( LPVOID lpParam )
     ComPortConnect *comPort = new ComPortConnect;    //устройство доводит данные до реального устройтва через порт
     try
     {
-        comPort->init_port(3);           //открываем порт (+ всё остальное)
+        int port = 1;
+        g_config.get_int(CFG_COM_PORT_NUMBER, port);
+        comPort->init_port(port);           //открываем порт (+ всё остальное)
     }
     catch(const char *message)
     {
@@ -37,7 +39,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
     comPort->remoteDevice = remoteDevice; //порту говорим, кто принимает
     g_inter.remoteDevice = remoteDevice;
 
-    g_inter.read_file("..\\..\\test.nc"); //читаем данные из файла
+    g_inter.read_file("test.nc"); //читаем данные из файла
     g_inter.execute_file();           //запускаем интерпретацию
 
     while(true || !remoteDevice->queue_empty())
@@ -50,6 +52,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
 int main(int argc, char* argv[])
 {
     g_application = new QApplication(argc, argv);
+    g_config.read_from_file("config.cfg");
     g_mainWindow = new MainWindow();
     QObject::connect(&g_logger, SIGNAL(send_string(QColor, QString)),
                      g_mainWindow->ui->c_logConsole, SLOT(output(QColor, QString)));

@@ -1,6 +1,8 @@
 #include "IRemoteDevice.h"
 #include "log.h"
 #include "AutoLockCS.h"
+#include "config_defines.h"
+
 
 //============================================================
 CRemoteDevice::CRemoteDevice()
@@ -213,17 +215,42 @@ void CRemoteDevice::init()
     packetNumber = -1;
     reset_packet_queue();
 
+    auto try_get_float = [/*&g_config*/](const char *key) -> float
+    {
+        float value;
+        if(!g_config.get_float(key, value))
+            throw(std::string("key not found in konfig") + key);
+        return value;
+    };
+
     secToTick = 1000000.0;
     subSteps = 4;
-    double stepsPerMm = 48.0;
-    scale[0] = stepsPerMm*(1<<subSteps);
-    scale[1] = stepsPerMm*(1<<subSteps);
-    scale[2] = stepsPerMm*(1<<subSteps);
-    double maxVelocity[NUM_COORDS] = {100.0, 100.0, 100.0};
-    double maxAcceleration[NUM_COORDS] = {100.0, 100.0, 100.0};
-    double feed = 100.0;
+    double stepsPerMm[NUM_COORDS];
+    stepsPerMm[0] = try_get_float(CFG_STEPS_PER_MM "X");
+    stepsPerMm[1] = try_get_float(CFG_STEPS_PER_MM "Y");
+    stepsPerMm[2] = try_get_float(CFG_STEPS_PER_MM "Z");
+
+    scale[0] = stepsPerMm[0]*(1<<subSteps);
+    scale[1] = stepsPerMm[1]*(1<<subSteps);
+    scale[2] = stepsPerMm[2]*(1<<subSteps);
+
+    double maxVelocity[NUM_COORDS];// = {1000.0, 1000.0, 1000.0};
+    maxVelocity[0] = try_get_float(CFG_MAX_VELOCITY "X");
+    maxVelocity[1] = try_get_float(CFG_MAX_VELOCITY "Y");
+    maxVelocity[2] = try_get_float(CFG_MAX_VELOCITY "Z");
+
+    double maxAcceleration[NUM_COORDS];// = {50.0, 50.0, 50.0};
+    maxAcceleration[0] = try_get_float(CFG_MAX_ACCELERATION "X");
+    maxAcceleration[1] = try_get_float(CFG_MAX_ACCELERATION "Y");
+    maxAcceleration[2] = try_get_float(CFG_MAX_ACCELERATION "Z");
+
+    double voltage[NUM_COORDS]; // = {0.7, 0.7, 0.7};
+    voltage[0] = try_get_float(CFG_MAX_VOLTAGE "X");
+    voltage[1] = try_get_float(CFG_MAX_VOLTAGE "Y");
+    voltage[2] = try_get_float(CFG_MAX_VOLTAGE "Z");
+
+    double feed = 10.0;
     double stepSize[NUM_COORDS] = {1.0/scale[0], 1.0/scale[1], 1.0/scale[2]};
-    double voltage[NUM_COORDS] = {0.7, 0.7, 0.7};
 
     set_velocity_and_acceleration(maxVelocity, maxAcceleration);
     set_feed(feed);

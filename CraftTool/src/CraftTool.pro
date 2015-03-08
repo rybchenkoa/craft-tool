@@ -44,6 +44,7 @@ HEADERS  += main.h\
             IPortToDevice.h\
             log.h \
             AutoLockCS.h \
-            Config.h
+            Config.h \
+            config_defines.h
 
 FORMS    += mainwindow.ui
