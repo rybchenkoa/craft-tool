@@ -167,6 +167,7 @@ public:
 	int velocity[NUM_COORDS]; //текущая скорость
 	bool needStop;   //принудительная остановка
 	int stopTime;    //время следующей остановки
+	int startTime;   //время начала текущего тика обработки
 
 	int nextBound[NUM_COORDS];//координаты, на которых надо затормозить
 	
@@ -205,13 +206,13 @@ public:
 		int maxrAcceleration;  //ускорение тиков^2/шаг
 		int rVelocity;         //скорость на прошлом шаге
 		int accLength;         //расстояние, в течение которого можно ускоряться
+		int state;             //0 - ускорение, 1 - движение, 2 - торможение
 	};
 	LinearData linearData;
 	
 	//----------------------------------
 	OperateResult linear()
 	{
-		int currentTime = timer.get();
 		int reference = linearData.refCoord;
 		if(coord[reference] == to[reference]) //дошли до конца, выходим
 			return END;
@@ -227,19 +228,37 @@ public:
 			}
 		}
 		int length; // =1/v;  v=v0+a*t
-		
-		if((length = iabs(coord[reference] - to[reference])) < linearData.accLength ||
-			 (length = iabs(coord[reference] - from[reference])) < linearData.accLength)
+		switch(linearData.state)
 		{
-			if(length == 0) length = 1;
-			linearData.rVelocity = isqrt(linearData.maxrAcceleration / (2*length));
-			//log_console("len %d, acc %d\n", length, linearData.rVelocity);
+			case 0:
+			{
+				length = iabs(coord[reference] - from[reference]);
+				if(length >= linearData.accLength)
+					linearData.state = 1;
+				if(length == 0)
+					length = 1;
+				linearData.rVelocity = isqrt(linearData.maxrAcceleration / (2*length));
+				break;
+			}
+			case 1:
+			{
+				if(iabs(coord[reference] - to[reference]) < linearData.accLength)
+					linearData.state = 2;
+				linearData.rVelocity = linearData.maxrVelocity;
+				break;
+			}
+			case 2:
+			{
+				length = iabs(coord[reference] - to[reference]);
+				if(length == 0)
+					length = 1;
+				linearData.rVelocity = isqrt(linearData.maxrAcceleration / (2*length));
+				break;
+			}
 		}
-		else
-			linearData.rVelocity = linearData.maxrVelocity;
-		
-		stopTime = timer.get_mks(currentTime, linearData.rVelocity);
-		
+
+		stopTime = timer.get_mks(startTime, linearData.rVelocity);
+
 		return WAIT;
 	}
 	
@@ -334,6 +353,7 @@ public:
 			linearData.maxrVelocity = isqrt(linearData.maxrAcceleration / refLen);
 		}
 		linearData.accLength = accLength;
+		linearData.state = 0;
 		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
 		
 		for(int i=0; i<NUM_COORDS; ++i)
@@ -374,6 +394,7 @@ public:
 	
 	void update()
 	{
+		startTime = timer.get();
 		motor[0].set_sin_voltage(bufCoord[0], voltage[0]);
 		motor[1].set_sin_voltage(bufCoord[0], voltage[0]);
 		motor[2].set_sin_voltage(bufCoord[1], voltage[1]);
