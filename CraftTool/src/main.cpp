@@ -52,7 +52,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
 int main(int argc, char* argv[])
 {
     g_application = new QApplication(argc, argv);
-    g_config.read_from_file("config.cfg");
+    g_config.read_from_file(CFG_CONFIG_NAME);
     g_mainWindow = new MainWindow();
     QObject::connect(&g_logger, SIGNAL(send_string(QColor, QString)),
                      g_mainWindow->ui->c_logConsole, SLOT(output(QColor, QString)));
