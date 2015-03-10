@@ -58,7 +58,6 @@ struct PacketWait
 	DeviceCommand command;
 	PacketCount packetNumber;
 	int delay;
-	int crc;
 };
 struct PacketInterpolationMode
 {
@@ -132,6 +131,7 @@ struct PacketServiceCoords
 #pragma pack(pop)
 
 //=========================================================================================
+//размер структуры выровнен на 4, чтобы быстро копировать int[]
 union PacketUnion
 {
 	PacketCommon common;
@@ -144,7 +144,7 @@ union PacketUnion
 	PacketSetVelAcc setVelAcc;
 	PacketSetFeed setFeed;
 	PacketSetStepSize setStepSize;
-	int pack[7]; //для выравнивания, чтобы быстро копировать int[]
+	int dummyCrc; //влияет на выравнивание и занимает правильный размер под црц
 };
 
 //=========================================================================================
