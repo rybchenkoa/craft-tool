@@ -294,8 +294,11 @@ bool CRemoteDevice::process_packet(char *data, int size)
         //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
         return true;
     }
+    case DeviceCommand_TEXT_MESSAGE:
+        log_message("%s", data+1);
+        return true;
     default:
-        log_message("%s", data);
+        log_warning("%20s", data);
         return false;
     }
 }
@@ -321,7 +324,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     case DeviceCommand_PACKET_RECEIVED:
     {
         AutoLockCS lock(queueCS);
-        if(commandQueue.front()->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
+        if(!commandQueue.empty() && commandQueue.front()->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
         {
             //printf("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
             commandQueue.pop();

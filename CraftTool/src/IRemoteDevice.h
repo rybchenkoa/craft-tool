@@ -23,6 +23,7 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_SET_STEP_SIZE,
     DeviceCommand_SET_VOLTAGE,
     DeviceCommand_SERVICE_COORDS,
+    DeviceCommand_TEXT_MESSAGE,
 };
 enum MoveMode:char //режим движения/интерполяции
 {
