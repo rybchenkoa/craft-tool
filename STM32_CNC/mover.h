@@ -152,6 +152,14 @@ int ipow2(int value)
 {
 	return value*value;
 }
+
+int isign(int value)
+{
+	if(value > 0) return 1;
+	else if (value < 0) return -1;
+	else return 0;
+}
+
 //=========================================================================================
 class Mover
 {
@@ -177,6 +185,7 @@ public:
 	MoveMode interpolation;
 	int rFeed;    //подача (тиков/мм)
 	int voltage[NUM_COORDS];  //регулировка напряжения на больших оборотах и при простое
+	MovePlane plane;
 	
 	//----------------------------------
 	enum State
@@ -209,6 +218,21 @@ public:
 		int state;             //0 - ускорение, 1 - движение, 2 - торможение
 	};
 	LinearData linearData;
+	
+	//----------------------------------
+	struct CircleData
+	{
+		int center[2];         //центр окружности
+		int coord[2];          //координаты в локальной системе с началом в центре круга
+		int remap[2];          //номера координат, соответствующие плоскости интерполяции
+		bool isCw;             //по часовой
+		int error;             //накопленная ошибка в текущей позиции
+		int maxrVelocity;       //максимальная скорость, тиков/шаг
+		int maxrAcceleration;  //ускорение тиков^2/шаг
+		int accLength;            //расстояние, в течение которого можно ускоряться
+		int fullLength;            //число пикселей от начала до конца
+	};
+	CircleData circleData;
 	
 	//----------------------------------
 	OperateResult linear()
@@ -363,6 +387,165 @@ public:
 	}
 
 	//----------------------------------
+	OperateResult circle()
+	{
+		int remap[2] = {circleData.remap[0], circleData.remap[1]}; //плоскость интерполяции
+		if(coord[0] == to[0] && coord[1] == to[1] && coord[2] == to[2])
+			return END;
+		
+		//выбираем направление движения
+		int add[2];
+		add[0] = isign(circleData.coord[1]);
+		add[1] = -isign(circleData.coord[0]);
+		if(!circleData.isCw)
+		{
+			add[0] *= -1;
+			add[1] *= -1;
+		}
+		
+		//определяем, как будет меняться ошибка при изменении координат
+		int delta[2];
+		delta[0] = circleData.coord[0] * add[0] * 2 + 1;
+		delta[1] = circleData.coord[1] * add[1] * 2 + 1;
+		int diagonalDelta = delta[0] + delta[1] + circleData.error;
+		//для каждой 1/8 круга движение только по двум направлениям, например дигонально и горизонтально
+		//или диагонально и вертикально
+		bool horizontal = iabs(circleData.coord[0]) < iabs(circleData.coord[1]);
+		if(horizontal)
+		{
+			circleData.coord[0] += add[0];
+			int horizontalDelta = diagonalDelta - delta[1];
+			if(iabs(diagonalDelta) < iabs(horizontalDelta))
+			{
+				circleData.coord[1] += add[1];
+				circleData.error = diagonalDelta;
+			}
+			else
+				circleData.error = horizontalDelta;
+		}
+		else
+		{
+			circleData.coord[1] += add[1];
+			int verticalDelta = diagonalDelta - delta[0];
+			if(iabs(diagonalDelta) < iabs(verticalDelta))
+			{
+				circleData.coord[0] += add[0];
+				circleData.error = diagonalDelta;
+			}
+			else
+				circleData.error = verticalDelta;
+		}
+		
+		for(int i = 0; i < 2; ++i)
+		{
+			bufCoord[remap[i]] = circleData.center[i] + circleData.coord[i];
+		}
+		
+		stopTime = timer.get_mks(startTime, circleData.maxrVelocity);
+		
+		return WAIT;
+	}
+	
+	//----------------------------------
+	void init_circle(int dest[3], int center[3], bool isCw)
+	{
+		for(int i = 0; i < NUM_COORDS; ++i)
+			from[i] = coord[i];    //откуда (текущие координаты)
+		
+		circleData.isCw = isCw;
+		
+		//определяем индексы интерполируемых координат
+		switch(plane)
+		{
+			case MovePlane_XY:
+				circleData.remap[0] = 0;
+				circleData.remap[1] = 1;
+				break;
+			case MovePlane_ZX:
+				circleData.remap[0] = 2;
+				circleData.remap[1] = 0;
+				break;
+			case MovePlane_YZ:
+				circleData.remap[0] = 1;
+				circleData.remap[1] = 2;
+				break;
+		}
+		
+		//не возился с точным вычислением скорости, берётся минимальная
+		circleData.maxrVelocity = maxrVelocity[circleData.remap[0]];
+		if(circleData.maxrVelocity > maxrVelocity[circleData.remap[1]])
+			circleData.maxrVelocity = maxrVelocity[circleData.remap[1]];
+			
+		//ускорение тоже берётся минимальное
+		circleData.maxrAcceleration = maxrAcceleration[circleData.remap[0]];
+		if(circleData.maxrAcceleration > maxrAcceleration[circleData.remap[1]])
+			circleData.maxrAcceleration = maxrAcceleration[circleData.remap[1]];
+			
+		for(int i = 0; i < 2; ++i)
+		{
+			circleData.coord[i] = coord[circleData.remap[i]]; //берём текущие координаты
+			circleData.coord[i] -= center[circleData.remap[i]]; //переводим в локальные
+			circleData.center[i] = center[circleData.remap[i]];
+		}
+		
+		circleData.error = 0; //мы на точке окружности, откуда тут ошибка
+		
+		//известно точно R^2 в начальной точке
+		//к конечной точке надо найти ближайшую, имеющую минимальную ошибку R^2
+		int endCoord[2];
+		endCoord[0] = dest[circleData.remap[0]] - circleData.center[0]; //конечные координаты в локальной системе
+		endCoord[1] = dest[circleData.remap[1]] - circleData.center[1];
+		
+		int r2 = circleData.coord[0] * circleData.coord[0] + circleData.coord[1] * circleData.coord[1];
+		int delta = endCoord[0] * endCoord[0] + endCoord[1] * endCoord[1] - r2;
+		//err(x+a, y+b) - err(x,y) = a*2x + a^2 + b*2y + b^2
+		if(iabs(endCoord[0]) > iabs(endCoord[1])) //двигаем только по одной координате, выбираем подходящую
+		{
+			//delta = a*2x+a^2.   (a+x)^2 = delta + x^2.   a = sqrt(delta + x^2) - x
+			//раскладываем a в ряд Тейлора по delta.
+			//a = delta/(2x)
+			int a = delta / (2 * endCoord[0]);
+			endCoord[0] -= a;
+			//одна итерация для получения точных координат
+			delta = endCoord[0] * endCoord[0] + endCoord[1] * endCoord[1] - r2;
+			int step = isign(delta) * isign(endCoord[0]);
+			if(step != 0)
+			{
+				int newX = endCoord[0] - step;
+				int delta2 = newX * newX + endCoord[1] * endCoord[1] - r2;
+				if(iabs(delta2) < iabs(delta))
+					endCoord[0] = newX;
+			}
+		}
+		else
+		{
+			int b = delta / (2 * endCoord[1]);
+			endCoord[1] -= b;
+			//одна итерация для получения точных координат
+			delta = endCoord[0] * endCoord[0] + endCoord[1] * endCoord[1] - r2;
+			int step = isign(delta) * isign(endCoord[1]);
+			if(step != 0)
+			{
+				int newY = endCoord[1] - step;
+				int delta2 = endCoord[0] * endCoord[0] + newY * newY - r2;
+				if(iabs(delta2) < iabs(delta))
+					endCoord[1] = newY;
+			}
+		}
+		
+		dest[circleData.remap[0]] = circleData.center[0] + endCoord[0];
+		dest[circleData.remap[1]] = circleData.center[1] + endCoord[1];
+		
+		for(int i = 0; i < NUM_COORDS; ++i)
+			to[i] = dest[i];       //куда двигаемся
+
+		//считаем число пикселей
+		for(int i=0; i<NUM_COORDS; ++i)
+		  voltage[i] = 256;
+			
+		handler = &Mover::circle;
+	}
+	//----------------------------------	
 	OperateResult empty()
 	{
 		if((unsigned int)timer.get() % 12000000 > 6000000)
@@ -438,6 +621,9 @@ public:
 							case MoveMode_CW_ARC:
 							case MoveMode_CCW_ARC:
 							{
+								PacketCircleMove *packet = (PacketCircleMove*)common;
+								led.flip();
+								init_circle(packet->coord, packet->center, interpolation == MoveMode_CW_ARC);
 								break;
 							}
 						}
@@ -511,6 +697,8 @@ public:
 					}
 					case DeviceCommand_SET_PLANE:
 					{
+						PacketSetPlane *packet = (PacketSetPlane*)common;
+						plane = packet->plane;
 						receiver.queue.Pop();
 						break;
 					}
