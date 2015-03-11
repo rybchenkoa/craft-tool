@@ -2,6 +2,15 @@
 
 using namespace Interpreter;
 
+coord length(Coords from, Coords to)
+{
+    Coords delta;
+    delta.x = from.x - to.x;
+    delta.y = from.y - to.y;
+    delta.z = from.z - to.z;
+    return sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+}
+
 BitPos FrameParams::get_bit_pos(char letter)
 {
     switch (letter)
@@ -279,9 +288,18 @@ InterError GCodeInterpreter::run_modal_groups()
     {
         case Plane_NONE: break;
 
-        case Plane_XY: remoteDevice->set_plane(MovePlane_XY); break;
-        case Plane_ZX: remoteDevice->set_plane(MovePlane_ZX); break;
-        case Plane_YZ: remoteDevice->set_plane(MovePlane_YZ); break;
+        case Plane_XY:
+            remoteDevice->set_plane(MovePlane_XY);
+            runner.plane = MovePlane_XY;
+            break;
+        case Plane_ZX:
+            remoteDevice->set_plane(MovePlane_ZX);
+            runner.plane = MovePlane_ZX;
+            break;
+        case Plane_YZ:
+            remoteDevice->set_plane(MovePlane_YZ);
+            runner.plane = MovePlane_YZ;
+            break;
 
         default: return InterError_WRONG_PLANE;
     }
@@ -306,6 +324,7 @@ InterError GCodeInterpreter::run_modal_groups()
         case MotionMode_GO_BACK:
             break;
     }
+
     switch (readedFrame.motionMode)
     {
         case MotionMode_CCW_ARC: remoteDevice->set_move_mode(MoveMode_CCW_ARC); break;
@@ -328,18 +347,80 @@ InterError GCodeInterpreter::run_modal_groups()
     if(readedFrame.absoluteSet)
         ;
 
-    Coords pos = runner.position;
-    if(readedFrame.get_value('X', pos.x) ||
-       readedFrame.get_value('Y', pos.y) ||
-       readedFrame.get_value('Z', pos.z))
+    if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //движение по пр€мой
     {
-        readedFrame.get_value('X', pos.x);
-        readedFrame.get_value('Y', pos.y);
-        readedFrame.get_value('Z', pos.z);
+        Coords pos = runner.position;
+        if(readedFrame.get_value('X', pos.x) ||
+           readedFrame.get_value('Y', pos.y) ||
+           readedFrame.get_value('Z', pos.z))
+        {
+            readedFrame.get_value('X', pos.x);
+            readedFrame.get_value('Y', pos.y);
+            readedFrame.get_value('Z', pos.z);
 
-        runner.position = pos;
-        remoteDevice->set_position(pos.x, pos.y, pos.z);
+            runner.position = pos;
+            remoteDevice->set_position(pos.x, pos.y, pos.z);
+        }
     }
+    else if(runner.motionMode == MotionMode_CW_ARC || runner.motionMode == MotionMode_CCW_ARC)
+    {
+        Coords centerPos;
+        centerPos.x = centerPos.y = centerPos.z = 0;
+
+        if(readedFrame.get_value('I', centerPos.x) ||  //если задан центр круга
+           readedFrame.get_value('J', centerPos.y) ||
+           readedFrame.get_value('K', centerPos.z))
+        {
+            readedFrame.get_value('I', centerPos.x); //читаем центр круга
+            readedFrame.get_value('J', centerPos.y);
+            readedFrame.get_value('K', centerPos.z);
+
+            centerPos.x += runner.position.x;
+            centerPos.y += runner.position.y;
+            centerPos.z += runner.position.z;
+
+            Coords pos = runner.position;            //читаем, докуда двигатьс€
+            if(readedFrame.get_value('X', pos.x) ||
+               readedFrame.get_value('Y', pos.y) ||
+               readedFrame.get_value('Z', pos.z))
+            {
+                readedFrame.get_value('X', pos.x);
+                readedFrame.get_value('Y', pos.y);
+                readedFrame.get_value('Z', pos.z);
+            }
+
+            if(fabs(length(runner.position, centerPos) - length(pos, centerPos)) > 0.001)//раст€жение пока не поддерживаетс€
+                return InterError_WRONG_VALUE;
+
+            bool isScrew = false;
+            if(centerPos.x != runner.position.x && runner.plane == MovePlane_YZ)
+                isScrew = true;
+            if(centerPos.y != runner.position.y && runner.plane == MovePlane_ZX)
+                isScrew = true;
+            if(centerPos.z != runner.position.z && runner.plane == MovePlane_XY)
+                isScrew = true;
+
+            if(isScrew) //винтова€ интерпол€ци€ пока не поддерживаетс€
+                return InterError_WRONG_VALUE;
+
+            /*double rads[3]; //радиусы окружности
+
+            switch(runner.plane)
+            {
+                case MovePlane_XY:
+                    rads[0] =
+                break;
+                case MovePlane_XY:
+                break;
+                case MovePlane_XY:
+                break;
+            }*/
+
+            runner.position = pos;
+            remoteDevice->set_circle_position(pos.x, pos.y, pos.z, centerPos.x, centerPos.y, centerPos.z);
+        }
+    }
+
     return InterError_ALL_OK;
 }
 
@@ -496,6 +577,7 @@ void GCodeInterpreter::init()
     runner.feed = 100; //отфига
     runner.incremental = false;
     runner.motionMode = MotionMode_FAST;
+    runner.plane = MovePlane_XY;
     runner.offset.x = 0;
     runner.offset.y = 0;
     runner.offset.z = 0;

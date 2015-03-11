@@ -145,6 +145,7 @@ struct Runner
     UnitSystem units;        //текуща€ система единиц измерени€
     bool incremental;     //абсолютна€ система координат?
     MotionMode motionMode;   //режим перемещени€ (линейна€ интерпол€ци€ и т.п.)
+    MovePlane plane;         //текуща€ плоскость интерпол€ции
     double feed;             //подача в мм/мин
     double cutterRadius;     //радиус фрезы
     double cutterLength;     //длина фрезы
