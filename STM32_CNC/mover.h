@@ -227,12 +227,16 @@ public:
 		int remap[2];          //номера координат, соответствующие плоскости интерполяции
 		bool isCw;             //по часовой
 		int error;             //накопленная ошибка в текущей позиции
+		float16 scale2;        //(растяжение по y)^2
+		int oldDelta;          //предыдущее расстояние до конца дуги
 		int maxrVelocity;       //максимальная скорость, тиков/шаг
 		int maxrAcceleration;  //ускорение тиков^2/шаг
 		int accLength;            //расстояние, в течение которого можно ускоряться
 		int fullLength;            //число пикселей от начала до конца
 	};
 	CircleData circleData;
+	
+	#define MAX_CIRCLE_DELTA 10 //максимальное непопадание конца дуги из-за неточности вычислений
 	
 	//----------------------------------
 	OperateResult linear()
@@ -390,8 +394,6 @@ public:
 	OperateResult circle()
 	{
 		int remap[2] = {circleData.remap[0], circleData.remap[1]}; //плоскость интерполяции
-		if(coord[0] == to[0] && coord[1] == to[1] && coord[2] == to[2])
-			return END;
 		
 		//выбираем направление движения
 		int add[2];
@@ -405,12 +407,12 @@ public:
 		
 		//определяем, как будет меняться ошибка при изменении координат
 		int delta[2];
-		delta[0] = circleData.coord[0] * add[0] * 2 + 1;
-		delta[1] = circleData.coord[1] * add[1] * 2 + 1;
+		delta[0] = (circleData.coord[0] * 2 + add[0]) * add[0];
+		delta[1] = float16(((circleData.coord[1] * 2) + add[1]) * add[1]) * circleData.scale2;
 		int diagonalDelta = delta[0] + delta[1] + circleData.error;
 		//для каждой 1/8 круга движение только по двум направлениям, например дигонально и горизонтально
 		//или диагонально и вертикально
-		bool horizontal = iabs(circleData.coord[0]) < iabs(circleData.coord[1]);
+		bool horizontal = iabs(circleData.coord[0]) < iabs(float16(circleData.coord[1]) * circleData.scale2);
 		if(horizontal)
 		{
 			circleData.coord[0] += add[0];
@@ -441,6 +443,14 @@ public:
 			bufCoord[remap[i]] = circleData.center[i] + circleData.coord[i];
 		}
 		
+		int newDelta = iabs(to[remap[0]] - coord[remap[0]]) + iabs(to[remap[1]] - coord[remap[1]]);
+		if(newDelta < MAX_CIRCLE_DELTA)
+		{
+			if(newDelta < circleData.oldDelta)
+				circleData.oldDelta = newDelta;
+			else
+				return END;
+		}
 		stopTime = timer.get_mks(startTime, circleData.maxrVelocity);
 		
 		return WAIT;
@@ -488,53 +498,12 @@ public:
 			circleData.center[i] = center[circleData.remap[i]];
 		}
 		
+		//круг надо отмасштабировать чтобы соответствовал масштабу осей
+		circleData.scale2 = stepLength[circleData.remap[1]] / stepLength[circleData.remap[0]];
+		circleData.scale2 = circleData.scale2 * circleData.scale2;
+		
 		circleData.error = 0; //мы на точке окружности, откуда тут ошибка
-		
-		//известно точно R^2 в начальной точке
-		//к конечной точке надо найти ближайшую, имеющую минимальную ошибку R^2
-		int endCoord[2];
-		endCoord[0] = dest[circleData.remap[0]] - circleData.center[0]; //конечные координаты в локальной системе
-		endCoord[1] = dest[circleData.remap[1]] - circleData.center[1];
-		
-		int r2 = circleData.coord[0] * circleData.coord[0] + circleData.coord[1] * circleData.coord[1];
-		int delta = endCoord[0] * endCoord[0] + endCoord[1] * endCoord[1] - r2;
-		//err(x+a, y+b) - err(x,y) = a*2x + a^2 + b*2y + b^2
-		if(iabs(endCoord[0]) > iabs(endCoord[1])) //двигаем только по одной координате, выбираем подходящую
-		{
-			//delta = a*2x+a^2.   (a+x)^2 = delta + x^2.   a = sqrt(delta + x^2) - x
-			//раскладываем a в ряд Тейлора по delta.
-			//a = delta/(2x)
-			int a = delta / (2 * endCoord[0]);
-			endCoord[0] -= a;
-			//одна итерация для получения точных координат
-			delta = endCoord[0] * endCoord[0] + endCoord[1] * endCoord[1] - r2;
-			int step = isign(delta) * isign(endCoord[0]);
-			if(step != 0)
-			{
-				int newX = endCoord[0] - step;
-				int delta2 = newX * newX + endCoord[1] * endCoord[1] - r2;
-				if(iabs(delta2) < iabs(delta))
-					endCoord[0] = newX;
-			}
-		}
-		else
-		{
-			int b = delta / (2 * endCoord[1]);
-			endCoord[1] -= b;
-			//одна итерация для получения точных координат
-			delta = endCoord[0] * endCoord[0] + endCoord[1] * endCoord[1] - r2;
-			int step = isign(delta) * isign(endCoord[1]);
-			if(step != 0)
-			{
-				int newY = endCoord[1] - step;
-				int delta2 = endCoord[0] * endCoord[0] + newY * newY - r2;
-				if(iabs(delta2) < iabs(delta))
-					endCoord[1] = newY;
-			}
-		}
-		
-		dest[circleData.remap[0]] = circleData.center[0] + endCoord[0];
-		dest[circleData.remap[1]] = circleData.center[1] + endCoord[1];
+		circleData.oldDelta = MAX_CIRCLE_DELTA;
 		
 		for(int i = 0; i < NUM_COORDS; ++i)
 			to[i] = dest[i];       //куда двигаемся
