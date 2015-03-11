@@ -2,7 +2,7 @@
 
 #include "stdint.h"
 
-#define DIV_BITS_COUNT  4
+#define DIV_BITS_COUNT  2
 const int DIV_BITS  =   DIV_BITS_COUNT; //число битов, отведённых на "дробную часть" шага
 const int SUB_STEPS =   1<<DIV_BITS;    //число микрошагов в одном шаге
 
@@ -26,9 +26,10 @@ const int NUM_COORDS = 3;
 #define log_console(format, ...) \
 {\
 	char buffer[64];\
-	int count = sprintf(buffer, format, __VA_ARGS__);\
-	*(int*)(buffer + count + 1) = calc_crc(buffer, count + 1);\
-	send_packet(buffer, count + 1 + 4);\
+	buffer[0] = DeviceCommand_TEXT_MESSAGE;\
+	int count = sprintf(buffer+1, format, __VA_ARGS__);\
+	*(int*)(buffer + count + 2) = calc_crc(buffer, count + 2);\
+	send_packet(buffer, count + 2 + 4);\
 }
 
 /*

@@ -19,6 +19,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SET_STEP_SIZE,    //in
 	DeviceCommand_SET_VOLTAGE,      //in
 	DeviceCommand_SERVICE_COORDS,   //out
+	DeviceCommand_TEXT_MESSAGE,     //out
 };
 enum MoveMode //:char режим движения/интерполяции
 {
@@ -51,7 +52,7 @@ struct PacketCircleMove //30 байт
 	DeviceCommand command;
 	PacketCount packetNumber;
 	int coord[NUM_COORDS];
-	int circle[3];//I,J,K
+	int center[3];
 };
 struct PacketWait
 {
