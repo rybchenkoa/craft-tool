@@ -26,7 +26,7 @@ struct float16
 		if(input & (1u<<31))
 			mantis = -mantis;
 		int exp = (input << 1) & 0xFF000000;
-		exponent = exp>>24;
+		exponent = exp>>24u;
 		exponent = int8_t(exponent + 0x81);
 	}
 	
@@ -220,9 +220,9 @@ float16 sqrt(float16 value)
 	if(value.mantis <= 0)
 		return float16(0, 0);
 
-	unsigned int val = value.mantis << 16;
+	unsigned int val = value.mantis << 16u;
 	if((value.exponent & 1) == 1)
-		val = val << 1; //бит знака = 0, ничего не затрём
+		val = val << 1u; //бит знака = 0, ничего не затрём
 	_exponent = value.exponent >> 1;
 
 	unsigned int res = value.mantis;
@@ -233,7 +233,10 @@ float16 sqrt(float16 value)
 	//res = (val/res + res)/2;
 	//res = (val/res + res)/2;
 
-	_mantis = res>>1;
+	if(res > INT16_MAX * 2) //либо увеличить число итераций
+		res = INT16_MAX * 2;
+		
+	_mantis = res>>1u;
 	return float16(_mantis, _exponent);
 }
 
