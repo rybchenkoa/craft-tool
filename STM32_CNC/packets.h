@@ -47,12 +47,12 @@ struct PacketMove
 	PacketCount packetNumber;
 	int coord[NUM_COORDS];
 };
-struct PacketCircleMove //30 байт
+struct PacketCircleMove
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
 	int coord[NUM_COORDS];
-	int center[3];
+	int center[NUM_COORDS];
 };
 struct PacketWait
 {
@@ -132,7 +132,6 @@ struct PacketServiceCoords
 #pragma pack(pop)
 
 //=========================================================================================
-//размер структуры выровнен на 4, чтобы быстро копировать int[]
 union PacketUnion
 {
 	PacketCommon common;
@@ -145,9 +144,14 @@ union PacketUnion
 	PacketSetVelAcc setVelAcc;
 	PacketSetFeed setFeed;
 	PacketSetStepSize setStepSize;
-	int dummyCrc; //влияет на выравнивание и занимает правильный размер под црц
 };
 
+//размер структуры выровнен на 4, чтобы быстро копировать int[]
+struct MaxPacket
+{
+	PacketUnion packet;
+	int dummyCrc; //влияет на выравнивание и занимает правильный размер под црц
+};
 //=========================================================================================
 uint32_t calc_crc(char *buffer, int size)
 {

@@ -10,7 +10,7 @@ void send_packet(char *packet, int size);
 class Receiver
 {
 	public:
-	FIFOBuffer<PacketUnion, 5> queue; //28*32+8 = 904
+	FIFOBuffer<MaxPacket, 5> queue; //28*32+8 = 904
 	PacketCount packetNumber;
 	
 	void init()
@@ -186,6 +186,7 @@ public:
 	int rFeed;    //подача (тиков/мм)
 	int voltage[NUM_COORDS];  //регулировка напряжения на больших оборотах и при простое
 	MovePlane plane;
+	int remap[2];          //номера координат, соответствующие плоскости интерполяции
 	
 	//----------------------------------
 	enum State
@@ -224,15 +225,15 @@ public:
 	{
 		int center[2];         //центр окружности
 		int coord[2];          //координаты в локальной системе с началом в центре круга
-		int remap[2];          //номера координат, соответствующие плоскости интерполяции
 		bool isCw;             //по часовой
 		int error;             //накопленная ошибка в текущей позиции
 		float16 scale2;        //(растяжение по y)^2
 		int oldDelta;          //предыдущее расстояние до конца дуги
-		int maxrVelocity;       //максимальная скорость, тиков/шаг
-		int maxrAcceleration;  //ускорение тиков^2/шаг
-		int accLength;            //расстояние, в течение которого можно ускоряться
-		int fullLength;            //число пикселей от начала до конца
+		float16 maxVelocity;   //максимальная скорость, мм/тик
+		float16 maxAcceleration;  //ускорение мм/тик^2
+		float16 accLength;     //расстояние, в течение которого можно ускоряться
+		int state;             //0 - ускорение, 1 - движение, 2 - торможение
+		float16 stepLenSq[2];  //квадрат длины шага, для ускорения вычислений
 	};
 	CircleData circleData;
 	
@@ -393,8 +394,6 @@ public:
 	//----------------------------------
 	OperateResult circle()
 	{
-		int remap[2] = {circleData.remap[0], circleData.remap[1]}; //плоскость интерполяции
-		
 		//выбираем направление движения
 		int add[2];
 		add[0] = isign(circleData.coord[1]);
@@ -410,16 +409,19 @@ public:
 		delta[0] = (circleData.coord[0] * 2 + add[0]) * add[0];
 		delta[1] = float16(((circleData.coord[1] * 2) + add[1]) * add[1]) * circleData.scale2;
 		int diagonalDelta = delta[0] + delta[1] + circleData.error;
+		bool haveDelta[2] = {false, false};
 		//для каждой 1/8 круга движение только по двум направлениям, например дигонально и горизонтально
 		//или диагонально и вертикально
 		bool horizontal = iabs(circleData.coord[0]) < iabs(float16(circleData.coord[1]) * circleData.scale2);
 		if(horizontal)
 		{
 			circleData.coord[0] += add[0];
+			haveDelta[0] = true;
 			int horizontalDelta = diagonalDelta - delta[1];
 			if(iabs(diagonalDelta) < iabs(horizontalDelta))
 			{
 				circleData.coord[1] += add[1];
+				haveDelta[1] = true;
 				circleData.error = diagonalDelta;
 			}
 			else
@@ -428,21 +430,18 @@ public:
 		else
 		{
 			circleData.coord[1] += add[1];
+			haveDelta[1] = true;
 			int verticalDelta = diagonalDelta - delta[0];
 			if(iabs(diagonalDelta) < iabs(verticalDelta))
 			{
 				circleData.coord[0] += add[0];
+				haveDelta[0] = true;
 				circleData.error = diagonalDelta;
 			}
 			else
 				circleData.error = verticalDelta;
 		}
-		
-		for(int i = 0; i < 2; ++i)
-		{
-			bufCoord[remap[i]] = circleData.center[i] + circleData.coord[i];
-		}
-		
+
 		int newDelta = iabs(to[remap[0]] - coord[remap[0]]) + iabs(to[remap[1]] - coord[remap[1]]);
 		if(newDelta < MAX_CIRCLE_DELTA)
 		{
@@ -451,7 +450,67 @@ public:
 			else
 				return END;
 		}
-		stopTime = timer.get_mks(startTime, circleData.maxrVelocity);
+		
+		for(int i = 0; i < 2; ++i)
+		{
+			bufCoord[remap[i]] = circleData.center[i] + circleData.coord[i];
+		}
+		
+		//найти точное выражение для ускорения не получилось, т.к. эллиптические интегралы
+		//поэтому считать будем по расстоянию от старта до текущей позиции
+		//s = v^2/2a, v = sqrt(2sa)
+		int time = 0;
+		float16 stepLen = 0;
+		if(haveDelta[0])
+			stepLen = circleData.stepLenSq[0];
+
+		if(haveDelta[1])
+			stepLen += circleData.stepLenSq[1]; //здесь корень не берём для оптимизации
+
+		int curPos[2] = {bufCoord[remap[0]], bufCoord[remap[1]]};
+
+		switch(circleData.state)
+		{
+			case 0:
+			{
+				float16 distanceToStart = sqrt(
+						pow2(curPos[0] - from[remap[0]]) * circleData.stepLenSq[0] +
+						pow2(curPos[1] - from[remap[1]]) * circleData.stepLenSq[1]);
+				//v = sqrt(2sa)   dt = dl / v = sqrt(dl2 /(2sa))
+				time = sqrt(stepLen / (distanceToStart * circleData.maxAcceleration << 1));
+				if(distanceToStart > circleData.accLength) //отъехали от начала
+				{
+					circleData.state = 1;
+					//log_console("to state 1,  %d, %d\n", distanceToStart.mantis, distanceToStart.exponent);
+				}
+				break;
+			}
+			case 1:
+			{
+				float16 distanceToStop = sqrt(
+							pow2(curPos[0] - to[remap[0]]) * circleData.stepLenSq[0] + 
+							pow2(curPos[1] - to[remap[1]]) * circleData.stepLenSq[1]);
+				//dt = dl / v
+				time = sqrt(stepLen) / circleData.maxVelocity;
+				if(distanceToStop < circleData.accLength) //подъехали к концу
+				{
+					circleData.state = 2;
+					//log_console("to state 2,  %d, %d\n", distanceToStop.mantis, distanceToStop.exponent);
+				}
+				break;
+			}
+			case 2:
+			{
+				float16 distanceToStop = sqrt(
+							pow2(curPos[0] - to[remap[0]]) * circleData.stepLenSq[0] + 
+							pow2(curPos[1] - to[remap[1]]) * circleData.stepLenSq[1]);
+				//dt = sqrt(dl2 /(2sa))
+				time = sqrt(stepLen / (distanceToStop * circleData.maxAcceleration << 1));
+				break;
+			}
+		}
+		
+		stopTime = timer.get_mks(startTime, time);
 		
 		return WAIT;
 	}
@@ -463,57 +522,76 @@ public:
 			from[i] = coord[i];    //откуда (текущие координаты)
 		
 		circleData.isCw = isCw;
-		
-		//определяем индексы интерполируемых координат
-		switch(plane)
-		{
-			case MovePlane_XY:
-				circleData.remap[0] = 0;
-				circleData.remap[1] = 1;
-				break;
-			case MovePlane_ZX:
-				circleData.remap[0] = 2;
-				circleData.remap[1] = 0;
-				break;
-			case MovePlane_YZ:
-				circleData.remap[0] = 1;
-				circleData.remap[1] = 2;
-				break;
-		}
-		
-		//не возился с точным вычислением скорости, берётся минимальная
-		circleData.maxrVelocity = maxrVelocity[circleData.remap[0]];
-		if(circleData.maxrVelocity > maxrVelocity[circleData.remap[1]])
-			circleData.maxrVelocity = maxrVelocity[circleData.remap[1]];
-			
-		//ускорение тоже берётся минимальное
-		circleData.maxrAcceleration = maxrAcceleration[circleData.remap[0]];
-		if(circleData.maxrAcceleration > maxrAcceleration[circleData.remap[1]])
-			circleData.maxrAcceleration = maxrAcceleration[circleData.remap[1]];
 			
 		for(int i = 0; i < 2; ++i)
 		{
-			circleData.coord[i] = coord[circleData.remap[i]]; //берём текущие координаты
-			circleData.coord[i] -= center[circleData.remap[i]]; //переводим в локальные
-			circleData.center[i] = center[circleData.remap[i]];
+			circleData.coord[i] = coord[remap[i]]; //берём текущие координаты
+			circleData.coord[i] -= center[remap[i]]; //переводим в локальные
+			circleData.center[i] = center[remap[i]];
 		}
 		
 		//круг надо отмасштабировать чтобы соответствовал масштабу осей
-		circleData.scale2 = stepLength[circleData.remap[1]] / stepLength[circleData.remap[0]];
-		circleData.scale2 = circleData.scale2 * circleData.scale2;
+		float16 scale = stepLength[remap[1]] / stepLength[remap[0]];
+		circleData.scale2 = scale * scale;
 		
 		circleData.error = 0; //мы на точке окружности, откуда тут ошибка
 		circleData.oldDelta = MAX_CIRCLE_DELTA;
+		circleData.state = 0; //ускоряемся
 		
 		for(int i = 0; i < NUM_COORDS; ++i)
 			to[i] = dest[i];       //куда двигаемся
 
-		//считаем число пикселей
+		//расчёт ускорения
+		float16 lengths[2] =
+		{
+			to[remap[0]] - from[remap[0]],
+			to[remap[1]] - from[remap[1]]
+		};
+
+		//ускорение берётся минимальное по оси, центробежная сила не учитывается
+		float16 acc0 = stepLength[remap[0]] / float16(maxrVelocity[remap[0]]); //макс. ускорение по оси
+		float16 acc1 = stepLength[remap[1]] / float16(maxrVelocity[remap[1]]); //мм/тик^2
+		float16 accel = acc0;
+		if(accel > acc1)
+			accel = acc1;
+		circleData.maxAcceleration = accel;
+
+		//не возился с точным вычислением скорости, берётся минимальная из двух
+		float16 vel0 = stepLength[remap[0]] / float16(maxrVelocity[remap[0]]); //макс. скорость по оси
+		float16 vel1 = stepLength[remap[1]] / float16(maxrVelocity[remap[1]]); //мм/тик
+		
+		float16 feedVel = float16(1) / float16(rFeed); //скорость подачи
+		if(feedVel > vel0)
+			feedVel = vel0;
+		if(feedVel > vel1)
+			feedVel = vel1;
+			
+		circleData.maxVelocity = feedVel;
+		
+		float16 sqLen  = pow2(lengths[0] * stepLength[remap[0]]);
+			      sqLen += pow2(lengths[1] * stepLength[remap[1]]);
+	
+		float16 length = sqrt(sqLen) >> 1; //расстояние между концами дуги в мм
+		
+		//v=a*t, s=a*t^2/2 =v^2/2a
+		circleData.accLength = (pow2(feedVel) / accel) >> 1;
+		
+		if(circleData.accLength > length)
+		{
+			circleData.accLength = length;
+			//v = sqrt(2sa)
+			circleData.maxVelocity = sqrt((length * circleData.maxAcceleration) << 1);
+		}
+		//log_console("acclen %d %d\n", circleData.accLength.mantis, circleData.accLength.exponent);
+		circleData.stepLenSq[0] = pow2(stepLength[remap[0]]);
+		circleData.stepLenSq[1] = pow2(stepLength[remap[1]]);
+		
 		for(int i=0; i<NUM_COORDS; ++i)
 		  voltage[i] = 256;
 			
 		handler = &Mover::circle;
 	}
+	
 	//----------------------------------	
 	OperateResult empty()
 	{
@@ -538,6 +616,28 @@ public:
 		
 		for(int i=0; i<NUM_COORDS; ++i)
 		  voltage[i] = 64;
+	}
+	
+	//----------------------------------
+	void set_plane(MovePlane _plane)
+	{
+		plane = _plane;
+		//определяем индексы интерполируемых координат
+		switch(plane)
+		{
+			case MovePlane_XY:
+				remap[0] = 0;
+				remap[1] = 1;
+				break;
+			case MovePlane_ZX:
+				remap[0] = 2;
+				remap[1] = 0;
+				break;
+			case MovePlane_YZ:
+				remap[0] = 1;
+				remap[1] = 2;
+				break;
+		}
 	}
 	
 	//----------------------------------
@@ -569,6 +669,7 @@ public:
 			  //log_console("DO  first %d, last %d\n", receiver.queue.first, receiver.queue.last);	
 
 				const PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
+				log_console("queue[%d] = %d\n", receiver.queue.first, common->command);
 				switch(common->command)
 				{
 					case DeviceCommand_MOVE:
@@ -581,8 +682,8 @@ public:
 								PacketMove *packet = (PacketMove*)common;
 								led.flip();
 
-			//log_console("pos %7d, %7d, %5d, time %d init\n",
-			        //packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
+			log_console("pos %7d, %7d, %5d, time %d init\n",
+			        packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
 								
 								init_linear(packet->coord, interpolation == MoveMode_FAST);
 								break;
@@ -592,6 +693,11 @@ public:
 							{
 								PacketCircleMove *packet = (PacketCircleMove*)common;
 								led.flip();
+								
+			log_console("pos %d, %d, %d, %d, %d, %d, time %d init\n",
+			        packet->coord[0], packet->coord[1], packet->coord[2],
+							packet->center[0], packet->center[1], packet->center[2], timer.get());
+								
 								init_circle(packet->coord, packet->center, interpolation == MoveMode_CW_ARC);
 								break;
 							}
@@ -667,7 +773,7 @@ public:
 					case DeviceCommand_SET_PLANE:
 					{
 						PacketSetPlane *packet = (PacketSetPlane*)common;
-						plane = packet->plane;
+						set_plane(packet->plane);
 						receiver.queue.Pop();
 						break;
 					}
@@ -722,6 +828,8 @@ public:
 		}
 		interpolation = MoveMode_FAST;
 		rFeed = maxrVelocity[0] * 5; //для обычной подачи задержка больше
+		
+		set_plane(MovePlane_XY);
 		
 		for(int i=0; i<NUM_COORDS; ++i)
 		  voltage[i] = 64;
