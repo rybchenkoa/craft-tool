@@ -94,6 +94,9 @@ struct float16
 	
 	float16 operator + (float16 operand) const
 	{
+		if(mantis == 0)
+			return operand;
+			
 		short _mantis, _exponent;
 		int mant;
 		int exp;
@@ -121,6 +124,9 @@ struct float16
 
 	float16 operator - (float16 operand) const
 	{
+		if(mantis == 0)
+			return float16(-operand.mantis, operand.exponent);
+
 		short _mantis, _exponent;
 		int mant;
 		int exp;
