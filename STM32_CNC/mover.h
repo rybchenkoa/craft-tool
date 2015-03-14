@@ -477,6 +477,7 @@ public:
 						pow2(curPos[0] - from[remap[0]]) * circleData.stepLenSq[0] +
 						pow2(curPos[1] - from[remap[1]]) * circleData.stepLenSq[1]);
 				//v = sqrt(2sa)   dt = dl / v = sqrt(dl2 /(2sa))
+				//v = Vmax*sqrt(s/Smax)
 				time = sqrt(stepLen / (distanceToStart * circleData.maxAcceleration << 1));
 				if(distanceToStart > circleData.accLength) //отъехали от начала
 				{
@@ -549,8 +550,8 @@ public:
 		};
 
 		//ускорение берётся минимальное по оси, центробежная сила не учитывается
-		float16 acc0 = stepLength[remap[0]] / float16(maxrVelocity[remap[0]]); //макс. ускорение по оси
-		float16 acc1 = stepLength[remap[1]] / float16(maxrVelocity[remap[1]]); //мм/тик^2
+		float16 acc0 = stepLength[remap[0]] / float16(maxrAcceleration[remap[0]]); //макс. ускорение по оси
+		float16 acc1 = stepLength[remap[1]] / float16(maxrAcceleration[remap[1]]); //мм/мкс^2
 		float16 accel = acc0;
 		if(accel > acc1)
 			accel = acc1;
@@ -583,6 +584,7 @@ public:
 			circleData.maxVelocity = sqrt((length * circleData.maxAcceleration) << 1);
 		}
 		//log_console("acclen %d %d\n", circleData.accLength.mantis, circleData.accLength.exponent);
+		//log_console("len %d, vel %d\n", int(circleData.accLength), int(circleData.maxVelocity * float16(1000000)));
 		circleData.stepLenSq[0] = pow2(stepLength[remap[0]]);
 		circleData.stepLenSq[1] = pow2(stepLength[remap[1]]);
 		
