@@ -214,6 +214,7 @@ struct float16
 	}
 };
 
+#define INT16_MAX 32767
 float16 sqrt(float16 value)
 {
 	short _mantis, _exponent;
