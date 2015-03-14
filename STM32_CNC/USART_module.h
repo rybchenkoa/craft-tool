@@ -81,7 +81,15 @@ class Usart
 		transmitBuffer.Push(OP_CODE);
 		transmitBuffer.Push(OP_RUN);
 		for(char *endp = data+size; data != endp; data++)
+		{
+			if(*data == OP_CODE)
+			{
+				transmitBuffer.Push(OP_CODE);
+				if(transmitBuffer.Count() + (endp - data) + 3 > transmitBuffer.Size())
+					return;
+			}
 			transmitBuffer.Push(*data);
+		}
 		transmitBuffer.Push(OP_CODE);
 		transmitBuffer.Push(OP_STOP);
 		start_send();
@@ -125,7 +133,8 @@ class Usart
 				switch (data)
 				{
 					case OP_CODE:                 //в пересылаемом пакете случайно был байт '\'
-						receiveBuffer.Push(data);   //и мы его переслали таким образом
+						if(!receiveBuffer.IsFull())
+							receiveBuffer.Push(data);   //и мы его переслали таким образом
 						receiveState = S_RECEIVING;
 						return;
 					case OP_STOP:
