@@ -10,7 +10,7 @@ void send_packet(char *packet, int size);
 class Receiver
 {
 	public:
-	FIFOBuffer<MaxPacket, 5> queue; //28*32+8 = 904
+	FIFOBuffer<MaxPacket, 3> queue; //28*32+8 = 904
 	PacketCount packetNumber;
 	
 	void init()
@@ -684,7 +684,7 @@ public:
 								PacketMove *packet = (PacketMove*)common;
 								led.flip();
 
-			log_console("pos %7d, %7d, %5d, time %d init\n",
+			log_console("pos %7d, %7d, %5x, time %d init\n",
 			        packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
 								
 								init_linear(packet->coord, interpolation == MoveMode_FAST);
@@ -704,7 +704,6 @@ public:
 								break;
 							}
 						}
-						receiver.queue.Pop();
 
 			      //log_console("posle1  first %d, last %d\n", receiver.queue.first, receiver.queue.last);
 						break;
@@ -712,7 +711,6 @@ public:
 					case DeviceCommand_MOVE_MODE:
 					{
 						interpolation = ((PacketInterpolationMode*)common)->mode;
-						receiver.queue.Pop();
 						log_console("mode %d\n", interpolation);
             //log_console("posle2  first %d, last %d\n",
 			      //     receiver.queue.first, receiver.queue.last);
@@ -727,7 +725,6 @@ public:
 							minCoord[i] = packet->minCoord[i];
 							maxCoord[i] = packet->maxCoord[i];
 						}
-						receiver.queue.Pop();
 						break;
 					}
 					case DeviceCommand_SET_VEL_ACC:
@@ -739,7 +736,6 @@ public:
 							maxrAcceleration[i] = packet->maxrAcceleration[i];
 							log_console("[%d]: maxVel %d, maxAcc %d\n", i, maxrVelocity[i], maxrAcceleration[i]);
 						}
-						receiver.queue.Pop();
 						break;
 					}
 					case DeviceCommand_SET_FEED:
@@ -747,7 +743,6 @@ public:
 						PacketSetFeed *packet = (PacketSetFeed*)common;
 						rFeed = packet->rFeed;
 						log_console("rFeed %d\n", rFeed);
-						receiver.queue.Pop();
 						break;
 					}
 					case DeviceCommand_SET_STEP_SIZE:
@@ -758,7 +753,6 @@ public:
 							stepLength[i] = packet->stepSize[i];
 							log_console("[%d]: stepLength %d\n", i, int(stepLength[i].exponent));
 						}
-						receiver.queue.Pop();
 						break;
 					}
 					case DeviceCommand_SET_VOLTAGE:
@@ -769,14 +763,12 @@ public:
 							motor[i+1].maxVoltage = packet->voltage[i];
 						}
 						motor[0].maxVoltage = packet->voltage[0];
-						receiver.queue.Pop();
 						break;
 					}
 					case DeviceCommand_SET_PLANE:
 					{
 						PacketSetPlane *packet = (PacketSetPlane*)common;
 						set_plane(packet->plane);
-						receiver.queue.Pop();
 						break;
 					}
 					case DeviceCommand_WAIT:
@@ -784,18 +776,17 @@ public:
 						init_empty();
 						PacketWait *packet = (PacketWait*)common;
 						stopTime = timer.get_mks(packet->delay);
-						receiver.queue.Pop();
 						break;
 					}
 						
 					default:
 						log_console("undefined packet type %d, %d\n", common->command, common->packetNumber);
-						receiver.queue.Pop();
 						break;
 				}
 				
-			  //log_console("POSLE  first %d, last %d\n",
-			  //      receiver.queue.first, receiver.queue.last);
+				receiver.queue.Pop();
+				//log_console("POSLE  first %d, last %d\n",
+				//      receiver.queue.first, receiver.queue.last);
 			}
 		}
 	}
