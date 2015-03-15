@@ -58,14 +58,11 @@ unsigned CRemoteDevice::crc32_stm32(unsigned init_crc, unsigned *buf, int len)
         crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 24) )];
         len -= 4;
     }
-    if(len)
+
+    char *cbuf = (char*)buf;
+    while(len-- != 0)
     {
-        switch(len)
-        {
-            case 1: v = 0xFF000000 & htonl(*buf++); break;
-            case 2: v = 0xFFFF0000 & htonl(*buf++); break;
-            case 3: v = 0xFFFFFF00 & htonl(*buf++); break;
-        }
+        v = htonl(*cbuf++);
         crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v ) )];
         crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 8) )];
         crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 16) )];
@@ -224,7 +221,7 @@ void CRemoteDevice::init()
     };
 
     secToTick = 1000000.0;
-    subSteps = 4;
+    subSteps = 2;
     double stepsPerMm[NUM_COORDS];
     stepsPerMm[0] = try_get_float(CFG_STEPS_PER_MM "X");
     stepsPerMm[1] = try_get_float(CFG_STEPS_PER_MM "Y");
@@ -327,6 +324,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
         if(!commandQueue.empty() && commandQueue.front()->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
         {
             //printf("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
+            delete commandQueue.front();
             commandQueue.pop();
             SetEvent(eventPacketReceived);
             return true;
@@ -344,8 +342,13 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
         return true;
 
     case DeviceCommand_ERROR_PACKET_NUMBER:
+    {
+        AutoLockCS lock(queueCS);
         log_warning("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
+        if(!commandQueue.empty())
+            log_warning("nado %d\n", commandQueue.front()->packetNumber);
         return false;
+    }
 
     default:
         return process_packet(data, size - 4);
@@ -370,14 +373,16 @@ DWORD WINAPI CRemoteDevice::send_thread(void *__this)
                 AutoLockCS lock(_this->queueCS);
                 auto packet = _this->commandQueue.front();
                 _this->comPort->send_data(&packet->size + 1, packet->size - 1);
+                //log_message("send number %d\n", packet->packetNumber);
                 //printf("send number %d\n", packet->packetNumber);
             }
-            DWORD result = WaitForSingleObject(_this->eventPacketReceived, 50);
+            DWORD result = WaitForSingleObject(_this->eventPacketReceived, 100);
             if(result == WAIT_TIMEOUT)
             {
                 ++_this->missedSends;
                 ResetEvent(_this->eventPacketReceived);
             }
+            //Sleep(500);
         }
     }
     return 0;
