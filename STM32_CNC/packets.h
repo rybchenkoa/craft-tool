@@ -155,24 +155,25 @@ struct MaxPacket
 //=========================================================================================
 uint32_t calc_crc(char *buffer, int size)
 {
+	//__disable_irq();
 	volatile CRC_TypeDef *calc = CRC;
 	calc->CR |= CRC_CR_RESET;
-	
-	uint32_t wordLength = size/4;
+	//__NOP();__NOP();__NOP();
 	uint32_t *wordBuffer = (uint32_t*) buffer;
 	
-	while(wordLength--)
+	while(size >= 4)
 	{
 		calc->DR = *(wordBuffer++);
-		__NOP();__NOP();__NOP();__NOP();
+		size -= 4;
 	}
 	
-	switch(size & 3)
+	char *buf = (char*)wordBuffer;
+	while(size-- > 0)
 	{
-		case 1: calc->DR = (*wordBuffer) & 0x000000FF; __NOP();__NOP();__NOP();__NOP(); break;
-		case 2: calc->DR = (*wordBuffer) & 0x0000FFFF; __NOP();__NOP();__NOP();__NOP(); break;
-		case 3: calc->DR = (*wordBuffer) & 0x00FFFFFF; __NOP();__NOP();__NOP();__NOP(); break;
+		calc->DR = *(buf++);
 	}
-		
-	return calc->DR;
+
+	uint32_t r = calc->DR;
+	//__enable_irq();
+	return r;
 }
