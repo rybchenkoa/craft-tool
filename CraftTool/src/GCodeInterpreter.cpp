@@ -558,7 +558,7 @@ void GCodeInterpreter::execute_file()
 {
     remoteDevice->init();
     init();
-    int lineNumber = 1;
+    int lineNumber = 0;
     for(auto iter = inputFile.begin(); iter != inputFile.end(); ++iter)
     {
         remoteDevice->set_current_line(lineNumber);

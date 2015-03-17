@@ -40,6 +40,10 @@ static DWORD WINAPI execute( LPVOID lpParam )
     g_inter.remoteDevice = remoteDevice;
 
     g_inter.read_file("test.nc"); //читаем данные из файла
+
+    for(auto i = g_inter.inputFile.begin(); i != g_inter.inputFile.end(); ++i)
+        g_mainWindow->ui->c_commandList->addItem(i->c_str());
+
     g_inter.execute_file();           //запускаем интерпретацию
 
     while(true || !remoteDevice->queue_empty())

@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
 
 namespace Ui {
 class MainWindow;
@@ -17,9 +18,11 @@ public:
 
 public:
     Ui::MainWindow *ui;
+    QTimer updateTimer;
 
 public slots:
-    void menuOpenProgram();
+    void menu_open_program();
+    void update_state();
 };
 
 #endif // MAINWINDOW_H
