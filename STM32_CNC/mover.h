@@ -695,9 +695,9 @@ public:
 								PacketMove *packet = (PacketMove*)common;
 								led.flip();
 
-			log_console("pos %7d, %7d, %5d, time %d init\n",
-			        packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
-								
+			//log_console("pos %7d, %7d, %5d, time %d init\n",
+			//        packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
+								send_packet_service_coords(coord);
 								init_linear(packet->coord, interpolation == MoveMode_FAST);
 								break;
 							}
@@ -707,10 +707,10 @@ public:
 								PacketCircleMove *packet = (PacketCircleMove*)common;
 								led.flip();
 								
-			log_console("pos %d, %d, %d, %d, %d, %d, time %d init\n",
-			        packet->coord[0], packet->coord[1], packet->coord[2],
-							packet->center[0], packet->center[1], packet->center[2], timer.get());
-								
+			//log_console("pos %d, %d, %d, %d, %d, %d, time %d init\n",
+			//        packet->coord[0], packet->coord[1], packet->coord[2],
+			//				packet->center[0], packet->center[1], packet->center[2], timer.get());
+								send_packet_service_coords(coord);
 								init_circle(packet->coord, packet->center, interpolation == MoveMode_CW_ARC);
 								break;
 							}
