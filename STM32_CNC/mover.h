@@ -74,6 +74,16 @@ void send_packet_service_coords(int coords[NUM_COORDS])
 }
 
 //=========================================================================================
+void send_packet_service_command(PacketCount number)
+{
+	PacketServiceCommand packet;
+	packet.command = DeviceCommand_SERVICE_COMMAND;
+	packet.packetNumber = number;
+	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
+	send_packet((char*)&packet, sizeof(packet));
+}
+
+//=========================================================================================
 void on_packet_received(char *packet, int size)
 {
 	//led.show();
@@ -671,7 +681,8 @@ public:
 			  //log_console("DO  first %d, last %d\n", receiver.queue.first, receiver.queue.last);	
 
 				const PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
-				log_console("queue[%d] = %d\n", receiver.queue.first, common->command);
+				send_packet_service_command(common->packetNumber);
+				//log_console("queue[%d] = %d\n", receiver.queue.first, common->command);
 				switch(common->command)
 				{
 					case DeviceCommand_MOVE:
@@ -684,7 +695,7 @@ public:
 								PacketMove *packet = (PacketMove*)common;
 								led.flip();
 
-			log_console("pos %7d, %7d, %5x, time %d init\n",
+			log_console("pos %7d, %7d, %5d, time %d init\n",
 			        packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
 								
 								init_linear(packet->coord, interpolation == MoveMode_FAST);
