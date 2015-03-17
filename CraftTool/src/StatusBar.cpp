@@ -25,6 +25,12 @@ void StatusBar::timerEvent(QTimerEvent *event)
                 port->errs,
                 port->receiveBPS,
                 port->transmitBPS);
+        sprintf(text + strlen(text), " x, y, z {%f, %f, %f}",
+                float(device->currentCoords[0]),
+                float(device->currentCoords[1]),
+                float(device->currentCoords[2]));
+        sprintf(text + strlen(text), " line %d",
+                device->get_current_line());
         showMessage(text);
     }
     else

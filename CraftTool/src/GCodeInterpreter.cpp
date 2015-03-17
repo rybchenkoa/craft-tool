@@ -558,11 +558,14 @@ void GCodeInterpreter::execute_file()
 {
     remoteDevice->init();
     init();
+    int lineNumber = 1;
     for(auto iter = inputFile.begin(); iter != inputFile.end(); ++iter)
     {
+        remoteDevice->set_current_line(lineNumber);
         auto result = execute_frame(iter->c_str());
         if(result != InterError_ALL_OK)
-            std::cout<<"execute_frame error "<<result<<"\n";
+            std::cout<<"execute_frame error "<<result<<", line" << lineNumber << "\n";
+        ++lineNumber;
     };
 }
 

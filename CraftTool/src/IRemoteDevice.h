@@ -24,6 +24,7 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_SET_VOLTAGE,
     DeviceCommand_SERVICE_COORDS,
     DeviceCommand_TEXT_MESSAGE,
+    DeviceCommand_SERVICE_COMMAND,
 };
 enum MoveMode:char //режим движения/интерполяции
 {
@@ -160,6 +161,12 @@ struct PacketServiceCoords //текущие координаты устройства
     int coords[NUM_COORDS];
     int crc;
 };
+struct PacketServiceCommand //текущий исполняемый устройством пакет
+{
+    DeviceCommand command;
+    PacketCount packetNumber;
+    int crc;
+};
 #pragma pack(pop)
 
 //для теста надо будет сделать отдельную реализацию класса
@@ -177,8 +184,12 @@ public:
     virtual void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS])=0; //задать скорость и ускорение
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_step_size(double stepSize[NUM_COORDS])=0; //длина одного шага
+
     virtual bool need_next_command()=0; //есть ли ещё место в очереди команд
     virtual bool queue_empty() = 0; //есть ли ещё команды в очереди
+
+    virtual void set_current_line(int line)=0; //задаёт номер строки, для которой сейчас будут вызываться команды
+    virtual int  get_current_line()=0; //возвращает номер строки, для которой сейчас исполняются команды
 };
 
 //класс передаёт команды по com-порту на микроконтроллер, а он уже дальше интерполирует
@@ -201,8 +212,12 @@ public:
     void set_feed(double feed);
     void set_step_size(double stepSize[NUM_COORDS]);
     void set_voltage(double voltage[NUM_COORDS]);
+
     bool need_next_command();
     bool queue_empty();
+
+    virtual void set_current_line(int line);
+    virtual int  get_current_line();
 
     bool on_packet_received(char *data, int size);
 
@@ -226,7 +241,7 @@ protected:
     template<typename T>
     void push_packet_common(T *packet);
 
-    static DWORD WINAPI send_thread(void* __this);
+    static DWORD WINAPI send_thread(void* _this);
     HANDLE hThread;
 
     std::queue<PacketCommon*> commandQueue;
@@ -234,6 +249,15 @@ protected:
     HANDLE eventQueueAdd;         //в очередь добавлен пакет
     HANDLE eventPacketReceived;   //сообщение о принятии пакета
     PacketCount packetNumber;     //номер последнего добавленного пакета
+
+    int pushLine;                 //строка, из которой читаются команды
+    int workLine;                 //строка, команда которой сейчас выполняется
+    struct WorkPacket
+    {
+        PacketCount packet;
+        int line;
+    };
+    std::queue<WorkPacket> workQueue; //посланные устройству пакеты, которые ещё не исполнены
 
     unsigned crc32Table[256];
 

@@ -12,6 +12,8 @@ CRemoteDevice::CRemoteDevice()
     missedSends = 0;
     missedReceives = 0;
     missedHalfSend = 0;
+    pushLine = -1;
+    workLine = -1;
 
     InitializeCriticalSection(&queueCS);
     eventQueueAdd = CreateEvent(nullptr, false, false, nullptr);
@@ -75,10 +77,18 @@ unsigned CRemoteDevice::crc32_stm32(unsigned init_crc, unsigned *buf, int len)
 template<typename T>
 void CRemoteDevice::push_packet_common(T *packet)
 {
+    AutoLockCS lock(queueCS);
+
     packet->size = sizeof(*packet);
     packet->packetNumber = packetNumber++;
     make_crc((char*)packet);
     commandQueue.push((PacketCommon*)packet);
+
+    WorkPacket work;
+    work.line = pushLine;
+    work.packet = packet->packetNumber;
+    workQueue.push(work);
+
     SetEvent(eventQueueAdd);
 }
 
@@ -266,14 +276,28 @@ void CRemoteDevice::make_crc(char *packet)
 }
 
 //============================================================
+void CRemoteDevice::set_current_line(int line)
+{
+    pushLine = line;
+}
+
+//============================================================
+int CRemoteDevice::get_current_line()
+{
+    return workLine;
+}
+
+//============================================================
 bool CRemoteDevice::need_next_command()
 {
+    AutoLockCS lock(queueCS);
     return (commandQueue.size() < 2);
 }
 
 //============================================================
 bool CRemoteDevice::queue_empty()
 {
+    AutoLockCS lock(queueCS);
     return commandQueue.empty();
 }
 
@@ -289,6 +313,16 @@ bool CRemoteDevice::process_packet(char *data, int size)
             currentCoords[i] = packet->coords[i] / scale[i];
         emit coords_changed(currentCoords[0], currentCoords[1], currentCoords[2]);
         //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
+        return true;
+    }
+    case DeviceCommand_SERVICE_COMMAND:
+    {
+        PacketServiceCommand *packet = (PacketServiceCommand*) data; //находим строку, которая сейчас исполняется
+        AutoLockCS lock(queueCS);
+        while(workQueue.front().packet != packet->packetNumber) // это на случай неприхода предыдущего пакета
+            workQueue.pop();
+        workLine = workQueue.front().line;
+        workQueue.pop();
         return true;
     }
     case DeviceCommand_TEXT_MESSAGE:
