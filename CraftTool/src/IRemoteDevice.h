@@ -185,7 +185,6 @@ public:
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_step_size(double stepSize[NUM_COORDS])=0; //длина одного шага
 
-    virtual bool need_next_command()=0; //есть ли ещё место в очереди команд
     virtual bool queue_empty() = 0; //есть ли ещё команды в очереди
 
     virtual void set_current_line(int line)=0; //задаёт номер строки, для которой сейчас будут вызываться команды
@@ -200,24 +199,24 @@ public:
     CRemoteDevice();
     ~CRemoteDevice();
 
-    void init();
-    void reset_packet_queue();
-    void set_move_mode(MoveMode mode);
-    void set_plane(MovePlane plane);
-    void set_position(double x, double y, double z);
-    void set_circle_position(double x, double y, double z, double i, double j, double k);
-    void wait(double time);
-    void set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS]);
-    void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS]);
-    void set_feed(double feed);
-    void set_step_size(double stepSize[NUM_COORDS]);
+    void init() override;
+    void reset_packet_queue() override;
+    void set_move_mode(MoveMode mode) override;
+    void set_plane(MovePlane plane) override;
+    void set_position(double x, double y, double z) override;
+    void set_circle_position(double x, double y, double z, double i, double j, double k) override;
+    void wait(double time) override;
+    void set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS]) override;
+    void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS]) override;
+    void set_feed(double feed) override;
+    void set_step_size(double stepSize[NUM_COORDS]) override;
+
     void set_voltage(double voltage[NUM_COORDS]);
 
-    bool need_next_command();
-    bool queue_empty();
+    bool queue_empty() override;
 
-    virtual void set_current_line(int line);
-    virtual int  get_current_line();
+    virtual void set_current_line(int line) override;
+    virtual int  get_current_line() override;
 
     bool on_packet_received(char *data, int size);
 

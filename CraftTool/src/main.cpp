@@ -8,21 +8,32 @@
 
 QApplication *g_application = 0;
 MainWindow *g_mainWindow = 0;
-Interpreter::GCodeInterpreter g_inter;
-Config g_config;
+Interpreter::GCodeInterpreter *g_inter = 0;
+Config *g_config = 0;
+CRemoteDevice *g_device = 0;
 
 
 static DWORD WINAPI execute( LPVOID lpParam )
 {
     Q_UNUSED(lpParam)
 
-    CRemoteDevice *remoteDevice = new CRemoteDevice; //он передаёт команды классу связи с устройством
+    CRemoteDevice *remoteDevice = new CRemoteDevice; //управление удалённым устройством
+
+    QObject::connect(remoteDevice, SIGNAL(coords_changed(float, float, float)),
+                     g_mainWindow->ui->c_3dView, SLOT(update_tool_coords(float, float, float)));
+
     ComPortConnect *comPort = new ComPortConnect;    //устройство доводит данные до реального устройтва через порт
+
+    remoteDevice->comPort = comPort; //говорим устройству, через что слать
+    comPort->remoteDevice = remoteDevice; //порту говорим, кто принимает
+
+    g_device = remoteDevice;
+
     try
     {
         int port = 1;
-        g_config.get_int(CFG_COM_PORT_NUMBER, port);
-        comPort->init_port(port);           //открываем порт (+ всё остальное)
+        g_config->get_int(CFG_COM_PORT_NUMBER, port);
+        comPort->init_port(port);           //открываем порт
     }
     catch(const char *message)
     {
@@ -32,37 +43,22 @@ static DWORD WINAPI execute( LPVOID lpParam )
         exit(1);
     }
 
-    QObject::connect(remoteDevice, SIGNAL(coords_changed(float, float, float)),
-                     g_mainWindow->ui->c_3dView, SLOT(update_tool_coords(float, float, float)));
+    g_inter->remoteDevice = remoteDevice;
 
-    remoteDevice->comPort = comPort; //говорим устройству, через что слать
-    comPort->remoteDevice = remoteDevice; //порту говорим, кто принимает
-    g_inter.remoteDevice = remoteDevice;
-
-    g_inter.read_file("test.nc"); //читаем данные из файла
-
-    for(auto i = g_inter.inputFile.begin(); i != g_inter.inputFile.end(); ++i)
-        g_mainWindow->ui->c_commandList->addItem(i->c_str());
-
-    g_inter.execute_file();           //запускаем интерпретацию
-
-    while(true || !remoteDevice->queue_empty())
-    {
-        //printf("missed %d\n", remoteDevice->missedSends);
-        Sleep(1000);
-    }
 }
 
 int main(int argc, char* argv[])
 {
     g_application = new QApplication(argc, argv);
-    g_config.read_from_file(CFG_CONFIG_NAME);
+    g_config = new Config();
+    g_config->read_from_file(CFG_CONFIG_NAME);
+    g_inter = new Interpreter::GCodeInterpreter();
     g_mainWindow = new MainWindow();
     QObject::connect(&g_logger, SIGNAL(send_string(QColor, QString)),
                      g_mainWindow->ui->c_logConsole, SLOT(output(QColor, QString)));
     g_mainWindow->show();
 
-    CreateThread(NULL, 0, execute, 0, 0, 0);
+    execute(0);
 
     return g_application->exec();
 }

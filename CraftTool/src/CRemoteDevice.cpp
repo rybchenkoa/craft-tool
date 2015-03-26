@@ -20,6 +20,7 @@ CRemoteDevice::CRemoteDevice()
     eventPacketReceived = CreateEvent(nullptr, false, false, nullptr);
     DWORD   threadId;
     hThread = CreateThread(NULL, 0, send_thread, this, 0, &threadId);
+    comPort = nullptr;
 }
 
 //============================================================
@@ -118,7 +119,7 @@ void CRemoteDevice::set_position(double x, double y, double z)
     packet->coord[0] = int(x*scale[0]);
     packet->coord[1] = int(y*scale[1]);
     packet->coord[2] = int(z*scale[2]);
-    log_message("   GO TO %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2]);
+    //log_message("   GO TO %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2]);
     push_packet_common(packet);
 }
 
@@ -225,8 +226,8 @@ void CRemoteDevice::init()
     auto try_get_float = [/*&g_config*/](const char *key) -> float
     {
         float value;
-        if(!g_config.get_float(key, value))
-            throw(std::string("key not found in konfig") + key);
+        if(!g_config->get_float(key, value))
+            throw(std::string("key not found in konfig: ") + key);
         return value;
     };
 
@@ -285,13 +286,6 @@ void CRemoteDevice::set_current_line(int line)
 int CRemoteDevice::get_current_line()
 {
     return workLine;
-}
-
-//============================================================
-bool CRemoteDevice::need_next_command()
-{
-    AutoLockCS lock(queueCS);
-    return (commandQueue.size() < 2);
 }
 
 //============================================================

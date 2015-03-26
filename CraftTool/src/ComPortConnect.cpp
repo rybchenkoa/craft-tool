@@ -262,12 +262,19 @@ _this->receiveBPS += readed;
 
 ComPortConnect::ComPortConnect(void)
 {
+    hThread = 0;
+    hCom = 0;
     memset(&ovRead,0,sizeof(ovRead));
     memset(&ovWrite,0,sizeof(ovWrite));
     receiveState = S_READY;
+    receivedSize = 0;
+    remoteDevice = nullptr;
 }
 
 
 ComPortConnect::~ComPortConnect(void)
 {
+    //WaitForSingleObject(hThread)
+    TerminateThread(hThread, 0);   //если прервать, когда не до конца доработала обработка пакета, что будет?
+    CloseHandle(hCom);
 }

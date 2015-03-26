@@ -10,28 +10,27 @@
 class ComPortConnect
 {
 public:
-    ComPortConnect(void);
+    ComPortConnect(void); //обнуляет всё
     ~ComPortConnect(void);
 
-    int init_port(int portNumber);
-    void process_bytes(char *buffer, int count);
-    void send_data(char *buffer, int count);
-    static DWORD WINAPI receive_thread( LPVOID lpParam );
+    int init_port(int portNumber);                       //подключается к порту
+    void send_data(char *buffer, int count);             //шлёт данные
+    static DWORD WINAPI receive_thread( LPVOID lpParam );//принимает данные
 
-    HANDLE hThread;
-    HANDLE hCom;
-    OVERLAPPED ovRead;
+    HANDLE hThread;    //поток чтения
+    HANDLE hCom;       //хэндл порта
+    OVERLAPPED ovRead; //переменные для одновременной работы с портом
     OVERLAPPED ovWrite;
 
-    int receiveBPS;
-    int transmitBPS;
-    int errs;
+    int receiveBPS;    //число прочитанных байт
+    int transmitBPS;   //число записанных байт
+    int errs;          //ошибки разбиения на пакеты
 
     static const int RECEIVE_SIZE = 100;
     char receiveBuffer[RECEIVE_SIZE]; //текущий принимаемый пакет
-    int receivedSize;
+    int receivedSize;                 //принято байт текущего пакета
 
-    IPortToDevice *remoteDevice;
+    IPortToDevice *remoteDevice;      //устройство, принимающее пакеты
 
 private:
     enum States
@@ -51,5 +50,7 @@ private:
     };
 
     States receiveState;
+
+    void process_bytes(char *buffer, int count);   //формирует пакет из принятых данных
 };
 

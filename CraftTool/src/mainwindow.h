@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QTime>
 
 namespace Ui {
 class MainWindow;
@@ -16,9 +17,13 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+    bool connect_to_device();
+    void run_file(char *fileName);
+
 public:
     Ui::MainWindow *ui;
     QTimer updateTimer;
+    QTime time;
 
 public slots:
     void menu_open_program();
