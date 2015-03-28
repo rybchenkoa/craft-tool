@@ -262,6 +262,8 @@ public:
     void to_local(Coords &coords);          //сдвиг в локальные координаты
     coord to_mm(coord value);               //переводит из текущих единиц в мм
     Coords to_mm(Coords value);
+    bool is_screw(Coords center);                     //проверяет, что траектория будет винтовой
+    bool get_readed_coord(char letter, coord &value); //сразу переводит единицы измерения
     bool get_new_position(Coords &pos);  //чтение новых координат с учётом модальных кодов
 
 

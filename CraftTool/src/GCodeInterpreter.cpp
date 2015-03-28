@@ -1,4 +1,5 @@
 #include "GCodeInterpreter.h"
+#include "log.h"
 
 using namespace Interpreter;
 
@@ -363,12 +364,9 @@ InterError GCodeInterpreter::run_modal_groups()
         if(readedFrame.absoluteSet)
         {
             pos = runner.position;
-            if(readedFrame.get_value('X', pos.x))
-                pos.x = to_mm(pos.x);
-            if(readedFrame.get_value('Y', pos.y))
-                pos.y = to_mm(pos.y);
-            if(readedFrame.get_value('Z', pos.z))
-                pos.z = to_mm(pos.z);
+            get_readed_coord('X', pos.x);
+            get_readed_coord('Y', pos.y);
+            get_readed_coord('Z', pos.z);
 
             runner.position = pos;
             remoteDevice->set_position(pos.x, pos.y, pos.z);
@@ -391,11 +389,13 @@ InterError GCodeInterpreter::run_modal_groups()
            readedFrame.have_value('J') ||
            readedFrame.have_value('K'))
         {
-            readedFrame.get_value('I', centerPos.x); //читаем центр круга
-            readedFrame.get_value('J', centerPos.y);
-            readedFrame.get_value('K', centerPos.z);
+            if(readedFrame.have_value('R'))
+                return InterError_WRONG_VALUE;
 
-            local_deform(centerPos);
+            get_readed_coord('I', centerPos.x); //читаем центр круга
+            get_readed_coord('J', centerPos.y);
+            get_readed_coord('K', centerPos.z);
+
             centerPos.x += runner.position.x;
             centerPos.y += runner.position.y;
             centerPos.z += runner.position.z;
@@ -406,15 +406,7 @@ InterError GCodeInterpreter::run_modal_groups()
             if(fabs(length(runner.position, centerPos) - length(pos, centerPos)) > 0.001)//раст€жение пока не поддерживаетс€
                 return InterError_WRONG_VALUE;
 
-            bool isScrew = false;
-            if(centerPos.x != runner.position.x && runner.plane == MovePlane_YZ)
-                isScrew = true;
-            if(centerPos.y != runner.position.y && runner.plane == MovePlane_ZX)
-                isScrew = true;
-            if(centerPos.z != runner.position.z && runner.plane == MovePlane_XY)
-                isScrew = true;
-
-            if(isScrew) //винтова€ интерпол€ци€ пока не поддерживаетс€
+            if(is_screw(centerPos)) //винтова€ интерпол€ци€ пока не поддерживаетс€
                 return InterError_WRONG_VALUE;
 
             /*double rads[3]; //радиусы окружности
@@ -433,9 +425,70 @@ InterError GCodeInterpreter::run_modal_groups()
             runner.position = pos;
             remoteDevice->set_circle_position(pos.x, pos.y, pos.z, centerPos.x, centerPos.y, centerPos.z);
         }
+        else if(readedFrame.have_value('R'))
+        {
+            coord radius;
+            get_readed_coord('R', radius);
+
+            Coords pos = runner.position;            //читаем, докуда двигатьс€
+            get_new_position(pos);
+
+            double distance = length(runner.position, pos);
+            if(fabs(distance / radius) < 0.01)       //плохо вычисл€ема€ окружность
+                return InterError_WRONG_VALUE;
+
+            if(distance > fabs(radius * 2))              //неверный радиус
+                return InterError_WRONG_VALUE;
+
+            if(is_screw(pos)) //винтова€ интерпол€ци€ пока не поддерживаетс€
+                return InterError_WRONG_VALUE;
+
+            //используетс€ теорема ѕифагора
+            Coords toCenter; //находим направление от центра отрезка к центру окружности
+            double length = sqrt(std::max(0.0, radius * radius - distance * distance / 4)); //длина перпендикул€ра
+            if((radius < 0) == (runner.motionMode == MotionMode_CCW_ARC))
+                length *= -1;
+            for(int i = 0; i < NUM_COORDS; ++i)
+                toCenter.r[i] = (runner.position.r[i] - pos.r[i]) * length / distance;
+
+            switch(runner.plane)
+            {
+                case MovePlane_XY:
+                    std::swap(toCenter.x, toCenter.y);
+                    toCenter.y = -toCenter.y;
+                    break;
+                case MovePlane_YZ:
+                    std::swap(toCenter.y, toCenter.z);
+                    toCenter.z = -toCenter.z;
+                    break;
+                case MovePlane_ZX:
+                    std::swap(toCenter.z, toCenter.x);
+                    toCenter.x = -toCenter.x;
+                    break;
+            }
+
+            Coords centerPos;
+            for(int i = 0; i < NUM_COORDS; ++i)
+                centerPos.r[i] = (runner.position.r[i] + pos.r[i]) / 2 + toCenter.r[i];
+
+            runner.position = pos;
+            remoteDevice->set_circle_position(pos.x, pos.y, pos.z, centerPos.x, centerPos.y, centerPos.z);
+        }
     }
 
     return InterError_ALL_OK;
+}
+
+bool GCodeInterpreter::is_screw(Coords center)
+{
+    if(center.x != runner.position.x && runner.plane == MovePlane_YZ)
+        return true;
+    if(center.y != runner.position.y && runner.plane == MovePlane_ZX)
+        return true;
+    if(center.z != runner.position.z && runner.plane == MovePlane_XY)
+        return true;
+
+    return false;
 }
 
 //чтение новых координат с учЄтом модальных кодов
@@ -456,14 +509,10 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
         }
 
         //координаты указаны в локальной системе
-        if(readedFrame.get_value('X', pos.x))
-            pos.x = to_mm(pos.x);
-        if(readedFrame.get_value('Y', pos.y))
-            pos.y = to_mm(pos.y);
-        if(readedFrame.get_value('Z', pos.z))
-            pos.z = to_mm(pos.z);
+        get_readed_coord('X', pos.x);
+        get_readed_coord('Y', pos.y);
+        get_readed_coord('Z', pos.z);
 
-        //local_deform(pos);
         if(runner.incremental)
         {
             for(int i = 0; i < NUM_COORDS; ++i)
@@ -503,10 +552,7 @@ void GCodeInterpreter::to_local(Coords &coords)
 //преобразовани€ локальных координат
 void GCodeInterpreter::local_deform(Coords &coords)
 {
-    coords = to_mm(coords);
-
-    if(runner.coordSystemNumber == -1)
-        return;
+    Q_UNUSED(coords)
 }
 
 //перевод в мм
@@ -522,6 +568,16 @@ Coords GCodeInterpreter::to_mm(Coords value)
     for(int i = 0; i < NUM_COORDS; ++i)
         value.r[i] = to_mm(value.r[i]);
     return value;
+}
+
+bool GCodeInterpreter::get_readed_coord(char letter, coord &value)
+{
+    if(readedFrame.get_value(letter, value))
+    {
+        value = to_mm(value);
+        return true;
+    }
+    return false;
 }
 
 //читает следующий код
@@ -662,7 +718,8 @@ void GCodeInterpreter::execute_file()
         remoteDevice->set_current_line(lineNumber);
         auto result = execute_frame(iter->c_str());
         if(result != InterError_ALL_OK)
-            std::cout<<"execute_frame error "<<result<<", line" << lineNumber << "\n";
+            log_warning("execute_frame error %d, line %d\n", result, lineNumber);
+            //std::cout<<"execute_frame error "<<result<<", line" << lineNumber << "\n";
         ++lineNumber;
     };
 }
