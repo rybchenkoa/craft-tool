@@ -258,6 +258,9 @@ public:
     ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
     void local_deform(Coords &coords);      //преобразование масштаба, поворот в локальной системе координат
     void to_global(Coords &coords);         //сдвиг в глобальные координаты
+    void to_local(Coords &coords);          //сдвиг в локальные координаты
+    coord to_mm(coord value);               //переводит из текущих единиц в мм
+    Coords to_mm(Coords value);
     bool get_new_position(Coords &pos);  //чтение новых координат с учётом модальных кодов
 
 

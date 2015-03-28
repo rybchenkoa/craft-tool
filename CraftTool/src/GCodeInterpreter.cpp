@@ -378,6 +378,7 @@ InterError GCodeInterpreter::run_modal_groups()
             readedFrame.get_value('J', centerPos.y);
             readedFrame.get_value('K', centerPos.z);
 
+            local_deform(centerPos);
             centerPos.x += runner.position.x;
             centerPos.y += runner.position.y;
             centerPos.z += runner.position.z;
@@ -432,15 +433,27 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
             pos.x = pos.y = pos.z = 0;
         }
         else
+        {
             pos = runner.position;
+            to_local(pos);
+        }
 
-        readedFrame.get_value('X', pos.x);
-        readedFrame.get_value('Y', pos.y);
-        readedFrame.get_value('Z', pos.z);
+        //координаты указаны в локальной системе
+        if(readedFrame.get_value('X', pos.x))
+            pos.x = to_mm(pos.x);
+        if(readedFrame.get_value('Y', pos.y))
+            pos.y = to_mm(pos.y);
+        if(readedFrame.get_value('Z', pos.z))
+            pos.z = to_mm(pos.z);
 
+        //local_deform(pos);
         if(runner.incremental)
+        {
             for(int i = 0; i < NUM_COORDS; ++i)
                 pos.r[i] += runner.position.r[i];
+        }
+        else
+            to_global(pos);
 
         return true;
     }
@@ -459,15 +472,39 @@ void GCodeInterpreter::to_global(Coords &coords)
         coords.r[i] += cs.pos0.r[i];
 }
 
+//получение локальных координат из глобальных
+void GCodeInterpreter::to_local(Coords &coords)
+{
+    if(runner.coordSystemNumber == -1)
+        return;
+
+    auto &cs = runner.csd[runner.coordSystemNumber];
+    for(int i = 0; i < NUM_COORDS; ++i)
+        coords.r[i] -= cs.pos0.r[i];
+}
+
 //преобразования локальных координат
 void GCodeInterpreter::local_deform(Coords &coords)
 {
-    if(runner.units == UnitSystem_INCHES)
-        for(int i = 0; i < NUM_COORDS; ++i)
-            coords.r[i] *= MM_PER_INCHES;
+    coords = to_mm(coords);
 
     if(runner.coordSystemNumber == -1)
         return;
+}
+
+//перевод в мм
+coord GCodeInterpreter::to_mm(coord value)
+{
+    if(runner.units == UnitSystem_INCHES)
+        value *= MM_PER_INCHES;
+    return value;
+}
+
+Coords GCodeInterpreter::to_mm(Coords value)
+{
+    for(int i = 0; i < NUM_COORDS; ++i)
+        value.r[i] = to_mm(value.r[i]);
+    return value;
 }
 
 //читает следующий код
@@ -633,4 +670,7 @@ void GCodeInterpreter::init()
     runner.position.z = 0;
     runner.units = UnitSystem_METRIC;
     memset(&runner.csd, 0, sizeof(runner.csd));
+
+    runner.csd[0].pos0.x = 100; //FIXME  for test
+    runner.csd[0].pos0.y = 50;
 }
