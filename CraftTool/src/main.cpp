@@ -45,6 +45,8 @@ static DWORD WINAPI execute( LPVOID lpParam )
 
     g_inter->remoteDevice = remoteDevice;
 
+    g_device->init();
+    g_inter->init();
 }
 
 int main(int argc, char* argv[])

@@ -58,7 +58,6 @@ enum MotionMode //режимы перемещения
     MotionMode_LINEAR,    //линейная интерполяция
     MotionMode_CW_ARC,    //круговая интерполяция
     MotionMode_CCW_ARC,
-    MotionMode_GO_BACK,   //возврат
 };
 
 enum OpCode  //распознаваемые коды операций
@@ -131,11 +130,15 @@ enum InterError
     InterError_NO_VALUE,
 };
 
+//параметры координатной системы
+struct CoordSystemData
+{
+    Coords pos0;               //начало отсчёта в глобальной системе координат
+};
+
 //=================================================================================================
 //интерпретатор работает следующим образом
-//берётся команда, читаются её параметры
-//команда посылается на выполнение
-//это значит что X10 G0 писать нельзя (и даже если где-то можно, то это выглядит как г-окод и нефиг такое поддерживать)
+//читается вся строка, выбираются команды и для них ищутся параметры
 
 //здесь переменные для выполнения команд
 struct Runner
@@ -150,6 +153,7 @@ struct Runner
     double cutterRadius;     //радиус фрезы
     double cutterLength;     //длина фрезы
     int coordSystemNumber;   //номер выбранной координатной системы
+    CoordSystemData csd[5];  //параметры команд G54..G58
 
     Coords offset;           //отступ для ручного задания положения
 };
@@ -216,7 +220,6 @@ struct FrameParams
 
     bool sendWait;    //G4 readed
     Plane plane;      //G17
-    bool absoluteSet; //G53
 
     MotionMode motionMode;
 
@@ -231,6 +234,7 @@ struct FrameParams
 
     InterError set_value(char letter, double value);   //для кодов, имеющих значение, сохраняем это значение
     bool get_value(char letter, double &value);        //забираем считанное значение
+    bool have_value(char letter);                      //есть ли значение
 
 };
 
@@ -252,6 +256,9 @@ public:
     InterError make_new_state();            //чтение команд из строки
     InterError run_modal_groups();          //запуск команд
     ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
+    void local_deform(Coords &coords);      //преобразование масштаба, поворот в локальной системе координат
+    void to_global(Coords &coords);         //сдвиг в глобальные координаты
+    bool get_new_position(Coords &pos);  //чтение новых координат с учётом модальных кодов
 
 
     //функции чтения и исполнения команд с параметрами

@@ -2,6 +2,8 @@
 
 using namespace Interpreter;
 
+#define MM_PER_INCHES 2.54
+
 coord length(Coords from, Coords to)
 {
     Coords delta;
@@ -66,6 +68,16 @@ bool FrameParams::get_value(char letter, double &value)
 }
 
 
+bool FrameParams::have_value(char letter)
+{
+    BitPos index = get_bit_pos(letter);
+    if (index == BitPos_ERR)
+        return false;
+
+    return flagValue.get(index);
+}
+
+
 GCodeInterpreter::GCodeInterpreter(void)
 {
 }
@@ -123,7 +135,6 @@ void FrameParams::reset()
     flagModal.reset();
     sendWait = false; //G4 readed
     plane = Plane_NONE;    //G17
-    absoluteSet = false; //G53
     motionMode = MotionMode_NONE;
 }
 
@@ -166,12 +177,12 @@ InterError GCodeInterpreter::make_new_state()
                     case 20: runner.units = UnitSystem_INCHES; break;
                     case 21: runner.units = UnitSystem_METRIC; break;
 
-                    case 53: readedFrame.absoluteSet = true;
+                    case 53: runner.coordSystemNumber = -1; break;
 
                     case 54: case 55: case 56: case 57: case 58:
                         runner.coordSystemNumber = intValue - 54; break;
 
-                    case 80: runner.motionMode = MotionMode_GO_BACK; break;
+                    //case 80: runner.motionMode = MotionMode_GO_BACK; break;
 
                     case 90: runner.incremental = false; break;
                     case 91: runner.incremental = true; break;
@@ -304,8 +315,8 @@ InterError GCodeInterpreter::run_modal_groups()
         default: return InterError_WRONG_PLANE;
     }
 
-    if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
-        ;
+    //if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
+    //    ;
 
     if(readedFrame.get_value('F', value)) //скорость подачи
         remoteDevice->set_feed(value);
@@ -321,8 +332,8 @@ InterError GCodeInterpreter::run_modal_groups()
             runner.motionMode = readedFrame.motionMode;
             break;
 
-        case MotionMode_GO_BACK:
-            break;
+        //case MotionMode_GO_BACK:
+        //    break;
     }
 
     switch (readedFrame.motionMode)
@@ -331,6 +342,7 @@ InterError GCodeInterpreter::run_modal_groups()
         case MotionMode_CW_ARC:  remoteDevice->set_move_mode(MoveMode_CW_ARC); break;
         case MotionMode_FAST:    remoteDevice->set_move_mode(MoveMode_FAST); break;
         case MotionMode_LINEAR:  remoteDevice->set_move_mode(MoveMode_LINEAR); break;
+        case MotionMode_NONE: ;
     }
 
     if(readedFrame.sendWait)
@@ -344,20 +356,11 @@ InterError GCodeInterpreter::run_modal_groups()
         remoteDevice->wait(value);
     }
 
-    if(readedFrame.absoluteSet)
-        ;
-
     if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //движение по прямой
     {
-        Coords pos = runner.position;
-        if(readedFrame.get_value('X', pos.x) ||
-           readedFrame.get_value('Y', pos.y) ||
-           readedFrame.get_value('Z', pos.z))
+        Coords pos;
+        if(get_new_position(pos))
         {
-            readedFrame.get_value('X', pos.x);
-            readedFrame.get_value('Y', pos.y);
-            readedFrame.get_value('Z', pos.z);
-
             runner.position = pos;
             remoteDevice->set_position(pos.x, pos.y, pos.z);
         }
@@ -367,9 +370,9 @@ InterError GCodeInterpreter::run_modal_groups()
         Coords centerPos;
         centerPos.x = centerPos.y = centerPos.z = 0;
 
-        if(readedFrame.get_value('I', centerPos.x) ||  //если задан центр круга
-           readedFrame.get_value('J', centerPos.y) ||
-           readedFrame.get_value('K', centerPos.z))
+        if(readedFrame.have_value('I') ||  //если задан центр круга
+           readedFrame.have_value('J') ||
+           readedFrame.have_value('K'))
         {
             readedFrame.get_value('I', centerPos.x); //читаем центр круга
             readedFrame.get_value('J', centerPos.y);
@@ -380,14 +383,7 @@ InterError GCodeInterpreter::run_modal_groups()
             centerPos.z += runner.position.z;
 
             Coords pos = runner.position;            //читаем, докуда двигаться
-            if(readedFrame.get_value('X', pos.x) ||
-               readedFrame.get_value('Y', pos.y) ||
-               readedFrame.get_value('Z', pos.z))
-            {
-                readedFrame.get_value('X', pos.x);
-                readedFrame.get_value('Y', pos.y);
-                readedFrame.get_value('Z', pos.z);
-            }
+            get_new_position(pos);
 
             if(fabs(length(runner.position, centerPos) - length(pos, centerPos)) > 0.001)//растяжение пока не поддерживается
                 return InterError_WRONG_VALUE;
@@ -422,6 +418,56 @@ InterError GCodeInterpreter::run_modal_groups()
     }
 
     return InterError_ALL_OK;
+}
+
+//чтение новых координат с учётом модальных кодов
+bool GCodeInterpreter::get_new_position(Coords &pos)
+{
+    if(readedFrame.have_value('X') ||
+       readedFrame.have_value('Y') ||
+       readedFrame.have_value('Z'))
+    {
+        if(runner.incremental)
+        {
+            pos.x = pos.y = pos.z = 0;
+        }
+        else
+            pos = runner.position;
+
+        readedFrame.get_value('X', pos.x);
+        readedFrame.get_value('Y', pos.y);
+        readedFrame.get_value('Z', pos.z);
+
+        if(runner.incremental)
+            for(int i = 0; i < NUM_COORDS; ++i)
+                pos.r[i] += runner.position.r[i];
+
+        return true;
+    }
+
+    return false;
+}
+
+//сдвиг в глобальные координаты
+void GCodeInterpreter::to_global(Coords &coords)
+{
+    if(runner.coordSystemNumber == -1)
+        return;
+
+    auto &cs = runner.csd[runner.coordSystemNumber];
+    for(int i = 0; i < NUM_COORDS; ++i)
+        coords.r[i] += cs.pos0.r[i];
+}
+
+//преобразования локальных координат
+void GCodeInterpreter::local_deform(Coords &coords)
+{
+    if(runner.units == UnitSystem_INCHES)
+        for(int i = 0; i < NUM_COORDS; ++i)
+            coords.r[i] *= MM_PER_INCHES;
+
+    if(runner.coordSystemNumber == -1)
+        return;
 }
 
 //читает следующий код
@@ -556,8 +602,6 @@ bool GCodeInterpreter::read_file(const char *name)
 //читает строки в список
 void GCodeInterpreter::execute_file()
 {
-    remoteDevice->init();
-    init();
     int lineNumber = 0;
     for(auto iter = inputFile.begin(); iter != inputFile.end(); ++iter)
     {
@@ -574,7 +618,7 @@ void GCodeInterpreter::init()
     //reader.position = {0.0f, 0.0f, 0.0f};
     reader.state = InterError_ALL_OK;
 
-    runner.coordSystemNumber = 0;
+    runner.coordSystemNumber = -1;
     runner.cutterLength = 0;
     runner.cutterRadius = 0;
     runner.feed = 100; //отфига
@@ -588,4 +632,5 @@ void GCodeInterpreter::init()
     runner.position.y = 0;
     runner.position.z = 0;
     runner.units = UnitSystem_METRIC;
+    memset(&runner.csd, 0, sizeof(runner.csd));
 }
