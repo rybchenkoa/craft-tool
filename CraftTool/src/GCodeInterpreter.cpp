@@ -135,6 +135,7 @@ void FrameParams::reset()
     flagModal.reset();
     sendWait = false; //G4 readed
     plane = Plane_NONE;    //G17
+    absoluteSet = false; //G53
     motionMode = MotionMode_NONE;
 }
 
@@ -177,7 +178,7 @@ InterError GCodeInterpreter::make_new_state()
                     case 20: runner.units = UnitSystem_INCHES; break;
                     case 21: runner.units = UnitSystem_METRIC; break;
 
-                    case 53: runner.coordSystemNumber = -1; break;
+                    case 53: readedFrame.absoluteSet = true; break;
 
                     case 54: case 55: case 56: case 57: case 58:
                         runner.coordSystemNumber = intValue - 54; break;
@@ -359,7 +360,20 @@ InterError GCodeInterpreter::run_modal_groups()
     if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //движение по прямой
     {
         Coords pos;
-        if(get_new_position(pos))
+        if(readedFrame.absoluteSet)
+        {
+            pos = runner.position;
+            if(readedFrame.get_value('X', pos.x))
+                pos.x = to_mm(pos.x);
+            if(readedFrame.get_value('Y', pos.y))
+                pos.y = to_mm(pos.y);
+            if(readedFrame.get_value('Z', pos.z))
+                pos.z = to_mm(pos.z);
+
+            runner.position = pos;
+            remoteDevice->set_position(pos.x, pos.y, pos.z);
+        }
+        else if(get_new_position(pos))
         {
             runner.position = pos;
             remoteDevice->set_position(pos.x, pos.y, pos.z);
@@ -367,6 +381,9 @@ InterError GCodeInterpreter::run_modal_groups()
     }
     else if(runner.motionMode == MotionMode_CW_ARC || runner.motionMode == MotionMode_CCW_ARC)
     {
+        if(readedFrame.absoluteSet)
+            return InterError_WRONG_VALUE;
+
         Coords centerPos;
         centerPos.x = centerPos.y = centerPos.z = 0;
 
@@ -655,7 +672,7 @@ void GCodeInterpreter::init()
     //reader.position = {0.0f, 0.0f, 0.0f};
     reader.state = InterError_ALL_OK;
 
-    runner.coordSystemNumber = -1;
+    runner.coordSystemNumber = 0;
     runner.cutterLength = 0;
     runner.cutterRadius = 0;
     runner.feed = 100; //отфига

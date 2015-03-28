@@ -220,6 +220,7 @@ struct FrameParams
 
     bool sendWait;    //G4 readed
     Plane plane;      //G17
+    bool absoluteSet; //G53
 
     MotionMode motionMode;
 
