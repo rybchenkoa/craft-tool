@@ -1,6 +1,8 @@
 #include <QFileDialog>
+#include <QAction>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "log.h"
 
 
 #include "GCodeInterpreter.h"
@@ -14,7 +16,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     connect(ui->menuOpenProgram, SIGNAL(triggered()), this, SLOT(menu_open_program()));
+    connect(ui->c_set0Button, SIGNAL(clicked()), this, SLOT(set0()));
     connect(&updateTimer, SIGNAL(timeout()), this, SLOT(update_state()));
+
+    ui->c_3dView->installEventFilter(this);
 
     updateTimer.start(100); //10 fps
     time.start();
@@ -29,6 +34,13 @@ void MainWindow::menu_open_program()
 {
     QString str = QFileDialog::getOpenFileName(0, "Open Dialog", "", "*.*");
     run_file(str.toLocal8Bit().data());
+}
+
+void MainWindow::set0()
+{
+    g_inter->runner.csd[0].pos0.x = g_device->currentCoords[0];
+    g_inter->runner.csd[0].pos0.y = g_device->currentCoords[1];
+    g_inter->runner.csd[0].pos0.z = g_device->currentCoords[2];
 }
 
 void MainWindow::update_state()
@@ -75,3 +87,34 @@ void MainWindow::run_file(char *fileName)
 
     g_inter->execute_file();           //запускаем интерпретацию
 }
+
+bool MainWindow::eventFilter(QObject *object, QEvent *event)
+{
+    if (object == ui->c_3dView && event->type() == QEvent::KeyPress) {
+        QKeyEvent *ke = static_cast<QKeyEvent *>(event);
+        //log_warning("key %d, v %d, s %d\n", ke->key(), ke->nativeVirtualKey(), ke->nativeScanCode());
+        switch(ke->nativeVirtualKey())
+        {
+        case VK_RIGHT:
+            g_inter->move(0, 1);
+            return true;
+        case VK_LEFT:
+            g_inter->move(0, -1);
+            return true;
+        case VK_UP:
+            g_inter->move(1, 1);
+            return true;
+        case VK_DOWN:
+            g_inter->move(1, -1);
+            return true;
+        case Qt::Key_W:
+            g_inter->move(2, 1);
+            return true;
+        case Qt::Key_S:
+            g_inter->move(2, -1);
+            return true;
+        }
+    }
+    return false;
+}
+
