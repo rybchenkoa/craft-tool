@@ -570,6 +570,24 @@ Coords GCodeInterpreter::to_mm(Coords value)
     return value;
 }
 
+void GCodeInterpreter::move(int coordNumber, coord add)
+{
+    if(runner.motionMode != MotionMode_FAST)
+    {
+        runner.motionMode = MotionMode_FAST;
+        remoteDevice->set_move_mode(MoveMode_FAST);
+    }
+
+    //if(fabs(remoteDevice->get_current_coords()[coordNumber] - runner.position.r[coordNumber]) > fabs(add))
+    //    return;
+
+    if(remoteDevice->queue_size() > 0)
+        return;
+
+    runner.position.r[coordNumber] += add;
+    remoteDevice->set_position(runner.position.x, runner.position.y, runner.position.z);
+}
+
 bool GCodeInterpreter::get_readed_coord(char letter, coord &value)
 {
     if(readedFrame.get_value(letter, value))
@@ -744,7 +762,4 @@ void GCodeInterpreter::init()
     runner.position.z = 0;
     runner.units = UnitSystem_METRIC;
     memset(&runner.csd, 0, sizeof(runner.csd));
-
-    runner.csd[0].pos0.x = 100; //FIXME  for test
-    runner.csd[0].pos0.y = 50;
 }

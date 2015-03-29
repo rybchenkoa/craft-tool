@@ -289,10 +289,16 @@ int CRemoteDevice::get_current_line()
 }
 
 //============================================================
-bool CRemoteDevice::queue_empty()
+const double* CRemoteDevice::get_current_coords()
+{
+    return currentCoords;
+}
+
+//============================================================
+int CRemoteDevice::queue_size()
 {
     AutoLockCS lock(queueCS);
-    return commandQueue.empty();
+    return commandQueue.size();
 }
 
 //============================================================
@@ -394,13 +400,17 @@ DWORD WINAPI CRemoteDevice::send_thread(void *__this)
         WaitForSingleObject(_this->eventQueueAdd, INFINITE);
         while(true)
         {
+            EnterCriticalSection(&_this->queueCS);
             if(_this->commandQueue.empty())
+            {
+                LeaveCriticalSection(&_this->queueCS);
                 break;
+            }
             else
             {
-                AutoLockCS lock(_this->queueCS);
                 auto packet = _this->commandQueue.front();
                 _this->comPort->send_data(&packet->size + 1, packet->size - 1);
+                LeaveCriticalSection(&_this->queueCS);
                 //log_message("send number %d\n", packet->packetNumber);
                 //printf("send number %d\n", packet->packetNumber);
             }

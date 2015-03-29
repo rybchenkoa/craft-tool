@@ -185,10 +185,11 @@ public:
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_step_size(double stepSize[NUM_COORDS])=0; //длина одного шага
 
-    virtual bool queue_empty() = 0; //есть ли ещё команды в очереди
+    virtual int  queue_size() = 0; //длина очереди команд
 
     virtual void set_current_line(int line)=0; //задаёт номер строки, для которой сейчас будут вызываться команды
     virtual int  get_current_line()=0; //возвращает номер строки, для которой сейчас исполняются команды
+    virtual const double* get_current_coords()=0; //последние принятые координаты
 };
 
 //класс передаёт команды по com-порту на микроконтроллер, а он уже дальше интерполирует
@@ -213,10 +214,11 @@ public:
 
     void set_voltage(double voltage[NUM_COORDS]);
 
-    bool queue_empty() override;
+    int  queue_size() override;
 
     virtual void set_current_line(int line) override;
     virtual int  get_current_line() override;
+    const double* get_current_coords();
 
     bool on_packet_received(char *data, int size);
 
