@@ -127,6 +127,8 @@ void Scene3d::paintGL()
         glVertex2f(0.5,0.5);
     glEnd();*/
 
+    recalc_matrices();
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -139,6 +141,9 @@ void Scene3d::paintGL()
     tool.draw();
 
     glFlush();
+
+    if(hasFocus())
+        draw_border();
 }
 
 //--------------------------------------------------------------------
@@ -206,6 +211,34 @@ void Scene3d::draw_grid()
         {
             glVertex3f(0,y,-m_zoneTop);
             glVertex3f(m_zoneWidth,y,-m_zoneTop);
+        }
+    glEnd();
+}
+
+//--------------------------------------------------------------------
+void Scene3d::draw_border()
+{
+    glColor3f(0.0, 0.0, 1.0);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glTranslatef(-1.0, -1.0, 0);
+    glScalef(2.0/m_windowWidth, 2.0/m_windowHeight, 1);
+
+    int borderSize = 3;
+    glBegin(GL_LINE_STRIP);
+        for(int i = 0; i < borderSize; ++i)
+        {
+            float offset = i + 0.5f;
+            glVertex2f(offset, offset);
+            glVertex2f(m_windowWidth - offset, offset);
+            glVertex2f(m_windowWidth - offset, m_windowHeight - offset);
+            glVertex2f(offset, m_windowHeight - offset);
+            glVertex2f(offset, offset);
         }
     glEnd();
 }

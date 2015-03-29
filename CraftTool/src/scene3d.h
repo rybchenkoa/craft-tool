@@ -68,6 +68,7 @@ protected:
     void draw_bounds();
     void draw_grid();
     void draw_track();
+    void draw_border();
 
 public:
     int    m_windowWidth;  //размеры окна
