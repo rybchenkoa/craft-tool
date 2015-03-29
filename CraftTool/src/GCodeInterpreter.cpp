@@ -572,11 +572,16 @@ Coords GCodeInterpreter::to_mm(Coords value)
 
 void GCodeInterpreter::move(int coordNumber, coord add)
 {
-    if(runner.motionMode != MotionMode_FAST)
+    if(runner.motionMode != MotionMode_FAST) //медленное оно из-за расчёта ускорения
     {
         runner.motionMode = MotionMode_FAST;
         remoteDevice->set_move_mode(MoveMode_FAST);
     }
+
+    //если только подключились к устройству, то координаты могут быть очень разными
+    for(int i = 0; i < NUM_COORDS; ++i)
+        if(fabs(remoteDevice->get_current_coords()[i] - runner.position.r[i]) > fabs(add)*2)
+            runner.position.r[i] = remoteDevice->get_current_coords()[i];
 
     //if(fabs(remoteDevice->get_current_coords()[coordNumber] - runner.position.r[coordNumber]) > fabs(add))
     //    return;
