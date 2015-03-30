@@ -5,6 +5,7 @@ using namespace Interpreter;
 
 #define MM_PER_INCHES 2.54
 
+//====================================================================================================
 coord length(Coords from, Coords to)
 {
     Coords delta;
@@ -14,6 +15,7 @@ coord length(Coords from, Coords to)
     return sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
 }
 
+//====================================================================================================
 BitPos FrameParams::get_bit_pos(char letter)
 {
     switch (letter)
@@ -37,6 +39,7 @@ BitPos FrameParams::get_bit_pos(char letter)
     }
 }
 
+//====================================================================================================
 InterError FrameParams::set_value(char letter, double value)
 {
     BitPos index = get_bit_pos(letter);
@@ -52,7 +55,7 @@ InterError FrameParams::set_value(char letter, double value)
     return InterError_ALL_OK;
 }
 
-
+//====================================================================================================
 bool FrameParams::get_value(char letter, double &value)
 {
     BitPos index = get_bit_pos(letter);
@@ -68,7 +71,7 @@ bool FrameParams::get_value(char letter, double &value)
     return true;
 }
 
-
+//====================================================================================================
 bool FrameParams::have_value(char letter)
 {
     BitPos index = get_bit_pos(letter);
@@ -78,16 +81,17 @@ bool FrameParams::have_value(char letter)
     return flagValue.get(index);
 }
 
-
+//====================================================================================================
 GCodeInterpreter::GCodeInterpreter(void)
 {
 }
 
-
+//====================================================================================================
 GCodeInterpreter::~GCodeInterpreter(void)
 {
 }
 
+//====================================================================================================
 InterError GCodeInterpreter::execute_frame(const char *frame)
 {
     //char letter;
@@ -110,6 +114,7 @@ InterError GCodeInterpreter::execute_frame(const char *frame)
     return InterError_ALL_OK;
 }
 
+//====================================================================================================
 //читает данные из строки в массив
 InterError Reader::parse_codes(const char *frame)
 {
@@ -129,6 +134,7 @@ InterError Reader::parse_codes(const char *frame)
     return state;
 }
 
+//====================================================================================================
 //очищает прочитанные данные фрейма
 void FrameParams::reset()
 {
@@ -140,6 +146,7 @@ void FrameParams::reset()
     motionMode = MotionMode_NONE;
 }
 
+//====================================================================================================
 //формирует параметры перехода в новое состояние
 InterError GCodeInterpreter::make_new_state()
 {
@@ -231,6 +238,7 @@ InterError GCodeInterpreter::make_new_state()
     return InterError_ALL_OK;
 }
 
+//====================================================================================================
 //возвращает модальную группу команды
 ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
 {
@@ -292,6 +300,7 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
         return ModalGroup_NONE;
 }
 
+//====================================================================================================
 //исполняет прочитанный фрейм в нужном порядке
 InterError GCodeInterpreter::run_modal_groups()
 {
@@ -479,6 +488,7 @@ InterError GCodeInterpreter::run_modal_groups()
     return InterError_ALL_OK;
 }
 
+//====================================================================================================
 bool GCodeInterpreter::is_screw(Coords center)
 {
     if(center.x != runner.position.x && runner.plane == MovePlane_YZ)
@@ -491,6 +501,7 @@ bool GCodeInterpreter::is_screw(Coords center)
     return false;
 }
 
+//====================================================================================================
 //чтение новых координат с учётом модальных кодов
 bool GCodeInterpreter::get_new_position(Coords &pos)
 {
@@ -527,6 +538,7 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
     return false;
 }
 
+//====================================================================================================
 //сдвиг в глобальные координаты
 void GCodeInterpreter::to_global(Coords &coords)
 {
@@ -538,6 +550,7 @@ void GCodeInterpreter::to_global(Coords &coords)
         coords.r[i] += cs.pos0.r[i];
 }
 
+//====================================================================================================
 //получение локальных координат из глобальных
 void GCodeInterpreter::to_local(Coords &coords)
 {
@@ -549,12 +562,14 @@ void GCodeInterpreter::to_local(Coords &coords)
         coords.r[i] -= cs.pos0.r[i];
 }
 
+//====================================================================================================
 //преобразования локальных координат
 void GCodeInterpreter::local_deform(Coords &coords)
 {
     Q_UNUSED(coords)
 }
 
+//====================================================================================================
 //перевод в мм
 coord GCodeInterpreter::to_mm(coord value)
 {
@@ -563,6 +578,7 @@ coord GCodeInterpreter::to_mm(coord value)
     return value;
 }
 
+//====================================================================================================
 Coords GCodeInterpreter::to_mm(Coords value)
 {
     for(int i = 0; i < NUM_COORDS; ++i)
@@ -570,6 +586,7 @@ Coords GCodeInterpreter::to_mm(Coords value)
     return value;
 }
 
+//====================================================================================================
 void GCodeInterpreter::move(int coordNumber, coord add)
 {
     if(runner.motionMode != MotionMode_FAST) //медленное оно из-за расчёта ускорения
@@ -593,6 +610,7 @@ void GCodeInterpreter::move(int coordNumber, coord add)
     remoteDevice->set_position(runner.position.x, runner.position.y, runner.position.z);
 }
 
+//====================================================================================================
 bool GCodeInterpreter::get_readed_coord(char letter, coord &value)
 {
     if(readedFrame.get_value(letter, value))
@@ -603,6 +621,7 @@ bool GCodeInterpreter::get_readed_coord(char letter, coord &value)
     return false;
 }
 
+//====================================================================================================
 //читает следующий код
 bool Reader::parse_code(char &letter, double &value) 
 {
@@ -636,12 +655,14 @@ bool Reader::parse_code(char &letter, double &value)
     return true;
 }
 
+//====================================================================================================
 //пропускает пробелы
 void Reader::accept_whitespace()
 {
     while (string[position] == ' ' || string[position] == '\t') position++;
 }
 
+//====================================================================================================
 //доходит до следующего кода
 void Reader::find_significal_symbol()
 {
@@ -658,6 +679,7 @@ void Reader::find_significal_symbol()
     }
 }
 
+//====================================================================================================
 //читает число
 bool Reader::parse_value(double &dst)
 {
@@ -716,6 +738,7 @@ bool Reader::parse_value(double &dst)
     return true;
 }
 
+//====================================================================================================
 //читает строки в список
 bool GCodeInterpreter::read_file(const char *name)
 {
@@ -732,6 +755,7 @@ bool GCodeInterpreter::read_file(const char *name)
     return true;
 }
 
+//====================================================================================================
 //читает строки в список
 void GCodeInterpreter::execute_file()
 {
@@ -747,6 +771,7 @@ void GCodeInterpreter::execute_file()
     };
 }
 
+//====================================================================================================
 void GCodeInterpreter::init()
 {
     //reader.position = {0.0f, 0.0f, 0.0f};
