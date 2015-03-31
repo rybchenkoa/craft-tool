@@ -427,7 +427,7 @@ InterError GCodeInterpreter::run_modal_groups()
                 case MovePlane_ZX: ix = 2; iy = 0; iz = 1; break;
             }
 
-            coord pitch = centerPos.r[iz];//шаг винта
+            coord pitch = centerPos.r[iz] - runner.position.r[iz];//шаг винта
             centerPos.r[iz] = pos.r[iz];      //третий параметр означает нечто другое
             Coords planeCenter = centerPos;
             planeCenter.r[iz] = runner.position.r[iz];
@@ -478,6 +478,8 @@ InterError GCodeInterpreter::run_modal_groups()
 
                 if(length(curPos, pos) > accuracy)
                     return InterError_WRONG_VALUE;
+
+                runner.position = pos;
 
                 if(runner.motionMode == MotionMode_CW_ARC)
                     remoteDevice->set_move_mode(MoveMode_CW_ARC);
