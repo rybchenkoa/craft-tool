@@ -4,6 +4,7 @@
 using namespace Interpreter;
 
 #define MM_PER_INCHES 2.54
+#define PI 3.14159265358979323846
 
 //====================================================================================================
 coord length(Coords from, Coords to)
@@ -13,6 +14,12 @@ coord length(Coords from, Coords to)
     delta.y = from.y - to.y;
     delta.z = from.z - to.z;
     return sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+}
+
+//====================================================================================================
+inline double pow2(double x)
+{
+    return x*x;
 }
 
 //====================================================================================================
@@ -412,27 +419,76 @@ InterError GCodeInterpreter::run_modal_groups()
             Coords pos = runner.position;            //читаем, докуда двигаться
             get_new_position(pos);
 
-            if(fabs(length(runner.position, centerPos) - length(pos, centerPos)) > 0.001)//растяжение пока не поддерживается
+            int ix, iy, iz;
+            switch(runner.plane)
+            {
+                case MovePlane_XY: ix = 0; iy = 1; iz = 2; break;
+                case MovePlane_YZ: ix = 1; iy = 2; iz = 0; break;
+                case MovePlane_ZX: ix = 2; iy = 0; iz = 1; break;
+            }
+
+            coord pitch = centerPos.r[iz];//шаг винта
+            centerPos.r[iz] = pos.r[iz];      //третий параметр означает нечто другое
+            Coords planeCenter = centerPos;
+            planeCenter.r[iz] = runner.position.r[iz];
+            double radius = length(runner.position, planeCenter);
+
+            if(fabs(radius - length(pos, centerPos)) > 0.001)//растяжение пока не поддерживается
                 return InterError_WRONG_VALUE;
 
             if(is_screw(centerPos)) //винтовая интерполяция пока не поддерживается
-                return InterError_WRONG_VALUE;
-
-            /*double rads[3]; //радиусы окружности
-
-            switch(runner.plane)
             {
-                case MovePlane_XY:
-                    rads[0] =
-                break;
-                case MovePlane_XY:
-                break;
-                case MovePlane_XY:
-                break;
-            }*/
+                coord height = pos.r[iz] - runner.position.r[iz]; //длина винта
 
-            runner.position = pos;
-            remoteDevice->set_circle_position(pos.x, pos.y, pos.z, centerPos.x, centerPos.y, centerPos.z);
+                double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
+
+                if(pitch <= 0.0)
+                    return InterError_WRONG_VALUE;
+
+                remoteDevice->set_move_mode(MoveMode_LINEAR);
+
+                double countTurns = height / pitch;
+                double angleMax = fabs(countTurns * 2 * PI);
+                double accuracy = remoteDevice->get_min_step();
+                //шаг угла выбираем таким, чтобы точность была в пределах одного шага //ряд Тейлора для синуса sin(x) = x +...
+                //  r - sqrt(r^2 - (r*step)^2) = accuracy;
+                //  1 - sqrt(1 - step^2) = acc / r;
+                //  1 - step^2 = (1 - acc/r)^2
+                //  step = sqrt(1-(1-acc/r)^2)
+                double step = sqrt(1-pow2(1-accuracy/radius));
+                double zScale = height / angleMax;
+                double aScale = 1;
+                if(runner.motionMode == MotionMode_CW_ARC)
+                    aScale = -1;
+
+                Coords curPos;
+                double angle = 0;
+                for(; angle < angleMax; angle += step)
+                {
+                    curPos.r[ix] = planeCenter.r[ix] + radius * cos(angleStart + angle * aScale);
+                    curPos.r[iy] = planeCenter.r[iy] + radius * sin(angleStart + angle * aScale);
+                    curPos.r[iz] = planeCenter.r[iz] + angle * zScale;
+                    remoteDevice->set_position(curPos.x, curPos.y, curPos.z);
+                }
+                angle = angleMax;
+                curPos.r[ix] = planeCenter.r[ix] + radius * cos(angleStart + angle * aScale);
+                curPos.r[iy] = planeCenter.r[iy] + radius * sin(angleStart + angle * aScale);
+                curPos.r[iz] = planeCenter.r[iz] + angle * zScale;
+                remoteDevice->set_position(curPos.x, curPos.y, curPos.z);
+
+                if(length(curPos, pos) > accuracy)
+                    return InterError_WRONG_VALUE;
+
+                if(runner.motionMode == MotionMode_CW_ARC)
+                    remoteDevice->set_move_mode(MoveMode_CW_ARC);
+                else
+                    remoteDevice->set_move_mode(MoveMode_CCW_ARC);
+            }
+            else
+            {
+                runner.position = pos;
+                remoteDevice->set_circle_position(pos.x, pos.y, pos.z, centerPos.x, centerPos.y, centerPos.z);
+            }
         }
         else if(readedFrame.have_value('R'))
         {

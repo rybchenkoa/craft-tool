@@ -242,6 +242,8 @@ void CRemoteDevice::init()
     scale[1] = stepsPerMm[1]*(1<<subSteps);
     scale[2] = stepsPerMm[2]*(1<<subSteps);
 
+    minStep = 1/std::max(scale[0], std::max(scale[1], scale[2]));
+
     double maxVelocity[NUM_COORDS];// = {1000.0, 1000.0, 1000.0};
     maxVelocity[0] = try_get_float(CFG_MAX_VELOCITY "X");
     maxVelocity[1] = try_get_float(CFG_MAX_VELOCITY "Y");
@@ -292,6 +294,11 @@ int CRemoteDevice::get_current_line()
 const double* CRemoteDevice::get_current_coords()
 {
     return currentCoords;
+}
+
+double CRemoteDevice::get_min_step()
+{
+    return minStep;
 }
 
 //============================================================

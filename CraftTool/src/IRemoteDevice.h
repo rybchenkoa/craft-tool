@@ -190,6 +190,7 @@ public:
     virtual void set_current_line(int line)=0; //задаёт номер строки, для которой сейчас будут вызываться команды
     virtual int  get_current_line()=0; //возвращает номер строки, для которой сейчас исполняются команды
     virtual const double* get_current_coords()=0; //последние принятые координаты
+    virtual double get_min_step()=0; //точность устройства
 };
 
 //класс передаёт команды по com-порту на микроконтроллер, а он уже дальше интерполирует
@@ -218,7 +219,8 @@ public:
 
     virtual void set_current_line(int line) override;
     virtual int  get_current_line() override;
-    const double* get_current_coords();
+    const double* get_current_coords() override;
+    double get_min_step() override;
 
     bool on_packet_received(char *data, int size);
 
@@ -230,6 +232,7 @@ public:
     int missedHalfSend;                //принято сообщение о битом пакете
 
     double scale[NUM_COORDS];          //шагов на миллиметр
+    double minStep;                    //макс. точность устройства
     double secToTick;                  //тиков таймера в одной секунде
     int subSteps;                      //число делений шага на 2
     double currentCoords[NUM_COORDS];  //текущие координаты на удалённом устройстве
