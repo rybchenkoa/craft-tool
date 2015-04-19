@@ -60,6 +60,22 @@ enum MotionMode //режимы перемещения
     MotionMode_CCW_ARC,
 };
 
+enum CannedCycle
+{
+    CannedCycle_NONE = 0,
+    CannedCycle_RESET,           //отмена цикла, G80
+    CannedCycle_SINGLE_DRILL,    //простое сверление, G81
+    CannedCycle_DRILL_AND_PAUSE, //сверление с задержкой на дне, G82
+    CannedCycle_DEEP_DRILL,      //сверление итерациями, G83
+};
+
+enum CannedLevel
+{
+    CannedLevel_NONE = 0,
+    CannedLevel_HIGH,   //отвод к исходной плоскости, G98
+    CannedLevel_LOW,    //отвод к плоскости обработки, G99
+};
+
 enum OpCode  //распознаваемые коды операций
 {
     OpCode_NONE = 0,
@@ -146,7 +162,7 @@ struct Runner
     //параметры, нужные для кодов, которые действуют на несколько строк
     Coords position;         //"текущая" позиция устройства в миллиметрах
     UnitSystem units;        //текущая система единиц измерения
-    bool incremental;     //абсолютная система координат?
+    bool incremental;        //абсолютная система координат?
     MotionMode motionMode;   //режим перемещения (линейная интерполяция и т.п.)
     MovePlane plane;         //текущая плоскость интерполяции
     double feed;             //подача в мм/мин
@@ -154,6 +170,14 @@ struct Runner
     double cutterLength;     //длина фрезы
     int coordSystemNumber;   //номер выбранной координатной системы
     CoordSystemData csd[5];  //параметры команд G54..G58
+
+    CannedCycle cycle;       //текущий цикл
+    bool   cycleUseLowLevel; //использовать R вместо стартовой точки
+    double cycleLowLevel;    //плоскость отвода (задаётся в R)
+    double cycleHiLevel;     //исходная плоскость задаётся в стартовом Z
+    double cycleDeepLevel;   //глубина сверления задаётся в Z
+    double cycleStep;        //глубина одного шага Q
+    int    cycleWait;        //задержка в цикле P
 
     Coords offset;           //отступ для ручного задания положения
 };
@@ -187,7 +211,7 @@ enum BitPos
     BitPos_X=0,BitPos_Y,BitPos_Z,
     BitPos_A,BitPos_B,BitPos_C,
     BitPos_I,BitPos_J,BitPos_K,
-    BitPos_F,BitPos_P,BitPos_S,BitPos_R,BitPos_D,BitPos_L,
+    BitPos_F,BitPos_P,BitPos_Q,BitPos_S,BitPos_R,BitPos_D,BitPos_L,
 };
 
 struct Flags
@@ -221,6 +245,8 @@ struct FrameParams
     bool sendWait;    //G4 readed
     Plane plane;      //G17
     bool absoluteSet; //G53
+    CannedCycle cycle;//G80-G83
+    CannedLevel cycleLevel; //G98, G99
 
     MotionMode motionMode;
 

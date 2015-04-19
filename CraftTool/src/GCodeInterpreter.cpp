@@ -37,6 +37,7 @@ BitPos FrameParams::get_bit_pos(char letter)
 
         case 'F': return BitPos_F;
         case 'P': return BitPos_P;
+        case 'Q': return BitPos_Q;
         case 'S': return BitPos_S;
         case 'R': return BitPos_R;
         case 'D': return BitPos_D;
@@ -151,6 +152,8 @@ void FrameParams::reset()
     plane = Plane_NONE;    //G17
     absoluteSet = false; //G53
     motionMode = MotionMode_NONE;
+    cycle = CannedCycle_NONE;
+    cycleLevel = CannedLevel_NONE;
 }
 
 //====================================================================================================
@@ -198,10 +201,16 @@ InterError GCodeInterpreter::make_new_state()
                     case 54: case 55: case 56: case 57: case 58:
                         runner.coordSystemNumber = intValue - 54; break;
 
-                    //case 80: runner.motionMode = MotionMode_GO_BACK; break;
+                    case 80: readedFrame.cycle = CannedCycle_RESET; break;
+                    case 81: readedFrame.cycle = CannedCycle_SINGLE_DRILL; break;
+                    case 82: readedFrame.cycle = CannedCycle_DRILL_AND_PAUSE; break;
+                    case 83: readedFrame.cycle = CannedCycle_DEEP_DRILL; break;
 
                     case 90: runner.incremental = false; break;
                     case 91: runner.incremental = true; break;
+
+                    case 98: readedFrame.cycleLevel = CannedLevel_HIGH; break;
+                    case 99: readedFrame.cycleLevel = CannedLevel_LOW; break;
 
                     default: return InterError_INVALID_STATEMENT;
                 }
@@ -230,6 +239,7 @@ InterError GCodeInterpreter::make_new_state()
             case 'K':
 
             case 'P':
+            case 'Q':
             case 'F':
             case 'S':
             case 'R':
@@ -360,7 +370,70 @@ InterError GCodeInterpreter::run_modal_groups()
         case MotionMode_CW_ARC:  remoteDevice->set_move_mode(MoveMode_CW_ARC); break;
         case MotionMode_FAST:    remoteDevice->set_move_mode(MoveMode_FAST); break;
         case MotionMode_LINEAR:  remoteDevice->set_move_mode(MoveMode_LINEAR); break;
-        case MotionMode_NONE: ;
+        case MotionMode_NONE: break;
+    }
+
+    switch(readedFrame.cycle)
+    {
+        case CannedCycle_NONE: break;
+
+        case CannedCycle_RESET:
+            runner.cycle = CannedCycle_NONE; break;
+
+        case CannedCycle_SINGLE_DRILL:
+        case CannedCycle_DRILL_AND_PAUSE:
+        case CannedCycle_DEEP_DRILL:
+        {
+            if(runner.cycle != CannedCycle_NONE)
+                return InterError_DOUBLE_DEFINITION;
+
+            runner.cycle = readedFrame.cycle;
+
+            if(!readedFrame.have_value('R'))
+                return InterError_NO_VALUE;
+
+            if(!readedFrame.have_value('Z'))
+                return InterError_NO_VALUE;
+
+            if(!readedFrame.have_value('P') && runner.cycle == CannedCycle_DRILL_AND_PAUSE)
+                return InterError_NO_VALUE;
+
+            if(!readedFrame.have_value('Q') && runner.cycle == CannedCycle_DEEP_DRILL)
+                return InterError_NO_VALUE;
+
+            runner.cycleHiLevel = runner.position.z;
+
+            double value;
+
+            get_readed_coord('R', value);
+            if(runner.incremental)
+                value += runner.cycleHiLevel;
+            runner.cycleLowLevel = value;
+
+            get_readed_coord('Z', value);
+            if(runner.incremental)
+                value += runner.cycleLowLevel;
+            runner.cycleDeepLevel = value;
+
+            if(runner.cycle == CannedCycle_DEEP_DRILL)
+                get_readed_coord('Q', runner.cycleStep);
+
+            if(runner.cycle == CannedCycle_DRILL_AND_PAUSE ||
+               runner.cycle == CannedCycle_DEEP_DRILL)
+            {
+                readedFrame.get_value('P', value);
+                runner.cycleWait = value;
+            }
+
+            break;
+        }
+    }
+
+    switch(readedFrame.cycleLevel)
+    {
+        case CannedLevel_NONE: break;
+        case CannedLevel_HIGH: runner.cycleUseLowLevel = false; break;
+        case CannedLevel_LOW: runner.cycleUseLowLevel = true; break;
     }
 
     if(readedFrame.sendWait)
@@ -374,7 +447,81 @@ InterError GCodeInterpreter::run_modal_groups()
         remoteDevice->wait(value);
     }
 
-    if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //движение по прямой
+    if(runner.cycle != CannedCycle_NONE) //включен постоянный цикл
+    {
+        if(readedFrame.have_value('Z'))    //в нём нельзя двигаться по Z
+            return InterError_WRONG_VALUE;
+
+        Coords pos;
+        if(get_new_position(pos))
+        {
+            if(runner.cycleUseLowLevel)
+                pos.z = runner.cycleLowLevel;
+            else
+                pos.z = runner.cycleHiLevel;
+
+            remoteDevice->set_move_mode(MoveMode_FAST);
+            remoteDevice->set_position(pos.x, pos.y, pos.z);  //двигаемся к следующему отверстию
+
+            if(!runner.cycleUseLowLevel)
+                remoteDevice->set_position(pos.x, pos.y, runner.cycleLowLevel);  //двигаемся к безопасной плоскости
+
+            switch(runner.cycle)
+            {
+                case CannedCycle_SINGLE_DRILL:
+                {
+                    remoteDevice->set_move_mode(MoveMode_LINEAR);
+                    remoteDevice->set_position(pos.x, pos.y, runner.cycleDeepLevel);
+                    remoteDevice->set_move_mode(MoveMode_FAST);
+                    remoteDevice->set_position(pos.x, pos.y, pos.z);
+                    break;
+                }
+                case CannedCycle_DRILL_AND_PAUSE:
+                {
+                    remoteDevice->set_move_mode(MoveMode_LINEAR);
+                    remoteDevice->set_position(pos.x, pos.y, runner.cycleDeepLevel);
+                    remoteDevice->wait(runner.cycleWait);
+                    remoteDevice->set_move_mode(MoveMode_FAST);
+                    remoteDevice->set_position(pos.x, pos.y, pos.z);
+                    break;
+                }
+                case CannedCycle_DEEP_DRILL:
+                {
+                    coord curZ = pos.z - runner.cycleStep;
+                    for(; curZ > runner.cycleDeepLevel; curZ -= runner.cycleStep)
+                    {
+                        remoteDevice->set_move_mode(MoveMode_FAST);
+                        remoteDevice->set_position(pos.x, pos.y, curZ + runner.cycleStep);
+                        remoteDevice->set_move_mode(MoveMode_LINEAR);
+                        remoteDevice->set_position(pos.x, pos.y, curZ);
+                        if(runner.cycleWait != 0.0)
+                            remoteDevice->wait(runner.cycleWait);
+                        remoteDevice->set_move_mode(MoveMode_FAST);
+                        remoteDevice->set_position(pos.x, pos.y, runner.cycleLowLevel);
+                    }
+                    if(curZ != runner.cycleDeepLevel)
+                    {
+                        remoteDevice->set_move_mode(MoveMode_FAST);
+                        remoteDevice->set_position(pos.x, pos.y, curZ + runner.cycleStep);
+                        remoteDevice->set_move_mode(MoveMode_LINEAR);
+                        remoteDevice->set_position(pos.x, pos.y, curZ);
+                        if(runner.cycleWait != 0.0)
+                            remoteDevice->wait(runner.cycleWait);
+                        remoteDevice->set_move_mode(MoveMode_FAST);
+                        remoteDevice->set_position(pos.x, pos.y, runner.cycleLowLevel);
+                    }
+
+                    remoteDevice->set_move_mode(MoveMode_FAST);
+                    remoteDevice->set_position(pos.x, pos.y, pos.z);
+
+                    break;
+                }
+            }
+
+            runner.position = pos;
+        }
+    }
+    else if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //движение по прямой
     {
         Coords pos;
         if(readedFrame.absoluteSet)
@@ -841,6 +988,7 @@ void GCodeInterpreter::init()
     runner.feed = 100; //отфига
     runner.incremental = false;
     runner.motionMode = MotionMode_FAST;
+    runner.cycle = CannedCycle_NONE;
     runner.plane = MovePlane_XY;
     runner.offset.x = 0;
     runner.offset.y = 0;
