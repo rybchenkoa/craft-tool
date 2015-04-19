@@ -347,7 +347,7 @@ InterError GCodeInterpreter::run_modal_groups()
     //    ;
 
     if(readedFrame.get_value('F', value)) //скорость подачи
-        remoteDevice->set_feed(value);
+        remoteDevice->set_feed(value / 60);
 
     switch (readedFrame.motionMode)
     {

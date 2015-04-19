@@ -245,9 +245,9 @@ void CRemoteDevice::init()
     minStep = 1/std::max(scale[0], std::max(scale[1], scale[2]));
 
     double maxVelocity[NUM_COORDS];// = {1000.0, 1000.0, 1000.0};
-    maxVelocity[0] = try_get_float(CFG_MAX_VELOCITY "X");
-    maxVelocity[1] = try_get_float(CFG_MAX_VELOCITY "Y");
-    maxVelocity[2] = try_get_float(CFG_MAX_VELOCITY "Z");
+    maxVelocity[0] = try_get_float(CFG_MAX_VELOCITY "X") / 60;
+    maxVelocity[1] = try_get_float(CFG_MAX_VELOCITY "Y") / 60;
+    maxVelocity[2] = try_get_float(CFG_MAX_VELOCITY "Z") / 60;
 
     double maxAcceleration[NUM_COORDS];// = {50.0, 50.0, 50.0};
     maxAcceleration[0] = try_get_float(CFG_MAX_ACCELERATION "X");
