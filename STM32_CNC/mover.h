@@ -250,12 +250,11 @@ public:
 	#define MAX_CIRCLE_DELTA 10 //максимальное непопадание конца дуги из-за неточности вычислений
 	
 	//----------------------------------
-	OperateResult linear()
+	bool linear_step()
 	{
-		int reference = linearData.refCoord;
-		if(coord[reference] == to[reference]) //дошли до конца, выходим
-			return END;
-			
+		if(coord[linearData.refCoord] == to[linearData.refCoord]) //дошли до конца, выходим
+			return false;
+
 		for (int i = 0; i < NUM_COORDS; ++i)
 		{
 			linearData.err[i] += linearData.delta[i];     //считаем ошибку
@@ -266,6 +265,16 @@ public:
 				linearData.err[i] -= linearData.refDelta;   //вычитаем ошибку
 			}
 		}
+		return true;
+	}
+	
+	//----------------------------------
+	OperateResult linear()
+	{
+		int reference = linearData.refCoord;
+		if(!linear_step())
+			return END;
+
 		int length; // =1/v;  v=v0+a*t
 		switch(linearData.state)
 		{
