@@ -21,6 +21,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SERVICE_COORDS,   //out
 	DeviceCommand_TEXT_MESSAGE,     //out
 	DeviceCommand_SERVICE_COMMAND,  //out
+	DeviceCommand_SET_FRACT,        //in
 };
 enum MoveMode //:char режим движения/интерполяции
 {
@@ -43,7 +44,7 @@ struct PacketMove
 	char refCoord;
 	float16 velocity;      //скорость подачи, мм/тик
 	float16 acceleration;  //ускорение, мм/тик^2
-	float16 accLength;     //расстояние, на котором можно набрать максимальную скорость
+	int uLength;           //длина в микронах
 	float16 invProj;       // полная длина / длина опорной координаты, мм/шаг
 };
 struct PacketWait
@@ -96,6 +97,13 @@ struct PacketSetVoltage
 	PacketCount packetNumber;
 	int voltage[NUM_COORDS];
 };
+struct PacketFract
+{
+    char size;
+    DeviceCommand command;
+    PacketCount packetNumber;
+    int crc;
+};
 
 //принимаемые от мк пакеты-----------------------------------------------------
 struct PacketReceived //сообщение о том, что пакет принят
@@ -143,6 +151,7 @@ union PacketUnion
 	char p7[sizeof(PacketSetFeedMult)];
 	char p8[sizeof(PacketSetStepSize)];
 	char p9[sizeof(PacketSetVoltage)];
+	char p10[sizeof(PacketFract)];
 };
 
 //размер структуры выровнен на 4, чтобы быстро копировать int[]

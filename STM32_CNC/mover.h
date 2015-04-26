@@ -8,15 +8,23 @@
 void send_packet(char *packet, int size);
 void process_packet(char *packet, int size);
 
+struct Track
+{
+	int segments;  //число отрезков в траектории
+	int uLength;  //общая длина пути в микронах
+};
+
 class Receiver
 {
 	public:
-	FIFOBuffer<MaxPacket, 3> queue; //28*32+8 = 904
+	FIFOBuffer<MaxPacket, 6> queue; //28*32+8 = 904
+	FIFOBuffer<Track, 6> tracks;
 	PacketCount packetNumber;
 	
 	void init()
 	{
 		queue.Clear();
+		tracks.Clear();
 		packetNumber = char(-1);
 	}
 };
@@ -240,7 +248,6 @@ public:
 		float16 feedVelocity;   //скорость подачи
 		float16 acceleration;  //ускорение, шагов/тик^2
 		float16 velocity;      //скорость на прошлом шаге
-		float16 accLength;     //расстояние, на котором можно набрать максимальную скорость
 		float16 invProj;       //(длина опорной координаты / полную длину)
 		int     lastPeriod;    //длительность предыдущего шага
 		int state;
@@ -302,6 +309,9 @@ public:
 			return END;
 
 		float16 length = linearData.invProj * float16(iabs(coord[reference] - to[reference]));
+		float16 l2 = length;
+		length += (float16(1) / float16(1000)) * float16(receiver.tracks.Front().uLength);
+		//log_console("l %d %d\n", l2.exponent, length.exponent);
 		// 1/linearData.velocity = тик/мм
 		float16 currentFeed = linearData.feedVelocity * feedMult;
 
@@ -340,19 +350,32 @@ public:
 
 
 //=====================================================================================================
-	void init_linear(int dest[NUM_COORDS], int refCoord, float16 acceleration, float16 accLength, float16 invProj, float16 velocity)
+	void init_linear(int dest[NUM_COORDS], int refCoord, float16 acceleration, int uLength, float16 invProj, float16 velocity)
 	{
+		Track *track = &receiver.tracks.Front();
+__disable_irq();
+		if(track->segments == 0)
+		{
+			//log_console("fract2 %d\n", receiver.tracks.Size());
+			receiver.tracks.Pop();
+			linearData.velocity = 0;
+			linearData.lastPeriod = 10000;
+		}
+		track = &receiver.tracks.Front();
+		--track->segments;
+		track->uLength -= uLength;
+		//log_console("len %d, %d\n", track->segments, track->uLength);
+__enable_irq();
+		
 		if(!brez_init(dest)) //если двигаться никуда не надо, то выйдет на первом такте
 			return;
 		
 		linearData.refCoord = refCoord;
 		linearData.refDelta = linearData.delta[refCoord];     //находим опорную координату (максимальной длины)
 		linearData.acceleration = acceleration;
-		linearData.accLength = accLength;
 		linearData.feedVelocity = velocity;
 		linearData.invProj = invProj;
-		linearData.velocity = 0;
-		linearData.lastPeriod = 10000;
+		
 		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
 		
 		for(int i=0; i<NUM_COORDS; ++i)
@@ -435,7 +458,7 @@ public:
 			//log_console("pos %7d, %7d, %5d, time %d init\n",
 			 //       packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
 								send_packet_service_coords(coord);
-								init_linear(packet->coord, packet->refCoord, packet->acceleration, packet->accLength, packet->invProj, packet->velocity);
+								init_linear(packet->coord, packet->refCoord, packet->acceleration, packet->uLength, packet->invProj, packet->velocity);
 								break;
 							}
 						}
@@ -574,9 +597,34 @@ void process_packet(char *common, int size)
 			if(!receiver.queue.IsFull())
 			{
 				++(receiver.packetNumber);
-				push_received_packet(common, size); //при использовании указателей можно было бы не копировать ещё раз
-				send_packet_received(receiver.packetNumber); //говорим, что приняли пакет
-				//log_console("\nGOTOV %d %d\n", common->packetNumber, receiver.packetNumber);
+				if(*common == DeviceCommand_SET_FRACT)
+				{
+					Track track;
+					track.segments = 0;
+					track.uLength = 0;
+					receiver.tracks.Push(track);
+					//log_console("fract %d\n", receiver.tracks.Size());
+				}
+				else if(*common == DeviceCommand_MOVE)
+				{
+					if(receiver.tracks.IsEmpty())
+					{
+						Track track;
+						track.segments = 0;
+						track.uLength = 0;
+						receiver.tracks.Push(track);
+					}
+					Track *track = &receiver.tracks.Back();
+					++track->segments;
+					track->uLength += ((PacketMove*)common)->uLength;
+					//log_console("move %d, %d, %d\n", track->uLength, track->segments, receiver.tracks.Size());
+				}
+				if(*common != DeviceCommand_SET_FRACT)
+				{
+					push_received_packet(common, size); //при использовании указателей можно было бы не копировать ещё раз
+					send_packet_received(receiver.packetNumber); //говорим, что приняли пакет
+					//log_console("\nGOTOV %d %d\n", common->packetNumber, receiver.packetNumber);
+				}
 			}
 		}
 	}
