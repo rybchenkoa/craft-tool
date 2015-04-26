@@ -175,63 +175,32 @@ void enable_all_pwms(int PWM_VAL)
 int main()
 {
 	init();
-led.show();
-	//int coord = 0;
+	led.show();
 
 	mover.init();
-	int pos[] = {4000, 6400, 200};
-	mover.init_linear(pos, true);
 	int timeToSend = timer.get_ms(500);
+	int busyTime = 0; //запаздывание обработки следующего тика (джиттер)
+	int stepTime = 0; //необходимое время между двумя шагами
 	while(1)
 	{
-		int deltaTime;
-		int oldTime;
+
 		if(!timer.check(mover.stopTime))
 		{
-			deltaTime = mover.stopTime - timer.get();
-			oldTime = mover.stopTime;
+			busyTime = mover.stopTime - timer.get();
+			stepTime = mover.stopTime;
 			mover.update();
-			oldTime -= mover.stopTime;
+			stepTime -= mover.stopTime;
 		}
-			
+
 		if(!timer.check(timeToSend))
 		{
+			led.flip();
 			timeToSend = timer.get_ms(100);
-			log_console("pos %7d, %7d, %5d, time %d, %d\n",
-			            mover.coord[0], mover.coord[1], mover.coord[2], oldTime, deltaTime);
+			//log_console("dest %d %d %d, sc %d\n", mover.to[0], mover.to[1], mover.to[2], int(float16(1)/mover.circleData.scale2));
+			log_console("stepT %d, jitter %d, st %d\n", stepTime, busyTime, mover.linearData.state);
 			send_packet_service_coords(mover.coord);
 		}
-		/*if(!receiver.queue.IsEmpty())
-		{
-			PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
-			
-			switch(common->command)
-			{
-				case DeviceCommand_RESET_PACKET_NUMBER:
-				case DeviceCommand_PACKET_ERROR_CRC:
-				case DeviceCommand_PACKET_RECEIVED:
-				case DeviceCommand_MOVE:
-				case DeviceCommand_MOVE_MODE:
-				case DeviceCommand_SET_PLANE:
-				case DeviceCommand_WAIT:
-								
-				break;
-			}
-		}
-		receiver.queue.Pop();*/
 	}
-	
-		/*	
-	while(1)
-	for (int i=0;i<PWM_SIZE;i++)
-	{
-		timer.delay_ms(1000);
-		coord++;
-		for (int j=0;j<4;j++) //400 тактов на задание напряжения всех двигателей
-			motor[j].set_sin_voltage(coord, 50);
-		led.flip();
-	}*/
-
 }
 
 
