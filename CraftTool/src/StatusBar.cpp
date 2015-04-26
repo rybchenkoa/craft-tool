@@ -33,9 +33,9 @@ void StatusBar::timerEvent(QTimerEvent *event)
                 port->receiveBPS,
                 port->transmitBPS);
         sprintf(text + strlen(text), " x, y, z {%f, %f, %f}",
-                float(device->currentCoords[0]),
-                float(device->currentCoords[1]),
-                float(device->currentCoords[2]));
+                float(device->currentCoords.r[0]),
+                float(device->currentCoords.r[1]),
+                float(device->currentCoords.r[2]));
         sprintf(text + strlen(text), " line %d",
                 device->get_current_line());
         sprintf(text + strlen(text), " time %d:%02d:%02d",

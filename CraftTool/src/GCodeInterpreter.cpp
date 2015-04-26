@@ -116,9 +116,6 @@ InterError GCodeInterpreter::execute_frame(const char *frame)
     state = run_modal_groups(); //исполняем коды или пересылаем их устройству
     if(state != InterError_ALL_OK) return state;
 
-    //state = move_tool(); //если заданы координаты, шлём их устройству
-    //if(state != ALL_OK) return state;
-
     return InterError_ALL_OK;
 }
 
@@ -328,16 +325,13 @@ InterError GCodeInterpreter::run_modal_groups()
         case Plane_NONE: break;
 
         case Plane_XY:
-            remoteDevice->set_plane(MovePlane_XY);
-            runner.plane = MovePlane_XY;
+            runner.plane = Plane_XY;
             break;
         case Plane_ZX:
-            remoteDevice->set_plane(MovePlane_ZX);
-            runner.plane = MovePlane_ZX;
+            runner.plane = Plane_ZX;
             break;
         case Plane_YZ:
-            remoteDevice->set_plane(MovePlane_YZ);
-            runner.plane = MovePlane_YZ;
+            runner.plane = Plane_YZ;
             break;
 
         default: return InterError_WRONG_PLANE;
@@ -359,18 +353,16 @@ InterError GCodeInterpreter::run_modal_groups()
         case MotionMode_LINEAR:
             runner.motionMode = readedFrame.motionMode;
             break;
-
-        //case MotionMode_GO_BACK:
-        //    break;
     }
 
     switch (readedFrame.motionMode)
     {
-        case MotionMode_CCW_ARC: remoteDevice->set_move_mode(MoveMode_CCW_ARC); break;
-        case MotionMode_CW_ARC:  remoteDevice->set_move_mode(MoveMode_CW_ARC); break;
+        case MotionMode_NONE: break;
+
         case MotionMode_FAST:    remoteDevice->set_move_mode(MoveMode_FAST); break;
         case MotionMode_LINEAR:  remoteDevice->set_move_mode(MoveMode_LINEAR); break;
-        case MotionMode_NONE: break;
+        case MotionMode_CCW_ARC: remoteDevice->set_move_mode(MoveMode_LINEAR); break;
+        case MotionMode_CW_ARC:  remoteDevice->set_move_mode(MoveMode_LINEAR); break;
     }
 
     switch(readedFrame.cycle)
@@ -461,28 +453,37 @@ InterError GCodeInterpreter::run_modal_groups()
                 pos.z = runner.cycleHiLevel;
 
             remoteDevice->set_move_mode(MoveMode_FAST);
-            remoteDevice->set_position(pos.x, pos.y, pos.z);  //двигаемся к следующему отверстию
+            remoteDevice->set_position(pos);  //двигаемся к следующему отверстию
+
+            auto pos2 = pos;
 
             if(!runner.cycleUseLowLevel)
-                remoteDevice->set_position(pos.x, pos.y, runner.cycleLowLevel);  //двигаемся к безопасной плоскости
+            {
+                pos2.z = runner.cycleLowLevel;
+                remoteDevice->set_position(pos2);  //двигаемся к безопасной плоскости
+            }
 
             switch(runner.cycle)
             {
+                case CannedCycle_NONE: //assume(0);
+                case CannedCycle_RESET: //assume(0);
                 case CannedCycle_SINGLE_DRILL:
                 {
                     remoteDevice->set_move_mode(MoveMode_LINEAR);
-                    remoteDevice->set_position(pos.x, pos.y, runner.cycleDeepLevel);
+                    pos2.z = runner.cycleDeepLevel;
+                    remoteDevice->set_position(pos2);
                     remoteDevice->set_move_mode(MoveMode_FAST);
-                    remoteDevice->set_position(pos.x, pos.y, pos.z);
+                    remoteDevice->set_position(pos);
                     break;
                 }
                 case CannedCycle_DRILL_AND_PAUSE:
                 {
                     remoteDevice->set_move_mode(MoveMode_LINEAR);
-                    remoteDevice->set_position(pos.x, pos.y, runner.cycleDeepLevel);
+                    pos2.z = runner.cycleDeepLevel;
+                    remoteDevice->set_position(pos2);
                     remoteDevice->wait(runner.cycleWait);
                     remoteDevice->set_move_mode(MoveMode_FAST);
-                    remoteDevice->set_position(pos.x, pos.y, pos.z);
+                    remoteDevice->set_position(pos);
                     break;
                 }
                 case CannedCycle_DEEP_DRILL:
@@ -491,28 +492,34 @@ InterError GCodeInterpreter::run_modal_groups()
                     for(; curZ > runner.cycleDeepLevel; curZ -= runner.cycleStep)
                     {
                         remoteDevice->set_move_mode(MoveMode_FAST);
-                        remoteDevice->set_position(pos.x, pos.y, curZ + runner.cycleStep);
+                        pos2.z = curZ + runner.cycleStep;
+                        remoteDevice->set_position(pos2);
                         remoteDevice->set_move_mode(MoveMode_LINEAR);
-                        remoteDevice->set_position(pos.x, pos.y, curZ);
+                        pos2.z = curZ;
+                        remoteDevice->set_position(pos2);
                         if(runner.cycleWait != 0.0)
                             remoteDevice->wait(runner.cycleWait);
                         remoteDevice->set_move_mode(MoveMode_FAST);
-                        remoteDevice->set_position(pos.x, pos.y, runner.cycleLowLevel);
+                        pos2.z = runner.cycleLowLevel;
+                        remoteDevice->set_position(pos2);
                     }
                     if(curZ != runner.cycleDeepLevel)
                     {
                         remoteDevice->set_move_mode(MoveMode_FAST);
-                        remoteDevice->set_position(pos.x, pos.y, curZ + runner.cycleStep);
+                        pos2.z = curZ + runner.cycleStep;
+                        remoteDevice->set_position(pos2);
                         remoteDevice->set_move_mode(MoveMode_LINEAR);
-                        remoteDevice->set_position(pos.x, pos.y, curZ);
+                        pos2.z = curZ;
+                        remoteDevice->set_position(pos2);
                         if(runner.cycleWait != 0.0)
                             remoteDevice->wait(runner.cycleWait);
                         remoteDevice->set_move_mode(MoveMode_FAST);
-                        remoteDevice->set_position(pos.x, pos.y, runner.cycleLowLevel);
+                        pos2.z = runner.cycleLowLevel;
+                        remoteDevice->set_position(pos2);
                     }
 
                     remoteDevice->set_move_mode(MoveMode_FAST);
-                    remoteDevice->set_position(pos.x, pos.y, pos.z);
+                    remoteDevice->set_position(pos);
 
                     break;
                 }
@@ -532,18 +539,27 @@ InterError GCodeInterpreter::run_modal_groups()
             get_readed_coord('Z', pos.z);
 
             runner.position = pos;
-            remoteDevice->set_position(pos.x, pos.y, pos.z);
+            remoteDevice->set_position(pos);
         }
         else if(get_new_position(pos))
         {
             runner.position = pos;
-            remoteDevice->set_position(pos.x, pos.y, pos.z);
+            remoteDevice->set_position(pos);
         }
     }
     else if(runner.motionMode == MotionMode_CW_ARC || runner.motionMode == MotionMode_CCW_ARC)
     {
         if(readedFrame.absoluteSet)
             return InterError_WRONG_VALUE;
+
+        int ix, iy, iz;
+        switch(runner.plane)
+        {
+            case Plane_NONE: //assume(0);
+            case Plane_XY: ix = 0; iy = 1; iz = 2; break;
+            case Plane_YZ: ix = 1; iy = 2; iz = 0; break;
+            case Plane_ZX: ix = 2; iy = 0; iz = 1; break;
+        }
 
         Coords centerPos;
         centerPos.x = centerPos.y = centerPos.z = 0;
@@ -566,14 +582,6 @@ InterError GCodeInterpreter::run_modal_groups()
             Coords pos = runner.position;            //читаем, докуда двигаться
             get_new_position(pos);
 
-            int ix, iy, iz;
-            switch(runner.plane)
-            {
-                case MovePlane_XY: ix = 0; iy = 1; iz = 2; break;
-                case MovePlane_YZ: ix = 1; iy = 2; iz = 0; break;
-                case MovePlane_ZX: ix = 2; iy = 0; iz = 1; break;
-            }
-
             coord pitch = centerPos.r[iz] - runner.position.r[iz];//шаг винта
             centerPos.r[iz] = pos.r[iz];      //третий параметр означает нечто другое
             Coords planeCenter = centerPos;
@@ -583,60 +591,48 @@ InterError GCodeInterpreter::run_modal_groups()
             if(fabs(radius - length(pos, centerPos)) > 0.001)//растяжение пока не поддерживается
                 return InterError_WRONG_VALUE;
 
-            if(is_screw(centerPos)) //винтовая интерполяция пока не поддерживается
+            double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
+
+            if(is_screw(centerPos)) //винтовая интерполяция
             {
                 coord height = pos.r[iz] - runner.position.r[iz]; //длина винта
-
-                double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
 
                 if(pitch <= 0.0)
                     return InterError_WRONG_VALUE;
 
-                remoteDevice->set_move_mode(MoveMode_LINEAR);
-
                 double countTurns = height / pitch;
                 double angleMax = fabs(countTurns * 2 * PI);
-                double accuracy = remoteDevice->get_min_step();
-                //шаг угла выбираем таким, чтобы точность была в пределах одного шага //ряд Тейлора для синуса sin(x) = x +...
-                //  r - sqrt(r^2 - (r*step)^2) = accuracy;
-                //  1 - sqrt(1 - step^2) = acc / r;
-                //  1 - step^2 = (1 - acc/r)^2
-                //  step = sqrt(1-(1-acc/r)^2)
-                double step = sqrt(1-pow2(1-accuracy/radius));
                 double zScale = height / angleMax;
-                double aScale = 1;
-                if(runner.motionMode == MotionMode_CW_ARC)
-                    aScale = -1;
 
-                Coords curPos;
-                double angle = 0;
-                for(; angle < angleMax; angle += step)
-                {
-                    curPos.r[ix] = planeCenter.r[ix] + radius * cos(angleStart + angle * aScale);
-                    curPos.r[iy] = planeCenter.r[iy] + radius * sin(angleStart + angle * aScale);
-                    curPos.r[iz] = planeCenter.r[iz] + angle * zScale;
-                    remoteDevice->set_position(curPos.x, curPos.y, curPos.z);
-                }
-                angle = angleMax;
-                curPos.r[ix] = planeCenter.r[ix] + radius * cos(angleStart + angle * aScale);
-                curPos.r[iy] = planeCenter.r[iy] + radius * sin(angleStart + angle * aScale);
-                curPos.r[iz] = planeCenter.r[iz] + angle * zScale;
-                remoteDevice->set_position(curPos.x, curPos.y, curPos.z);
+                draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
 
-                if(length(curPos, pos) > accuracy)
+                if(length(runner.position, pos) > remoteDevice->get_min_step())
                     return InterError_WRONG_VALUE;
 
                 runner.position = pos;
-
-                if(runner.motionMode == MotionMode_CW_ARC)
-                    remoteDevice->set_move_mode(MoveMode_CW_ARC);
-                else
-                    remoteDevice->set_move_mode(MoveMode_CCW_ARC);
             }
             else
             {
+                double angleMax = atan2(pos.r[iy] - planeCenter.r[iy], pos.r[ix] - planeCenter.r[ix]);
+                angleMax -= angleStart;
+                if(runner.motionMode == MotionMode_CCW_ARC)
+                {
+                    if(angleMax <= 0)
+                        angleMax += 2 * PI;
+                }
+                else
+                {
+                    angleMax *= -1;
+                    if(angleMax <= 0)
+                        angleMax += 2 * PI;
+                }
+
+                draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, 0, ix, iy, iz);
+
+                if(length(runner.position, pos) > remoteDevice->get_min_step())
+                    return InterError_WRONG_VALUE;
+
                 runner.position = pos;
-                remoteDevice->set_circle_position(pos.x, pos.y, pos.z, centerPos.x, centerPos.y, centerPos.z);
             }
         }
         else if(readedFrame.have_value('R'))
@@ -665,28 +661,30 @@ InterError GCodeInterpreter::run_modal_groups()
             for(int i = 0; i < NUM_COORDS; ++i)
                 toCenter.r[i] = (runner.position.r[i] - pos.r[i]) * length / distance;
 
-            switch(runner.plane)
-            {
-                case MovePlane_XY:
-                    std::swap(toCenter.x, toCenter.y);
-                    toCenter.y = -toCenter.y;
-                    break;
-                case MovePlane_YZ:
-                    std::swap(toCenter.y, toCenter.z);
-                    toCenter.z = -toCenter.z;
-                    break;
-                case MovePlane_ZX:
-                    std::swap(toCenter.z, toCenter.x);
-                    toCenter.x = -toCenter.x;
-                    break;
-            }
+            std::swap(toCenter.r[ix], toCenter.r[iy]);
+            toCenter.r[iy] = -toCenter.r[iy];
 
-            Coords centerPos;
             for(int i = 0; i < NUM_COORDS; ++i)
                 centerPos.r[i] = (runner.position.r[i] + pos.r[i]) / 2 + toCenter.r[i];
 
+            double angleStart = atan2(runner.position.r[iy] - centerPos.r[iy], runner.position.r[ix] - centerPos.r[ix]);
+            double angleMax = atan2(pos.r[iy] - centerPos.r[iy], pos.r[ix] - centerPos.r[ix]);
+            angleMax -= angleStart;
+            if(runner.motionMode == MotionMode_CCW_ARC)
+            {
+                if(angleMax <= 0)
+                    angleMax += 2 * PI;
+            }
+            else
+            {
+                angleMax *= -1;
+                if(angleMax <= 0)
+                    angleMax += 2 * PI;
+            }
+
+            draw_screw(centerPos, fabs(radius), 1.0, angleStart, angleMax, 0, ix, iy, iz);
+
             runner.position = pos;
-            remoteDevice->set_circle_position(pos.x, pos.y, pos.z, centerPos.x, centerPos.y, centerPos.z);
         }
     }
 
@@ -696,14 +694,53 @@ InterError GCodeInterpreter::run_modal_groups()
 //====================================================================================================
 bool GCodeInterpreter::is_screw(Coords center)
 {
-    if(center.x != runner.position.x && runner.plane == MovePlane_YZ)
+    if(center.x != runner.position.x && runner.plane == Plane_YZ)
         return true;
-    if(center.y != runner.position.y && runner.plane == MovePlane_ZX)
+    if(center.y != runner.position.y && runner.plane == Plane_ZX)
         return true;
-    if(center.z != runner.position.z && runner.plane == MovePlane_XY)
+    if(center.z != runner.position.z && runner.plane == Plane_XY)
         return true;
 
     return false;
+}
+
+//====================================================================================================
+//рисует винтовую линию или просто круг
+void GCodeInterpreter::draw_screw(Coords center, double radius, double ellipseCoef,
+                double angleStart, double angleMax, double angleToHeight,
+                int ix, int iy, int iz)
+{
+    double accuracy = remoteDevice->get_min_step();
+    //шаг угла выбираем таким, чтобы точность была в пределах одного шага
+    //ряд Тейлора для синуса sin(x) = x +...
+    //при повороте от оси Х на заданный угол ошибка по второй оси должна быть равна погрешности
+    //  r - r*cos(a) = accuracy
+    //  1 - cos(a) = acc/r
+    //  cos(a) = sqrt(1-sin^2(a)) ~= sqrt(1-a^2)
+    //  1 - sqrt(1 - step^2) = acc / r;
+    //  1 - step^2 = (1 - acc/r)^2
+    //  step = sqrt(1-(1-acc/r)^2)
+    double step = sqrt(1-pow2(1-accuracy/radius));
+
+    double aScale = 1;
+    if(runner.motionMode == MotionMode_CW_ARC)
+        aScale = -1;
+
+    Coords curPos;
+    double angle = 0;
+    for(; angle < angleMax; angle += step)
+    {
+        curPos.r[ix] = center.r[ix] + radius * cos(angleStart + angle * aScale);
+        curPos.r[iy] = center.r[iy] + radius * sin(angleStart + angle * aScale) * ellipseCoef;
+        curPos.r[iz] = center.r[iz] + angle * angleToHeight;
+        remoteDevice->set_position(curPos);
+    }
+    angle = angleMax;
+    curPos.r[ix] = center.r[ix] + radius * cos(angleStart + angle * aScale);
+    curPos.r[iy] = center.r[iy] + radius * sin(angleStart + angle * aScale);
+    curPos.r[iz] = center.r[iz] + angle * angleToHeight;
+    remoteDevice->set_position(curPos);
+    runner.position = curPos;
 }
 
 //====================================================================================================
@@ -802,8 +839,8 @@ void GCodeInterpreter::move(int coordNumber, coord add)
 
     //если только подключились к устройству, то координаты могут быть очень разными
     for(int i = 0; i < NUM_COORDS; ++i)
-        if(fabs(remoteDevice->get_current_coords()[i] - runner.position.r[i]) > fabs(add)*2)
-            runner.position.r[i] = remoteDevice->get_current_coords()[i];
+        if(fabs(remoteDevice->get_current_coords()->r[i] - runner.position.r[i]) > fabs(add)*2)
+            runner.position.r[i] = remoteDevice->get_current_coords()->r[i];
 
     //if(fabs(remoteDevice->get_current_coords()[coordNumber] - runner.position.r[coordNumber]) > fabs(add))
     //    return;
@@ -812,7 +849,7 @@ void GCodeInterpreter::move(int coordNumber, coord add)
         return;
 
     runner.position.r[coordNumber] += add;
-    remoteDevice->set_position(runner.position.x, runner.position.y, runner.position.z);
+    remoteDevice->set_position(runner.position);
 }
 
 //====================================================================================================
@@ -989,7 +1026,7 @@ void GCodeInterpreter::init()
     runner.incremental = false;
     runner.motionMode = MotionMode_FAST;
     runner.cycle = CannedCycle_NONE;
-    runner.plane = MovePlane_XY;
+    runner.plane = Plane_XY;
     runner.offset.x = 0;
     runner.offset.y = 0;
     runner.offset.z = 0;

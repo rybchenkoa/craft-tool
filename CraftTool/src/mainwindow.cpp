@@ -38,9 +38,9 @@ void MainWindow::menu_open_program()
 
 void MainWindow::set0()
 {
-    g_inter->runner.csd[0].pos0.x = g_device->currentCoords[0];
-    g_inter->runner.csd[0].pos0.y = g_device->currentCoords[1];
-    g_inter->runner.csd[0].pos0.z = g_device->currentCoords[2];
+    g_inter->runner.csd[0].pos0.x = g_device->currentCoords.r[0];
+    g_inter->runner.csd[0].pos0.y = g_device->currentCoords.r[1];
+    g_inter->runner.csd[0].pos0.z = g_device->currentCoords.r[2];
 }
 
 void MainWindow::update_state()

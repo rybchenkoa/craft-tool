@@ -10,23 +10,6 @@
 namespace Interpreter
 {
 
-typedef double coord;//чтобы не путатьс€, координатный тип введЄм отдельно
-
-struct Coords   //все координаты устройства
-{
-    union
-    {
-        struct
-        {
-            coord x, y, z;
-        };
-        struct
-        {
-            coord r[NUM_COORDS];
-        };
-    };
-};
-
 enum UnitSystem //система единиц
 {
     UnitSystem_METRIC, //метричека€
@@ -164,7 +147,7 @@ struct Runner
     UnitSystem units;        //текуща€ система единиц измерени€
     bool incremental;        //абсолютна€ система координат?
     MotionMode motionMode;   //режим перемещени€ (линейна€ интерпол€ци€ и т.п.)
-    MovePlane plane;         //текуща€ плоскость интерпол€ции
+    Plane plane;             //текуща€ плоскость интерпол€ции
     double feed;             //подача в мм/мин
     double cutterRadius;     //радиус фрезы
     double cutterLength;     //длина фрезы
@@ -288,7 +271,11 @@ public:
     void to_local(Coords &coords);          //сдвиг в локальные координаты
     coord to_mm(coord value);               //переводит из текущих единиц в мм
     Coords to_mm(Coords value);
-    bool is_screw(Coords center);                     //провер€ет, что траектори€ будет винтовой
+    bool is_screw(Coords center);           //провер€ет, что траектори€ будет винтовой
+    void draw_screw(Coords center, double radius, double ellipseCoef,
+                    double angleStart, double angleMax, double angleToHeight,
+                    int ix, int iy, int iz);//рисует винтовую линию
+
     bool get_readed_coord(char letter, coord &value); //сразу переводит единицы измерени€
     bool get_new_position(Coords &pos);  //чтение новых координат с учЄтом модальных кодов
 

@@ -3,8 +3,26 @@
 #include <queue>
 #include <QObject>
 #include "ComPortConnect.h"
+#include "float16.h"
 
 #define NUM_COORDS 3
+
+typedef double coord;//чтобы не путаться, координатный тип введём отдельно
+
+struct Coords   //все координаты устройства
+{
+    union
+    {
+        struct
+        {
+            coord x, y, z;
+        };
+        struct
+        {
+            coord r[NUM_COORDS];
+        };
+    };
+};
 
 typedef char PacketCount;
 enum DeviceCommand:char //какие команды получает устройство
@@ -12,14 +30,14 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_MOVE = 1,
     DeviceCommand_WAIT,
     DeviceCommand_MOVE_MODE,
-    DeviceCommand_SET_PLANE,
     DeviceCommand_PACKET_RECEIVED,
     DeviceCommand_PACKET_ERROR_CRC,
     DeviceCommand_RESET_PACKET_NUMBER,
     DeviceCommand_ERROR_PACKET_NUMBER,
     DeviceCommand_SET_BOUNDS,
     DeviceCommand_SET_VEL_ACC,
-    DeviceCommand_SET_FEED,
+    DeviceCommand_SET_FEED, //выпилить?
+    DeviceCommand_SET_FEED_MULT,
     DeviceCommand_SET_STEP_SIZE,
     DeviceCommand_SET_VOLTAGE,
     DeviceCommand_SERVICE_COORDS,
@@ -30,14 +48,6 @@ enum MoveMode:char //режим движения/интерполяции
 {
     MoveMode_FAST = 0,
     MoveMode_LINEAR,
-    MoveMode_CW_ARC,
-    MoveMode_CCW_ARC,
-};
-enum MovePlane:char //плоскость интерполяции
-{
-    MovePlane_XY = 0,
-    MovePlane_ZX,
-    MovePlane_YZ,
 };
 #pragma pack(push, 1)
 struct PacketCommon
@@ -52,15 +62,11 @@ struct PacketMove
     DeviceCommand command;
     PacketCount packetNumber;
     int coord[NUM_COORDS];
-    int crc;
-};
-struct PacketCircleMove
-{
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
-    int coord[NUM_COORDS];
-    int circle[NUM_COORDS];//I,J,K
+    char refCoord;
+    float16 velocity;      //скорость перемещения
+    float16 acceleration;  //ускорение, шагов/тик^2
+    float16 accLength;     //расстояние, на котором можно набрать максимальную скорость
+    float16 invProj;       // длина опорной координаты / полную длину, шаг/мм
     int crc;
 };
 struct PacketWait
@@ -77,14 +83,6 @@ struct PacketInterpolationMode
     DeviceCommand command;
     PacketCount packetNumber;
     MoveMode mode;
-    int crc;
-};
-struct PacketSetPlane
-{
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
-    MovePlane plane;
     int crc;
 };
 struct PacketResetPacketNumber //сообщение о том, что пакет принят
@@ -108,8 +106,8 @@ struct PacketSetVelAcc //задать ускорение и скорость
     char size;
     DeviceCommand command;
     PacketCount packetNumber;
-    int maxrVelocity[NUM_COORDS];
-    int maxrAcceleration[NUM_COORDS];
+    float16 maxVelocity[NUM_COORDS];
+    float16 maxAcceleration[NUM_COORDS];
     int crc;
 };
 struct PacketSetFeed //задать подачу
@@ -117,7 +115,15 @@ struct PacketSetFeed //задать подачу
     char size;
     DeviceCommand command;
     PacketCount packetNumber;
-    int rFeed;
+    float16 feed;
+    int crc;
+};
+struct PacketSetFeedMult //задать подачу
+{
+    char size;
+    DeviceCommand command;
+    PacketCount packetNumber;
+    float16 feedMult;
     int crc;
 };
 struct PacketSetStepSize
@@ -176,11 +182,9 @@ public:
     virtual void init()=0; //сбрасываем очередь команд, ищем начало координат и т.п.
     virtual void reset_packet_queue()=0;
     virtual void set_move_mode(MoveMode mode)=0; //задаём режим интерполяции
-    virtual void set_plane(MovePlane plane)=0; //задаём плоскость интерполяции
-    virtual void set_position(double x, double y, double z)=0; //перемещаем фрезу
-    virtual void set_circle_position(double x, double y, double z, double i, double j, double k)=0; //перемещаем по дуге
+    virtual void set_position(Coords position)=0; //перемещаем фрезу
     virtual void wait(double time)=0; //задержка
-    virtual void set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS])=0; //границы координат
+    virtual void set_bounds(Coords rMin, Coords rMax)=0; //границы координат
     virtual void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS])=0; //задать скорость и ускорение
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_step_size(double stepSize[NUM_COORDS])=0; //длина одного шага
@@ -189,7 +193,7 @@ public:
 
     virtual void set_current_line(int line)=0; //задаёт номер строки, для которой сейчас будут вызываться команды
     virtual int  get_current_line()=0; //возвращает номер строки, для которой сейчас исполняются команды
-    virtual const double* get_current_coords()=0; //последние принятые координаты
+    virtual const Coords* get_current_coords()=0; //последние принятые координаты
     virtual double get_min_step()=0; //точность устройства
 };
 
@@ -204,26 +208,24 @@ public:
     void init() override;
     void reset_packet_queue() override;
     void set_move_mode(MoveMode mode) override;
-    void set_plane(MovePlane plane) override;
-    void set_position(double x, double y, double z) override;
-    void set_circle_position(double x, double y, double z, double i, double j, double k) override;
+    void set_position(Coords position) override;
     void wait(double time) override;
-    void set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS]) override;
+    void set_bounds(Coords rMin, Coords rMax) override;
     void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS]) override;
     void set_feed(double feed) override;
     void set_step_size(double stepSize[NUM_COORDS]) override;
 
     void set_voltage(double voltage[NUM_COORDS]);
+    void set_fract();
 
     int  queue_size() override;
 
     virtual void set_current_line(int line) override;
     virtual int  get_current_line() override;
-    const double* get_current_coords() override;
+    const Coords* get_current_coords() override;
     double get_min_step() override;
 
     bool on_packet_received(char *data, int size);
-
     bool process_packet(char *data, int size);
 
     ComPortConnect *comPort;           //подключение к удалённому устройству
@@ -231,11 +233,21 @@ public:
     int missedReceives;                //принят битый пакет
     int missedHalfSend;                //принято сообщение о битом пакете
 
+    //текущее состояние
     double scale[NUM_COORDS];          //шагов на миллиметр
     double minStep;                    //макс. точность устройства
     double secToTick;                  //тиков таймера в одной секунде
     int subSteps;                      //число делений шага на 2
-    double currentCoords[NUM_COORDS];  //текущие координаты на удалённом устройстве
+    Coords lastPosition;               //последняя переданная позиция
+    Coords lastDelta;                  //последний вектор сдвига
+    double feed;                       //подача
+    MoveMode moveMode;                 //режим перемещения
+    double velocity[NUM_COORDS];       //максимальная скорость по каждой оси
+    double acceleration[NUM_COORDS];   //максимальное ускорение по каждой оси
+    bool fractSended;                  //послан ли уже излом траектории
+
+    //состояние удалённого устройства
+    Coords currentCoords;              //текущие координаты
 
 protected:
     void init_crc();

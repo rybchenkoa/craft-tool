@@ -13,8 +13,8 @@ LIBS += -lws2_32
 TARGET = CraftTool
 TEMPLATE = app
 
-CONFIG   += console
-CONFIG   -= app_bundle
+#CONFIG   += console
+#CONFIG   -= app_bundle
 
 QMAKE_CXXFLAGS += -std=c++11
 
@@ -45,6 +45,7 @@ HEADERS  += main.h\
             log.h \
             AutoLockCS.h \
             Config.h \
-            config_defines.h
+            config_defines.h \
+            float16.h
 
 FORMS    += mainwindow.ui

@@ -3,6 +3,11 @@
 #include "AutoLockCS.h"
 #include "config_defines.h"
 
+//====================================================================================================
+inline double pow2(double x)
+{
+    return x*x;
+}
 
 //============================================================
 CRemoteDevice::CRemoteDevice()
@@ -14,6 +19,22 @@ CRemoteDevice::CRemoteDevice()
     missedHalfSend = 0;
     pushLine = -1;
     workLine = -1;
+
+    for(int i = 0; i < NUM_COORDS; ++i)
+    {
+        scale[i]            = INFINITY;
+        lastPosition.r[i]   = INFINITY;
+        velocity[i]         = INFINITY;
+        acceleration[i]     = INFINITY;
+        currentCoords.r[i]  = INFINITY;
+        lastDelta.r[i]      = INFINITY;
+    }
+    minStep = INFINITY;
+    secToTick = INFINITY;
+    subSteps = 0;
+    feed = INFINITY;
+    moveMode = MoveMode_LINEAR;
+    fractSended = false;
 
     InitializeCriticalSection(&queueCS);
     eventQueueAdd = CreateEvent(nullptr, false, false, nullptr);
@@ -96,6 +117,11 @@ void CRemoteDevice::push_packet_common(T *packet)
 //============================================================
 void CRemoteDevice::set_move_mode(MoveMode mode)
 {
+    if(mode == moveMode)
+        return;
+    moveMode = mode;
+    set_fract();
+
     auto packet = new PacketInterpolationMode;
     packet->command = DeviceCommand_MOVE_MODE; //сменить режим перемещения
     packet->mode = mode; //новый режим
@@ -103,43 +129,135 @@ void CRemoteDevice::set_move_mode(MoveMode mode)
 }
 
 //============================================================
-void CRemoteDevice::set_plane(MovePlane plane)
+//оповещение о конце траектории
+void CRemoteDevice::set_fract()
 {
-    auto packet = new PacketSetPlane;
-    packet->command = DeviceCommand_SET_PLANE; //сменить плоскость
-    packet->plane = plane; //новая плоскость
-    push_packet_common(packet);
+    if(fractSended)
+        return;
+
+    //auto packet = new PacketMove;
+
+    fractSended = true;
 }
 
 //============================================================
-void CRemoteDevice::set_position(double x, double y, double z)
+void CRemoteDevice::set_position(Coords pos)
 {
+    //emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
+
+    if(lastPosition.r[0] == INFINITY) //если шлём в первый раз
+        lastPosition = currentCoords; //то последними посланными считаем текущие реальные
+
     auto packet = new PacketMove;
-    packet->command = DeviceCommand_MOVE; //двигаться
-    packet->coord[0] = int(x*scale[0]);
-    packet->coord[1] = int(y*scale[1]);
-    packet->coord[2] = int(z*scale[2]);
+    packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
+
+    bool needSend = false;
+
+    for(int i = 0; i < NUM_COORDS; ++i)
+    {
+        packet->coord[i] = int(pos.r[i] * scale[i]);    //переводим мм в шаги
+
+        if(lastPosition.r[i] != pos.r[i]) //определяем, было ли смещение
+            needSend = true;
+    }
+
+    if(!needSend)
+    {
+        delete packet;
+        return;
+    }
+
+    Coords delta;
+    int referenceLen = 0; //максимальное число шагов по координате
+    int reference = 0;    //номер самой длинной по шагам координаты
+
+    for(int i = 0; i < NUM_COORDS; ++i)
+    {
+        delta.r[i] = pos.r[i] - lastPosition.r[i];
+
+        int steps = abs(int(delta.r[i] * scale[i]));
+        if(steps > referenceLen)
+        {
+            referenceLen = steps;
+            reference = i;
+        }
+    }
+    lastPosition = pos;
+
+    double length = 0;
+    for(int i = 0; i < NUM_COORDS; ++i)
+        length += pow2(delta.r[i]);
+
+    length = sqrt(length);
+
+    double lengths[NUM_COORDS];
+    for(int i = 0; i < NUM_COORDS; ++i)
+        lengths[i] = fabs(delta.r[i]);
+
+    packet->refCoord = reference;
+    packet->invProj = float(length / (lengths[reference] * scale[reference]));
+
+    if(lastDelta.r[0] != INFINITY)
+    {
+        double scalar = 0;
+        double scalar1 = 0, scalar2 = 0;
+        for(int i = 0; i < NUM_COORDS; ++i)
+        {
+            scalar += lastDelta.r[i] * delta.r[i];
+            scalar1 += delta.r[i] * delta.r[i];
+            scalar2 += lastDelta.r[i] * lastDelta.r[i];
+        }
+        double cosA = scalar / sqrt(scalar1 * scalar2);
+
+        if(cosA < 1 - 0.001) //если направление движения сильно изменилось
+            set_fract();
+    }
+
+    lastDelta = delta;
+
+    //находим максимальное время движения по отдельной координате
+    double timeMove = lengths[0] / velocity[0];
+    for(int i = 1; i < NUM_COORDS; ++i)
+    {
+        double time = lengths[i] / velocity[i];
+        if(timeMove < time)
+            timeMove = time;
+    }
+    double velValue = length / timeMove; //максимальная скорость движения в заданном направлении
+
+    //ограничиваем скорость подачей
+    if(moveMode == MoveMode_LINEAR)
+        if(velValue > feed)
+            velValue = feed;
+
+    packet->velocity = float(velValue / secToTick);
+
+    //находим максимальное ускорение по опорной координате
+    timeMove = lengths[0] / acceleration[0];
+    for(int i = 1; i < NUM_COORDS; ++i)
+    {
+        double time = lengths[i] / acceleration[i];
+        if(timeMove < time)
+            timeMove = time;
+    }
+    double accValue = length / timeMove; //максимальное ускорение в заданном направлении
+    packet->acceleration = float(accValue / (secToTick * secToTick));
+
+    //v=a*t, s=a*t^2/2 =v^2/2a
+    packet->accLength = float(pow2(velValue) / (2 * accValue));
+
     //log_message("   GO TO %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2]);
     push_packet_common(packet);
+
+    fractSended = false;
 }
 
-//============================================================
-void CRemoteDevice::set_circle_position(double x, double y, double z, double i, double j, double k)
-{
-    auto packet = new PacketCircleMove;
-    packet->command = DeviceCommand_MOVE; //число координат определяется по текущему режиму перемещения
-    packet->coord[0] = int(x*scale[0]);
-    packet->coord[1] = int(y*scale[1]);
-    packet->coord[2] = int(z*scale[2]);
-    packet->circle[0] = int(i*scale[0]);
-    packet->circle[1] = int(j*scale[1]);
-    packet->circle[2] = int(k*scale[2]);
-    push_packet_common(packet);
-}
 
 //============================================================
 void CRemoteDevice::wait(double time)
 {
+    set_fract();
+
     auto packet = new PacketWait;
     packet->command = DeviceCommand_WAIT;
     packet->delay = int(time*1000); //задержка
@@ -147,16 +265,18 @@ void CRemoteDevice::wait(double time)
 }
 
 //============================================================
-void CRemoteDevice::set_bounds(double rMin[NUM_COORDS], double rMax[NUM_COORDS])
+void CRemoteDevice::set_bounds(Coords rMin, Coords rMax)
 {
     auto packet = new PacketSetBounds;
     packet->command = DeviceCommand_SET_BOUNDS;
     for(int i = 0; i < NUM_COORDS; ++i)
     {
-        packet->minCoord[i] = int(rMin[i]*scale[i]);
-        packet->maxCoord[i] = int(rMax[i]*scale[i]);
+        packet->minCoord[i] = int(rMin.r[i]*scale[i]);
+        packet->maxCoord[i] = int(rMax.r[i]*scale[i]);
     }
     push_packet_common(packet);
+    //this->rMin = rMin;
+    //this->rMax = rMax;
 }
 
 //============================================================
@@ -169,8 +289,8 @@ void CRemoteDevice::set_velocity_and_acceleration(double velocity[NUM_COORDS], d
     packet->command = DeviceCommand_SET_VEL_ACC; //задать макс скорость и ускорение
     for(int i = 0; i < NUM_COORDS; ++i)
     {
-        packet->maxrVelocity[i] = int(1.0/(velocity[i]*scale[i]/secToTick));
-        packet->maxrAcceleration[i] = int(1.0/(acceleration[i]*scale[i]/(secToTick*secToTick)));
+        packet->maxVelocity[i] = float(velocity[i]);
+        packet->maxAcceleration[i] = float(acceleration[i]);
     }
     push_packet_common(packet);
 }
@@ -179,10 +299,13 @@ void CRemoteDevice::set_velocity_and_acceleration(double velocity[NUM_COORDS], d
 //мм/сек
 void CRemoteDevice::set_feed(double feed)
 {
+    set_fract();
+
     auto packet = new PacketSetFeed;
     packet->command = DeviceCommand_SET_FEED;
-    packet->rFeed = int(1.0/(feed/secToTick));
+    packet->feed = float16(float(feed));
     push_packet_common(packet);
+    this->feed = feed;
 }
 
 //============================================================
@@ -223,7 +346,7 @@ void CRemoteDevice::init()
     packetNumber = -1;
     reset_packet_queue();
 
-    auto try_get_float = [/*&g_config*/](const char *key) -> float
+    auto try_get_float = [](const char *key) -> float
     {
         float value;
         if(!g_config->get_float(key, value))
@@ -244,15 +367,13 @@ void CRemoteDevice::init()
 
     minStep = 1/std::max(scale[0], std::max(scale[1], scale[2]));
 
-    double maxVelocity[NUM_COORDS];// = {1000.0, 1000.0, 1000.0};
-    maxVelocity[0] = try_get_float(CFG_MAX_VELOCITY "X") / 60;
-    maxVelocity[1] = try_get_float(CFG_MAX_VELOCITY "Y") / 60;
-    maxVelocity[2] = try_get_float(CFG_MAX_VELOCITY "Z") / 60;
+    velocity[0] = try_get_float(CFG_MAX_VELOCITY "X") / 60;
+    velocity[1] = try_get_float(CFG_MAX_VELOCITY "Y") / 60;
+    velocity[2] = try_get_float(CFG_MAX_VELOCITY "Z") / 60;
 
-    double maxAcceleration[NUM_COORDS];// = {50.0, 50.0, 50.0};
-    maxAcceleration[0] = try_get_float(CFG_MAX_ACCELERATION "X");
-    maxAcceleration[1] = try_get_float(CFG_MAX_ACCELERATION "Y");
-    maxAcceleration[2] = try_get_float(CFG_MAX_ACCELERATION "Z");
+    acceleration[0] = try_get_float(CFG_MAX_ACCELERATION "X");
+    acceleration[1] = try_get_float(CFG_MAX_ACCELERATION "Y");
+    acceleration[2] = try_get_float(CFG_MAX_ACCELERATION "Z");
 
     double voltage[NUM_COORDS]; // = {0.7, 0.7, 0.7};
     voltage[0] = try_get_float(CFG_MAX_VOLTAGE "X");
@@ -262,10 +383,11 @@ void CRemoteDevice::init()
     double feed = 10.0;
     double stepSize[NUM_COORDS] = {1.0/scale[0], 1.0/scale[1], 1.0/scale[2]};
 
-    set_velocity_and_acceleration(maxVelocity, maxAcceleration);
+    set_velocity_and_acceleration(velocity, acceleration);
     set_feed(feed);
     set_step_size(stepSize);
     set_voltage(voltage);
+    set_fract();
 }
 
 //============================================================
@@ -291,9 +413,9 @@ int CRemoteDevice::get_current_line()
 }
 
 //============================================================
-const double* CRemoteDevice::get_current_coords()
+const Coords* CRemoteDevice::get_current_coords()
 {
-    return currentCoords;
+    return &currentCoords;
 }
 
 double CRemoteDevice::get_min_step()
@@ -311,14 +433,15 @@ int CRemoteDevice::queue_size()
 //============================================================
 bool CRemoteDevice::process_packet(char *data, int size)
 {
+    Q_UNUSED(size)
     switch(*data)
     {
     case DeviceCommand_SERVICE_COORDS:
     {
         PacketServiceCoords *packet = (PacketServiceCoords*) data;
         for(int i = 0; i < NUM_COORDS; ++i)
-            currentCoords[i] = packet->coords[i] / scale[i];
-        emit coords_changed(currentCoords[0], currentCoords[1], currentCoords[2]);
+            currentCoords.r[i] = packet->coords[i] / scale[i];
+        emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]);
         //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
         return true;
     }
