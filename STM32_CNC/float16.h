@@ -1,13 +1,13 @@
 #pragma once
 
 //программные числа с плавающей точкой, заточенные под быструю работу без всяких проверок
-
+#pragma pack(push, 1)
 struct float16
 {
 	short mantis;
 	short exponent;
 
-	float16(void)
+	float16()
 	{
 		//mantis = 0;
 		//exponent = 0;
@@ -152,42 +152,51 @@ struct float16
 		return float16(_mantis, _exponent);
 	}
 	
+	float16& operator += (float16 value)
+	{
+		*this = *this + value;
+		return *this;
+	}
+	
+	float16& operator -= (float16 value)
+	{
+		*this = *this - value;
+		return *this;
+	}
+	
 	bool operator < (float16 value) const
 	{
-		if (mantis < 0)
+		if (mantis > 0)
 		{
-			if(value.mantis >= 0) //-1 < +1
-				return true;
-			
-			//if(value.mantis == 0) //-1 < 0*10^5
-			//	return false;
-			
-			if(exponent > value.exponent) // -100 < -1
-				return true;
-				
-			if(exponent < value.exponent) // -1 < -100
+			if(value.mantis <= 0) //1 < -1
 				return false;
 			
-			if(mantis < value.mantis) //-2 < -1
+			if(exponent > value.exponent) // 100 < 1
+				return false;
+				
+			if(exponent < value.exponent) // 1 < 100
+				return true;
+			
+			if(mantis < value.mantis) // 1 < 2
 				return true;
 				
 			return false;
 		}
-		else 
+		else //mantis <= 0
 		{
-			if(value.mantis < 0)         //1 < -1
-				return false;
+			if(0 <= value.mantis)         //0 < 0
+				return (mantis < value.mantis);
 			
 			if(mantis == 0)              //0 < 1
-				return (value.mantis > 0);
+				return (0 < value.mantis);
 				
-			if(exponent < value.exponent) // 1 < 10
-				return true;
-				
-			if(exponent > value.exponent) // 10 < 1
+			if(exponent < value.exponent) // -1 < -10
 				return false;
 				
-			if(mantis < value.mantis) //1 < 2
+			if(exponent > value.exponent) // -10 < -1
+				return true;
+				
+			if(mantis < value.mantis) //-2 < -1
 				return true;
 				
 			return false;
@@ -199,10 +208,14 @@ struct float16
 		return value < *this;
 	}
 	
-	float16& operator += (float16 value)
+	bool operator <= (float16 value) const
 	{
-		*this = *this + value;
-		return *this;
+		return !(value > *this);
+	}
+	
+	bool operator >= (float16 value) const
+	{
+		return !(value < *this);
 	}
 	
 	float16 operator << (int i) const
@@ -246,6 +259,7 @@ float16 sqrt(float16 value)
 	_mantis = res>>1u;
 	return float16(_mantis, _exponent);
 }
+#pragma pack(pop)
 
 float16 pow2(float16 value)
 {

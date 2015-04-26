@@ -8,7 +8,6 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_MOVE = 1,         //in
 	DeviceCommand_WAIT,             //in
 	DeviceCommand_MOVE_MODE,        //in
-	DeviceCommand_SET_PLANE,        //in
 	DeviceCommand_PACKET_RECEIVED,  //out
 	DeviceCommand_PACKET_ERROR_CRC, //out
 	DeviceCommand_RESET_PACKET_NUMBER,//in
@@ -16,6 +15,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SET_BOUNDS,       //in
 	DeviceCommand_SET_VEL_ACC,      //in
 	DeviceCommand_SET_FEED,         //in
+	DeviceCommand_SET_FEED_MULT,    //in
 	DeviceCommand_SET_STEP_SIZE,    //in
 	DeviceCommand_SET_VOLTAGE,      //in
 	DeviceCommand_SERVICE_COORDS,   //out
@@ -26,15 +26,8 @@ enum MoveMode //:char режим движения/интерполяции
 {
 	MoveMode_FAST = 0,
 	MoveMode_LINEAR,
-	MoveMode_CW_ARC,
-	MoveMode_CCW_ARC,
 };
-enum MovePlane //:char плоскость интерполяции
-{
-	MovePlane_XY = 0,
-	MovePlane_ZX,
-	MovePlane_YZ,
-};
+
 //--------------------------------------------------------------------
 #pragma pack(push, 1)
 struct PacketCommon
@@ -47,13 +40,11 @@ struct PacketMove
 	DeviceCommand command;
 	PacketCount packetNumber;
 	int coord[NUM_COORDS];
-};
-struct PacketCircleMove
-{
-	DeviceCommand command;
-	PacketCount packetNumber;
-	int coord[NUM_COORDS];
-	int center[NUM_COORDS];
+	char refCoord;
+	float16 velocity;      //скорость подачи, мм/тик
+	float16 acceleration;  //ускорение, мм/тик^2
+	float16 accLength;     //расстояние, на котором можно набрать максимальную скорость
+	float16 invProj;       // полная длина / длина опорной координаты, мм/шаг
 };
 struct PacketWait
 {
@@ -67,12 +58,6 @@ struct PacketInterpolationMode
 	PacketCount packetNumber;
 	MoveMode mode;
 };
-struct PacketSetPlane
-{
-	DeviceCommand command;
-	PacketCount packetNumber;
-	MovePlane plane;
-};
 struct PacketSetBounds
 {
 	DeviceCommand command;
@@ -84,14 +69,20 @@ struct PacketSetVelAcc
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
-	int maxrVelocity[NUM_COORDS];
-	int maxrAcceleration[NUM_COORDS];
+	float16 maxVelocity[NUM_COORDS];
+	float16 maxAcceleration[NUM_COORDS];
 };
 struct PacketSetFeed
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
-	int rFeed;
+	float16 feedVel;
+};
+struct PacketSetFeedMult
+{
+	DeviceCommand command;
+	PacketCount packetNumber;
+	float16 feedMult;
 };
 struct PacketSetStepSize
 {
@@ -142,16 +133,16 @@ struct PacketServiceCommand  //сообщение с текущим исполн
 //здесь только входящие пакеты
 union PacketUnion
 {
-	PacketCommon common;
-	PacketMove move;
-	PacketCircleMove circleMove;
-	PacketWait wait;
-	PacketInterpolationMode interpolationMode;
-	PacketSetPlane setPlane;
-	PacketSetBounds setBounds;
-	PacketSetVelAcc setVelAcc;
-	PacketSetFeed setFeed;
-	PacketSetStepSize setStepSize;
+	char p0[sizeof(PacketCommon)];
+	char p1[sizeof(PacketMove)];
+	char p2[sizeof(PacketWait)];
+	char p3[sizeof(PacketInterpolationMode)];
+	char p4[sizeof(PacketSetBounds)];
+	char p5[sizeof(PacketSetVelAcc)];
+	char p6[sizeof(PacketSetFeed)];
+	char p7[sizeof(PacketSetFeedMult)];
+	char p8[sizeof(PacketSetStepSize)];
+	char p9[sizeof(PacketSetVoltage)];
 };
 
 //размер структуры выровнен на 4, чтобы быстро копировать int[]
