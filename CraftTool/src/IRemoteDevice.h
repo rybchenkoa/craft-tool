@@ -43,6 +43,7 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_SERVICE_COORDS,
     DeviceCommand_TEXT_MESSAGE,
     DeviceCommand_SERVICE_COMMAND,
+    DeviceCommand_SET_FRACT,
 };
 enum MoveMode:char //режим движения/интерполяции
 {
@@ -65,7 +66,7 @@ struct PacketMove
     char refCoord;
     float16 velocity;      //скорость перемещения
     float16 acceleration;  //ускорение, шагов/тик^2
-    float16 accLength;     //расстояние, на котором можно набрать максимальную скорость
+    int uLength;           //длина в микронах
     float16 invProj;       // длина опорной координаты / полную длину, шаг/мм
     int crc;
 };
@@ -140,6 +141,13 @@ struct PacketSetVoltage
     DeviceCommand command;
     PacketCount packetNumber;
     int voltage[NUM_COORDS];
+    int crc;
+};
+struct PacketFract
+{
+    char size;
+    DeviceCommand command;
+    PacketCount packetNumber;
     int crc;
 };
 

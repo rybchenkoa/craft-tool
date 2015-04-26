@@ -135,8 +135,10 @@ void CRemoteDevice::set_fract()
     if(fractSended)
         return;
 
-    //auto packet = new PacketMove;
-
+    auto packet = new PacketFract;
+    packet->command = DeviceCommand_SET_FRACT;
+    push_packet_common(packet);
+//log_message("send fract\n");
     fractSended = true;
 }
 
@@ -151,21 +153,8 @@ void CRemoteDevice::set_position(Coords pos)
     auto packet = new PacketMove;
     packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
 
-    bool needSend = false;
-
     for(int i = 0; i < NUM_COORDS; ++i)
-    {
         packet->coord[i] = int(pos.r[i] * scale[i]);    //переводим мм в шаги
-
-        if(lastPosition.r[i] != pos.r[i]) //определяем, было ли смещение
-            needSend = true;
-    }
-
-    if(!needSend)
-    {
-        delete packet;
-        return;
-    }
 
     Coords delta;
     int referenceLen = 0; //максимальное число шагов по координате
@@ -182,7 +171,14 @@ void CRemoteDevice::set_position(Coords pos)
             reference = i;
         }
     }
+
     lastPosition = pos;
+
+    if(referenceLen == 0)
+    {
+        delete packet;
+        return;
+    }
 
     double length = 0;
     for(int i = 0; i < NUM_COORDS; ++i)
@@ -196,6 +192,7 @@ void CRemoteDevice::set_position(Coords pos)
 
     packet->refCoord = reference;
     packet->invProj = float(length / (lengths[reference] * scale[reference]));
+    packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
 
     if(lastDelta.r[0] != INFINITY)
     {
@@ -242,9 +239,6 @@ void CRemoteDevice::set_position(Coords pos)
     }
     double accValue = length / timeMove; //максимальное ускорение в заданном направлении
     packet->acceleration = float(accValue / (secToTick * secToTick));
-
-    //v=a*t, s=a*t^2/2 =v^2/2a
-    packet->accLength = float(pow2(velValue) / (2 * accValue));
 
     //log_message("   GO TO %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2]);
     push_packet_common(packet);
