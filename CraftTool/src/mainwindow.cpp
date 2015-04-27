@@ -46,7 +46,8 @@ void MainWindow::set0()
 void MainWindow::update_state()
 {
     int currentLine = g_device->get_current_line();
-    ui->c_commandList->setCurrentRow(currentLine);
+    if(currentLine < ui->c_commandList->count())
+        ui->c_commandList->setCurrentRow(currentLine);
 }
 
 bool MainWindow::connect_to_device()
