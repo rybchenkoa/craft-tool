@@ -17,7 +17,7 @@ struct Track
 class Receiver
 {
 	public:
-	FIFOBuffer<MaxPacket, 6> queue; //28*32+8 = 904
+	FIFOBuffer<MaxPacket, 5> queue; //28*32+8 = 904
 	FIFOBuffer<Track, 6> tracks;
 	PacketCount packetNumber;
 	
@@ -354,21 +354,26 @@ public:
 	{
 		Track *track = &receiver.tracks.Front();
 __disable_irq();
-		if(track->segments == 0)
+		while(track->segments == 0)
 		{
 			//log_console("fract2 %d\n", receiver.tracks.Size());
 			receiver.tracks.Pop();
 			linearData.velocity = 0;
 			linearData.lastPeriod = 10000;
+			track = &receiver.tracks.Front();
 		}
-		track = &receiver.tracks.Front();
+
 		--track->segments;
 		track->uLength -= uLength;
-		//log_console("len %d, %d\n", track->segments, track->uLength);
+		if(track->uLength < 0)
+			log_console("err len %d, %d, %d\n", track->segments, track->uLength, uLength);
 __enable_irq();
 		
 		if(!brez_init(dest)) //если двигаться никуда не надо, то выйдет на первом такте
+		{
+			log_console("err brez %d, %d, %d\n", dest[0], dest[1], dest[2]);
 			return;
+		}
 		
 		linearData.refCoord = refCoord;
 		linearData.refDelta = linearData.delta[refCoord];     //находим опорную координату (максимальной длины)
@@ -599,6 +604,8 @@ void process_packet(char *common, int size)
 				++(receiver.packetNumber);
 				if(*common == DeviceCommand_SET_FRACT)
 				{
+					if(receiver.tracks.IsFull())
+						log_console("fract full %d\n", 1);
 					Track track;
 					track.segments = 0;
 					track.uLength = 0;
@@ -613,6 +620,7 @@ void process_packet(char *common, int size)
 						track.segments = 0;
 						track.uLength = 0;
 						receiver.tracks.Push(track);
+						log_console("no fract %d\n", 0);
 					}
 					Track *track = &receiver.tracks.Back();
 					++track->segments;
