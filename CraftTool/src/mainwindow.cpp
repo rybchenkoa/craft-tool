@@ -16,7 +16,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     connect(ui->menuOpenProgram, SIGNAL(triggered()), this, SLOT(menu_open_program()));
-    connect(ui->c_set0Button, SIGNAL(clicked()), this, SLOT(set0()));
     connect(&updateTimer, SIGNAL(timeout()), this, SLOT(update_state()));
 
     ui->c_3dView->installEventFilter(this);
@@ -36,11 +35,32 @@ void MainWindow::menu_open_program()
     run_file(str.toLocal8Bit().data());
 }
 
-void MainWindow::set0()
+void MainWindow::on_c_setHomeButton_clicked()
 {
     g_inter->runner.csd[0].pos0.x = g_device->currentCoords.r[0];
     g_inter->runner.csd[0].pos0.y = g_device->currentCoords.r[1];
     g_inter->runner.csd[0].pos0.z = g_device->currentCoords.r[2];
+}
+
+void MainWindow::on_c_setX0Button_clicked()
+{
+    g_inter->runner.csd[0].pos0.x = g_device->currentCoords.r[0];
+}
+
+void MainWindow::on_c_setY0Button_clicked()
+{
+    g_inter->runner.csd[0].pos0.y = g_device->currentCoords.r[1];
+}
+
+void MainWindow::on_c_setZ0Button_clicked()
+{
+    g_inter->runner.csd[0].pos0.z = g_device->currentCoords.r[2];
+}
+
+void MainWindow::on_c_toHomeButton_clicked()
+{
+    g_inter->runner.position = g_inter->runner.csd[0].pos0;
+    g_device->set_position(g_inter->runner.position);
 }
 
 void MainWindow::update_state()
@@ -48,6 +68,11 @@ void MainWindow::update_state()
     int currentLine = g_device->get_current_line();
     if(currentLine < ui->c_commandList->count())
         ui->c_commandList->setCurrentRow(currentLine);
+
+    Coords coords = g_device->currentCoords;
+    ui->c_lineEditX->setText(QString::number(coords.x));
+    ui->c_lineEditY->setText(QString::number(coords.y));
+    ui->c_lineEditZ->setText(QString::number(coords.z));
 }
 
 bool MainWindow::connect_to_device()
