@@ -36,10 +36,8 @@ struct PacketCommon
 	DeviceCommand command;
 	PacketCount packetNumber;
 };
-struct PacketMove
+struct PacketMove : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	int coord[NUM_COORDS];
 	char refCoord;
 	float16 velocity;      //скорость подачи, мм/тик
@@ -47,62 +45,42 @@ struct PacketMove
 	int uLength;           //длина в микронах
 	float16 invProj;       // полная длина / длина опорной координаты, мм/шаг
 };
-struct PacketWait
+struct PacketWait : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	int delay;
 };
-struct PacketInterpolationMode
+struct PacketInterpolationMode : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	MoveMode mode;
 };
-struct PacketSetBounds
+struct PacketSetBounds : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	int minCoord[NUM_COORDS];
 	int maxCoord[NUM_COORDS];
 };
-struct PacketSetVelAcc
+struct PacketSetVelAcc : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	float16 maxVelocity[NUM_COORDS];
 	float16 maxAcceleration[NUM_COORDS];
 };
-struct PacketSetFeed
+struct PacketSetFeed : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	float16 feedVel;
 };
-struct PacketSetFeedMult
+struct PacketSetFeedMult : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	float16 feedMult;
 };
-struct PacketSetStepSize
+struct PacketSetStepSize : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	float stepSize[NUM_COORDS];
 };
-struct PacketSetVoltage
+struct PacketSetVoltage : public PacketCommon
 {
-	DeviceCommand command;
-	PacketCount packetNumber;
 	int voltage[NUM_COORDS];
 };
-struct PacketFract
+struct PacketFract : public PacketCommon
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
-    int crc;
 };
 
 //принимаемые от мк пакеты-----------------------------------------------------
