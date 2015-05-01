@@ -1,3 +1,4 @@
+#include <fstream>
 #include "main.h"
 #include "ui_mainwindow.h"
 #include "log.h"
@@ -9,6 +10,9 @@ Logger g_logger;
 void Logger::log_console_string(QColor color, const char *value)
 {
     emit send_string(color, value);
+    std::ofstream f;
+    f.open("message.log", std::ios::app);
+    f << value;
 }
 
 void log_console(QColor color, const char *format, ...)
