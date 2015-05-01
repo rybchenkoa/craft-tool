@@ -35,6 +35,7 @@ public slots:
     void on_c_setX0Button_clicked();
     void on_c_setY0Button_clicked();
     void on_c_setZ0Button_clicked();
+    void on_c_feedSlider_valueChanged(int value);
 };
 
 #endif // MAINWINDOW_H

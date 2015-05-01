@@ -19,6 +19,7 @@ CRemoteDevice::CRemoteDevice()
     missedHalfSend = 0;
     pushLine = -1;
     workLine = -1;
+    lastQueue = -1;
 
     for(int i = 0; i < NUM_COORDS; ++i)
     {
@@ -102,14 +103,22 @@ void CRemoteDevice::push_packet_common(T *packet)
     AutoLockCS lock(queueCS);
 
     packet->size = sizeof(*packet);
-    packet->packetNumber = packetNumber++;
-    make_crc((char*)packet);
-    commandQueue.push((PacketCommon*)packet);
+    PacketQueued element;
+    element.line = pushLine;
+    element.data = packet;
+    commandQueue.push(element);
 
-    WorkPacket work;
-    work.line = pushLine;
-    work.packet = packet->packetNumber;
-    workQueue.push(work);
+    SetEvent(eventQueueAdd);
+}
+
+//============================================================
+template<typename T>
+void CRemoteDevice::push_packet_modal(T *packet)
+{
+    AutoLockCS lock(queueCS);
+
+    packet->size = sizeof(*packet);
+    commandQueueMod.push((PacketCommon*)packet);
 
     SetEvent(eventQueueAdd);
 }
@@ -303,6 +312,17 @@ void CRemoteDevice::set_feed(double feed)
 }
 
 //============================================================
+void CRemoteDevice::set_feed_multiplier(double multiplier)
+{
+    auto packet = new PacketSetFeedMult;
+    packet->command = DeviceCommand_SET_FEED_MULT;
+    if(multiplier < 1e-3)
+        multiplier = 1e-3; //защита от глюков
+    packet->feedMult = float16(float(multiplier));
+    push_packet_modal(packet);
+}
+
+//============================================================
 void CRemoteDevice::set_step_size(double stepSize[NUM_COORDS])
 {
     auto packet = new PacketSetStepSize;
@@ -331,7 +351,7 @@ void CRemoteDevice::reset_packet_queue()
 {
     auto packet = new PacketResetPacketNumber;
     packet->command = DeviceCommand_RESET_PACKET_NUMBER;
-    push_packet_common(packet);
+    push_packet_modal(packet);
 }
 
 //============================================================
@@ -424,6 +444,7 @@ int CRemoteDevice::queue_size()
     return commandQueue.size();
 }
 
+
 //============================================================
 bool CRemoteDevice::process_packet(char *data, int size)
 {
@@ -444,9 +465,9 @@ bool CRemoteDevice::process_packet(char *data, int size)
         PacketServiceCommand *packet = (PacketServiceCommand*) data; //находим строку, которая сейчас исполняется
         AutoLockCS lock(queueCS);
         while(workQueue.front().packet != packet->packetNumber) // это на случай неприхода предыдущего пакета
-            workQueue.pop();
+            workQueue.pop_front();
         workLine = workQueue.front().line;
-        workQueue.pop();
+        workQueue.pop_front();
         return true;
     }
     case DeviceCommand_TEXT_MESSAGE:
@@ -478,12 +499,29 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     {
     case DeviceCommand_PACKET_RECEIVED:
     {
+        log_message("packet received %d\n", ((PacketReceived*)data)->packetNumber);
         AutoLockCS lock(queueCS);
-        if(!commandQueue.empty() && commandQueue.front()->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
+        if(lastQueue == 0 &&
+           !commandQueue.empty() &&
+           commandQueue.front().data->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
         {
-            //printf("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
-            delete commandQueue.front();
+            log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
+            delete commandQueue.front().data;
             commandQueue.pop();
+            lastQueue = -1;
+            ++packetNumber;
+            SetEvent(eventPacketReceived);
+            return true;
+        }
+        else if(lastQueue == 1 &&
+                !commandQueueMod.empty() &&
+                commandQueueMod.front()->packetNumber == ((PacketReceived*)data)->packetNumber)
+        {
+            log_message("suc receive number2 %d\n", ((PacketReceived*)data)->packetNumber);
+            delete commandQueueMod.front();
+            commandQueueMod.pop();
+            lastQueue = -1;
+            ++packetNumber;
             SetEvent(eventPacketReceived);
             return true;
         }
@@ -494,6 +532,48 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
             return false;
         }
     }
+    case DeviceCommand_PACKET_REPEAT:
+    {
+        log_warning("packet repeat %d\n", ((PacketReceived*)data)->packetNumber);
+        AutoLockCS lock(queueCS);
+        if(lastQueue == 0 &&
+           !commandQueue.empty() &&
+           commandQueue.front().data->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
+        {
+            log_warning("suc repeat number %d\n", ((PacketReceived*)data)->packetNumber);
+            delete commandQueue.front().data;
+            commandQueue.pop();
+            lastQueue = -1;
+            ++packetNumber;
+            SetEvent(eventPacketReceived);
+            return true;
+        }
+        else if(lastQueue == 1 &&
+                !commandQueueMod.empty() &&
+                commandQueueMod.front()->packetNumber == ((PacketReceived*)data)->packetNumber)
+        {
+            log_warning("suc repeat number2 %d\n", ((PacketReceived*)data)->packetNumber);
+            delete commandQueueMod.front();
+            commandQueueMod.pop();
+            lastQueue = -1;
+            ++packetNumber;
+            SetEvent(eventPacketReceived);
+            return true;
+        }
+        else //устройство приняло какой-то непонятный пакет
+        {
+            log_warning("err repeat number %d\n", ((PacketReceived*)data)->packetNumber);
+            SetEvent(eventPacketReceived);
+            return false;
+        }
+    }
+    case DeviceCommand_QUEUE_FULL:
+    {
+        AutoLockCS lock(queueCS);
+        if(lastQueue == 0)
+            workQueue.pop_back();
+        lastQueue = -1;
+    }
     case DeviceCommand_PACKET_ERROR_CRC:
         missedHalfSend++;
         SetEvent(eventPacketReceived);
@@ -503,8 +583,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     {
         AutoLockCS lock(queueCS);
         log_warning("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
-        if(!commandQueue.empty())
-            log_warning("nado %d\n", commandQueue.front()->packetNumber);
+        log_warning("nado %d\n", packetNumber);
         return false;
     }
 
@@ -513,6 +592,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     }
     return false;
 }
+
 
 //============================================================
 DWORD WINAPI CRemoteDevice::send_thread(void *__this)
@@ -525,18 +605,44 @@ DWORD WINAPI CRemoteDevice::send_thread(void *__this)
         while(true)
         {
             EnterCriticalSection(&_this->queueCS);
-            if(_this->commandQueue.empty())
+            int queue = -1;
+            if(_this->lastQueue == 0 && !_this->commandQueue.empty())
+                queue = 0;
+            else if(_this->lastQueue == 1 && !_this->commandQueueMod.empty())
+                queue = 1;
+            else if(!_this->commandQueueMod.empty())
+                    queue = 1;
+            else if(!_this->commandQueue.empty())
+                    queue = 0;
+
+            if(queue == -1)
             {
                 LeaveCriticalSection(&_this->queueCS);
                 break;
             }
             else
             {
-                auto packet = _this->commandQueue.front();
+                PacketCommon *packet;
+                if(queue == 0)
+                    packet = _this->commandQueue.front().data;
+                else if(queue == 1)
+                    packet = _this->commandQueueMod.front();
+
+                packet->packetNumber = _this->packetNumber;
+                _this->make_crc((char*)packet);
+
+                if(queue == 0)
+                {
+                    WorkPacket work;
+                    work.line = _this->commandQueue.front().line;
+                    work.packet = packet->packetNumber;
+                    _this->workQueue.push_back(work);
+                }
+                _this->lastQueue = queue;
                 _this->comPort->send_data(&packet->size + 1, packet->size - 1);
+                log_message("send%d number %d\n", queue, packet->packetNumber);
                 LeaveCriticalSection(&_this->queueCS);
-                //log_message("send number %d\n", packet->packetNumber);
-                //printf("send number %d\n", packet->packetNumber);
+
             }
             DWORD result = WaitForSingleObject(_this->eventPacketReceived, 100);
             if(result == WAIT_TIMEOUT)

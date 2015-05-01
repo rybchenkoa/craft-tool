@@ -30,10 +30,12 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_MOVE = 1,
     DeviceCommand_WAIT,
     DeviceCommand_MOVE_MODE,
-    DeviceCommand_PACKET_RECEIVED,
-    DeviceCommand_PACKET_ERROR_CRC,
-    DeviceCommand_RESET_PACKET_NUMBER,
-    DeviceCommand_ERROR_PACKET_NUMBER,
+    DeviceCommand_PACKET_RECEIVED,     //пакет принят
+    DeviceCommand_PACKET_REPEAT,       //пакет повторился
+    DeviceCommand_QUEUE_FULL,          //очередь заполнена
+    DeviceCommand_PACKET_ERROR_CRC,    //пакет пришёл побитым
+    DeviceCommand_RESET_PACKET_NUMBER, //сбросить очередь пакетов
+    DeviceCommand_ERROR_PACKET_NUMBER, //пришёл пакет с неправильным номером
     DeviceCommand_SET_BOUNDS,
     DeviceCommand_SET_VEL_ACC,
     DeviceCommand_SET_FEED, //выпилить?
@@ -57,11 +59,8 @@ struct PacketCommon
     DeviceCommand command;
     PacketCount packetNumber;
 };
-struct PacketMove
+struct PacketMove : public PacketCommon
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     int coord[NUM_COORDS];
     char refCoord;
     float16 velocity;      //скорость перемещения
@@ -70,84 +69,54 @@ struct PacketMove
     float16 invProj;       // длина опорной координаты / полную длину, шаг/мм
     int crc;
 };
-struct PacketWait
+struct PacketWait : public PacketCommon
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     int delay;
     int crc;
 };
-struct PacketInterpolationMode
+struct PacketInterpolationMode : public PacketCommon
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     MoveMode mode;
     int crc;
 };
-struct PacketResetPacketNumber //сообщение о том, что пакет принят
+struct PacketResetPacketNumber : public PacketCommon //сообщение о том, что пакет принят
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     int crc;
 };
-struct PacketSetBounds //задать максимальные координаты
+struct PacketSetBounds : public PacketCommon //задать максимальные координаты
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     int minCoord[NUM_COORDS];
     int maxCoord[NUM_COORDS];
     int crc;
 };
-struct PacketSetVelAcc //задать ускорение и скорость
+struct PacketSetVelAcc : public PacketCommon //задать ускорение и скорость
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     float16 maxVelocity[NUM_COORDS];
     float16 maxAcceleration[NUM_COORDS];
     int crc;
 };
-struct PacketSetFeed //задать подачу
+struct PacketSetFeed : public PacketCommon //задать подачу
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     float16 feed;
     int crc;
 };
-struct PacketSetFeedMult //задать подачу
+struct PacketSetFeedMult : public PacketCommon //задать подачу
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     float16 feedMult;
     int crc;
 };
-struct PacketSetStepSize
+struct PacketSetStepSize : public PacketCommon
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     float stepSize[NUM_COORDS];
     int crc;
 };
-struct PacketSetVoltage
+struct PacketSetVoltage : public PacketCommon
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     int voltage[NUM_COORDS];
     int crc;
 };
-struct PacketFract
+struct PacketFract : public PacketCommon
 {
-    char size;
-    DeviceCommand command;
-    PacketCount packetNumber;
     int crc;
 };
 
@@ -195,6 +164,7 @@ public:
     virtual void set_bounds(Coords rMin, Coords rMax)=0; //границы координат
     virtual void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS])=0; //задать скорость и ускорение
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
+    virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
     virtual void set_step_size(double stepSize[NUM_COORDS])=0; //длина одного шага
 
     virtual int  queue_size() = 0; //длина очереди команд
@@ -221,6 +191,7 @@ public:
     void set_bounds(Coords rMin, Coords rMax) override;
     void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS]) override;
     void set_feed(double feed) override;
+    void set_feed_multiplier(double multiplier) override;
     void set_step_size(double stepSize[NUM_COORDS]) override;
 
     void set_voltage(double voltage[NUM_COORDS]);
@@ -265,10 +236,21 @@ protected:
     template<typename T>
     void push_packet_common(T *packet);
 
+    template<typename T>
+    void push_packet_modal(T *packet);
+
     static DWORD WINAPI send_thread(void* _this);
     HANDLE hThread;
 
-    std::queue<PacketCommon*> commandQueue;
+    struct PacketQueued
+    {
+        int line;
+        PacketCommon* data;
+    };
+
+    std::queue<PacketQueued> commandQueue;    //очередь команд программы
+    std::queue<PacketCommon*> commandQueueMod; //очередь управляющих команд
+    int lastQueue;                             //номер очереди, из которой уже попытались послать пакет
     CRITICAL_SECTION queueCS;     //защита очереди от порчи
     HANDLE eventQueueAdd;         //в очередь добавлен пакет
     HANDLE eventPacketReceived;   //сообщение о принятии пакета
@@ -281,7 +263,7 @@ protected:
         PacketCount packet;
         int line;
     };
-    std::queue<WorkPacket> workQueue; //посланные устройству пакеты, которые ещё не исполнены
+    std::deque<WorkPacket> workQueue; //посланные устройству пакеты, которые ещё не исполнены
 
     unsigned crc32Table[256];
 

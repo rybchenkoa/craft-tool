@@ -63,6 +63,11 @@ void MainWindow::on_c_toHomeButton_clicked()
     g_device->set_position(g_inter->runner.position);
 }
 
+void MainWindow::on_c_feedSlider_valueChanged(int value)
+{
+    g_device->set_feed_multiplier(value / 100.0);
+}
+
 void MainWindow::update_state()
 {
     int currentLine = g_device->get_current_line();
