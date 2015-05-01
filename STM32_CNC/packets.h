@@ -9,6 +9,8 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_WAIT,             //in
 	DeviceCommand_MOVE_MODE,        //in
 	DeviceCommand_PACKET_RECEIVED,  //out
+	DeviceCommand_PACKET_REPEAT,    //out
+	DeviceCommand_QUEUE_FULL,       //out
 	DeviceCommand_PACKET_ERROR_CRC, //out
 	DeviceCommand_RESET_PACKET_NUMBER,//in
 	DeviceCommand_ERROR_PACKET_NUMBER,//out

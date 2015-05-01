@@ -54,6 +54,28 @@ void send_packet_received(int number)
 
 
 //=========================================================================================
+void send_packet_repeat(int number)
+{
+	PacketReceived packet;
+	packet.command = DeviceCommand_PACKET_REPEAT;
+	packet.packetNumber = number;
+	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
+	send_packet((char*)&packet, sizeof(packet));
+}
+
+
+//=========================================================================================
+void send_packet_queue_full(int number)
+{
+	PacketReceived packet;
+	packet.command = DeviceCommand_QUEUE_FULL;
+	packet.packetNumber = number;
+	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
+	send_packet((char*)&packet, sizeof(packet));
+}
+
+
+//=========================================================================================
 void send_packet_error_number(int number)
 {
 	PacketErrorPacketNumber packet;
@@ -123,7 +145,7 @@ void on_packet_received(char * __restrict packet, int size)
 		PacketCommon* common = (PacketCommon*)packet;
 		if (common->packetNumber == receiver.packetNumber) //до хоста не дошёл ответ о принятом пакете
 		{
-			send_packet_received(receiver.packetNumber);                       //шлём ещё раз
+			send_packet_repeat(receiver.packetNumber);                       //шлём ещё раз
 			
 			//log_console("\nBYLO %d %d\n", common->packetNumber, receiver.packetNumber);
 		}
@@ -326,13 +348,20 @@ public:
 			linearData.velocity -= linearData.acceleration * float16(linearData.lastPeriod);
 			linearData.state = 1;
 		}
+		else if(linearData.velocity > currentFeed)
+		{
+			linearData.velocity -= linearData.acceleration * float16(linearData.lastPeriod);
+			linearData.state = 2;
+		}
 		else if(linearData.velocity < currentFeed)
 		{
 			linearData.velocity += linearData.acceleration * float16(linearData.lastPeriod);
-			linearData.state = 2;
+			if(linearData.velocity > currentFeed)
+				linearData.velocity = currentFeed;
+			linearData.state = 3;
 		}
 		else
-			linearData.state = 3;
+			linearData.state = 4;
 			
 		if(linearData.velocity.mantis <= 0)
 		{
@@ -359,7 +388,7 @@ __disable_irq();
 			//log_console("fract2 %d\n", receiver.tracks.Size());
 			receiver.tracks.Pop();
 			linearData.velocity = 0;
-			linearData.lastPeriod = 10000;
+			linearData.lastPeriod = 1000;
 			track = &receiver.tracks.Front();
 		}
 
@@ -594,7 +623,8 @@ void process_packet(char *common, int size)
 		{
 			PacketSetFeedMult *packet = (PacketSetFeedMult*)common;
 			mover.feedMult = packet->feedMult;
-			log_console("feed %d\n", int(mover.feedMult));
+			log_console("feedMult %d\n", int(mover.feedMult.exponent));
+			send_packet_received(++receiver.packetNumber);
 			break;
 		}
 		default:
@@ -634,6 +664,8 @@ void process_packet(char *common, int size)
 					//log_console("\nGOTOV %d %d\n", common->packetNumber, receiver.packetNumber);
 				}
 			}
+			else
+				send_packet_queue_full(((PacketCommon*)common)->packetNumber);
 		}
 	}
 }
