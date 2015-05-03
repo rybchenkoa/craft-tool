@@ -118,9 +118,14 @@ void configure_GPIO()
 void run_PWM_timers()
 {
 	TIM1->CR1 |= TIM_CR1_CEN; //запускаем таймеры
+	volatile int p;
+	for(p = 0; p < 10; ++p);
 	TIM2->CR1 |= TIM_CR1_CEN;
+	for(p = 0; p < 10; ++p);
 	TIM3->CR1 |= TIM_CR1_CEN;
+	for(p = 0; p < 10; ++p);
 	TIM15->CR1 |= TIM_CR1_CEN;
+	for(p = 0; p < 10; ++p);
 	TIM16->CR1 |= TIM_CR1_CEN;	
 }
 
