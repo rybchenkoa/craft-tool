@@ -413,7 +413,12 @@ __enable_irq();
 		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
 		
 		for(int i=0; i<NUM_COORDS; ++i)
-		  voltage[i] = 256;
+		{
+			if(linearData.delta[i] == 0)
+				voltage[i] = 32;
+			else
+				voltage[i] = 256;
+		}
 			
 		handler = &Mover::linear;
 	}
