@@ -472,7 +472,7 @@ bool CRemoteDevice::process_packet(char *data, int size)
             workQueue.pop_front();
         }
         else
-            log_warning("current line queue is empty", data);
+            log_warning("current line queue is empty\n", data);
         return true;
     }
     case DeviceCommand_TEXT_MESSAGE:
