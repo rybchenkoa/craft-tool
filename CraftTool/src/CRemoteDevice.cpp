@@ -215,7 +215,7 @@ void CRemoteDevice::set_position(Coords pos)
         }
         double cosA = scalar / sqrt(scalar1 * scalar2);
 
-        if(cosA < 1 - 0.001) //если направление движения сильно изменилось
+        if(cosA < 1 - 0.01) //если направление движения сильно изменилось
             set_fract();
     }
 
@@ -464,10 +464,15 @@ bool CRemoteDevice::process_packet(char *data, int size)
     {
         PacketServiceCommand *packet = (PacketServiceCommand*) data; //находим строку, которая сейчас исполняется
         AutoLockCS lock(queueCS);
-        while(workQueue.front().packet != packet->packetNumber) // это на случай неприхода предыдущего пакета
+        while(!workQueue.empty() && workQueue.front().packet != packet->packetNumber) // это на случай неприхода предыдущего пакета
             workQueue.pop_front();
-        workLine = workQueue.front().line;
-        workQueue.pop_front();
+        if(!workQueue.empty())
+        {
+            workLine = workQueue.front().line;
+            workQueue.pop_front();
+        }
+        else
+            log_warning("current line queue is empty", data);
         return true;
     }
     case DeviceCommand_TEXT_MESSAGE:
@@ -499,13 +504,13 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     {
     case DeviceCommand_PACKET_RECEIVED:
     {
-        log_message("packet received %d\n", ((PacketReceived*)data)->packetNumber);
+        //log_message("packet received %d\n", ((PacketReceived*)data)->packetNumber);
         AutoLockCS lock(queueCS);
         if(lastQueue == 0 &&
            !commandQueue.empty() &&
            commandQueue.front().data->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
         {
-            log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
+            //log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
             delete commandQueue.front().data;
             commandQueue.pop();
             lastQueue = -1;
@@ -517,7 +522,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
                 !commandQueueMod.empty() &&
                 commandQueueMod.front()->packetNumber == ((PacketReceived*)data)->packetNumber)
         {
-            log_message("suc receive number2 %d\n", ((PacketReceived*)data)->packetNumber);
+            //log_message("suc receive number2 %d\n", ((PacketReceived*)data)->packetNumber);
             delete commandQueueMod.front();
             commandQueueMod.pop();
             lastQueue = -1;
@@ -534,13 +539,13 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     }
     case DeviceCommand_PACKET_REPEAT:
     {
-        log_warning("packet repeat %d\n", ((PacketReceived*)data)->packetNumber);
+        //log_warning("packet repeat %d\n", ((PacketReceived*)data)->packetNumber);
         AutoLockCS lock(queueCS);
         if(lastQueue == 0 &&
            !commandQueue.empty() &&
            commandQueue.front().data->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
         {
-            log_warning("suc repeat number %d\n", ((PacketReceived*)data)->packetNumber);
+            //log_warning("suc repeat number %d\n", ((PacketReceived*)data)->packetNumber);
             delete commandQueue.front().data;
             commandQueue.pop();
             lastQueue = -1;
@@ -552,7 +557,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
                 !commandQueueMod.empty() &&
                 commandQueueMod.front()->packetNumber == ((PacketReceived*)data)->packetNumber)
         {
-            log_warning("suc repeat number2 %d\n", ((PacketReceived*)data)->packetNumber);
+            //log_warning("suc repeat number2 %d\n", ((PacketReceived*)data)->packetNumber);
             delete commandQueueMod.front();
             commandQueueMod.pop();
             lastQueue = -1;
@@ -562,7 +567,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
         }
         else //устройство приняло какой-то непонятный пакет
         {
-            log_warning("err repeat number %d\n", ((PacketReceived*)data)->packetNumber);
+            //log_warning("err repeat number %d\n", ((PacketReceived*)data)->packetNumber);
             SetEvent(eventPacketReceived);
             return false;
         }
@@ -640,7 +645,7 @@ DWORD WINAPI CRemoteDevice::send_thread(void *__this)
                 }
                 _this->lastQueue = queue;
                 _this->comPort->send_data(&packet->size + 1, packet->size - 1);
-                log_message("send%d number %d\n", queue, packet->packetNumber);
+                //log_message("send%d number %d\n", queue, packet->packetNumber);
                 LeaveCriticalSection(&_this->queueCS);
 
             }
