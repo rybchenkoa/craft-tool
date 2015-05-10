@@ -831,22 +831,19 @@ Coords GCodeInterpreter::to_mm(Coords value)
 //====================================================================================================
 void GCodeInterpreter::move(int coordNumber, coord add)
 {
-    if(runner.motionMode != MotionMode_FAST) //медленное оно из-за расчёта ускорения
-    {
-        runner.motionMode = MotionMode_FAST;
-        remoteDevice->set_move_mode(MoveMode_FAST);
-    }
-
-    //если только подключились к устройству, то координаты могут быть очень разными
-    for(int i = 0; i < NUM_COORDS; ++i)
-        if(fabs(remoteDevice->get_current_coords()->r[i] - runner.position.r[i]) > fabs(add)*2)
-            runner.position.r[i] = remoteDevice->get_current_coords()->r[i];
-
-    //if(fabs(remoteDevice->get_current_coords()[coordNumber] - runner.position.r[coordNumber]) > fabs(add))
-    //    return;
-
+    //во время исполнения ничего не двигаем
     if(remoteDevice->queue_size() > 0)
         return;
+
+    runner.motionMode = MotionMode_FAST;
+    remoteDevice->set_move_mode(MoveMode_FAST);
+
+    //если только подключились к устройству, то координаты могут быть очень разными
+    if(!coordsInited)
+    {
+        runner.position = *remoteDevice->get_current_coords();
+        coordsInited = true;
+    }
 
     runner.position.r[coordNumber] += add;
     remoteDevice->set_position(runner.position);
@@ -1035,4 +1032,5 @@ void GCodeInterpreter::init()
     runner.position.z = 0;
     runner.units = UnitSystem_METRIC;
     memset(&runner.csd, 0, sizeof(runner.csd));
+    coordsInited = false;
 }

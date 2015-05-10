@@ -258,6 +258,7 @@ public:
     Reader reader;            //парсер команд
     FrameParams readedFrame;  //прочитанные команды одной строки
     IRemoteDevice *remoteDevice; //устройство, которое исполняет команды
+    bool coordsInited;        //при начальной инициализации выставляем интерпретатору координаты устройства
 
     void init();                            //инициализация для нового файла
     bool read_file(const char *name);             //запоминает строки текстового файла
