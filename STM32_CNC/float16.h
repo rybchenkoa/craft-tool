@@ -164,6 +164,12 @@ struct float16
 		return *this;
 	}
 	
+	float16& operator *= (float16 value)
+	{
+		*this = *this * value;
+		return *this;
+	}
+	
 	bool operator < (float16 value) const
 	{
 		if (mantis > 0)

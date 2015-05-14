@@ -2,6 +2,7 @@
 #include "stdint.h"
 
 #define DIV_BITS_COUNT  2
+//#define USE_ADC_FEED                    //регулировка подачи напряжением
 const int DIV_BITS  =   DIV_BITS_COUNT; //число битов, отведённых на "дробную часть" шага
 const int SUB_STEPS =   1<<DIV_BITS;    //число микрошагов в одном шаге
 

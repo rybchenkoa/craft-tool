@@ -331,12 +331,13 @@ public:
 			return END;
 
 		float16 length = linearData.invProj * float16(iabs(coord[reference] - to[reference]));
-		float16 l2 = length;
 		length += (float16(1) / float16(1000)) * float16(receiver.tracks.Front().uLength);
-		//log_console("l %d %d\n", l2.exponent, length.exponent);
+
 		// 1/linearData.velocity = тик/мм
 		float16 currentFeed = linearData.feedVelocity * feedMult;
-
+#ifdef USE_ADC_FEED
+		currentFeed *= (float16(int(adc.value())) >> 12); //на максимальном напряжении   *= 0.99999
+#endif
 		if(needStop)
 		{
 			linearData.velocity -= linearData.acceleration * float16(linearData.lastPeriod);

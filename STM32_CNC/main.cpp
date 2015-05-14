@@ -199,7 +199,7 @@ int main()
 			timeToSend = timer.get_ms(100);
 			//log_console("dest %d %d %d, sc %d\n", mover.to[0], mover.to[1], mover.to[2], int(float16(1)/mover.circleData.scale2));
 			//log_console("stepT %d, jitter %d, st %d\n", stepTime, busyTime, mover.linearData.state);
-			log_console("adc %d\n", adc.value());
+			//log_console("adc %d\n", adc.value());
 			send_packet_service_coords(mover.coord);
 		}
 	}
