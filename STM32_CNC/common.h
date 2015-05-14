@@ -1,5 +1,4 @@
 #pragma once
-
 #include "stdint.h"
 
 #define DIV_BITS_COUNT  2
@@ -21,11 +20,11 @@ static const int PWM_PRESCALER = 1;//APB_FREQ / (PWM_FREQ * (PWM_SIZE+1))-1;
 static const uint32_t maxDelay = 1<<30;
 
 const int NUM_COORDS = 3;
-
+//#define log_console(format, ...) {}
 
 #define log_console(format, ...) \
 {\
-	char buffer[64];\
+	char buffer[128];\
 	buffer[0] = DeviceCommand_TEXT_MESSAGE;\
 	int count = sprintf(buffer+1, format, __VA_ARGS__);\
 	*(int*)(buffer + count + 2) = calc_crc(buffer, count + 2);\

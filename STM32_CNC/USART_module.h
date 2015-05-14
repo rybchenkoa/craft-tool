@@ -28,14 +28,12 @@ class Usart
 	};
 	
 	char receiveState;
-	#define USART_NORM (USART_CR1_UE | USART_CR1_RE | USART_CR1_TE | USART_CR1_RXNEIE)
-	#define USART_SEND (USART_CR1_UE | USART_CR1_RE | USART_CR1_TE | USART_CR1_RXNEIE | USART_CR1_TXEIE)
 //----------------------------------------------------------
 	void init()
 	{
 		RCC->APB2ENR |= RCC_APB2ENR_AFIOEN | RCC_APB2ENR_USART1EN; // включаем тактирование usart
 		
-		USART1->BRR = 96;//48;//*/208;//2500;//417;//94;// // 24 000 000/115200
+		USART1->BRR = 48;//208;// 24 000 000/115200
 		
 		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE | 	// usart on, rx on, tx on, 
 									USART_CR1_RXNEIE; 														//прерывание: байт принят
