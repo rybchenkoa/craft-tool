@@ -3,6 +3,7 @@
 #include "gpio_use.h"
 #include "fifo.h"
 #include "USART_module.h"
+#include "adc.h"
 #include "stdio.h"
 #include "string.h"
 #include "sys_timer.h"
@@ -97,7 +98,7 @@ void init()
 	
 	init_motors(); //уже использует ШИМ
 	
-
+	adc.init();
 }
 
 //---------------------------------------
@@ -197,7 +198,8 @@ int main()
 			led.flip();
 			timeToSend = timer.get_ms(100);
 			//log_console("dest %d %d %d, sc %d\n", mover.to[0], mover.to[1], mover.to[2], int(float16(1)/mover.circleData.scale2));
-			log_console("stepT %d, jitter %d, st %d\n", stepTime, busyTime, mover.linearData.state);
+			//log_console("stepT %d, jitter %d, st %d\n", stepTime, busyTime, mover.linearData.state);
+			log_console("adc %d\n", adc.value());
 			send_packet_service_coords(mover.coord);
 		}
 	}
