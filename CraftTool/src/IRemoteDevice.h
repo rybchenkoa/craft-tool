@@ -41,7 +41,6 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_SET_FEED, //выпилить?
     DeviceCommand_SET_FEED_MULT,
     DeviceCommand_SET_STEP_SIZE,
-    DeviceCommand_SET_VOLTAGE,
     DeviceCommand_SERVICE_COORDS,
     DeviceCommand_TEXT_MESSAGE,
     DeviceCommand_SERVICE_COMMAND,
@@ -108,11 +107,6 @@ struct PacketSetFeedMult : public PacketCommon //задать подачу
 struct PacketSetStepSize : public PacketCommon
 {
     float stepSize[NUM_COORDS];
-    int crc;
-};
-struct PacketSetVoltage : public PacketCommon
-{
-    int voltage[NUM_COORDS];
     int crc;
 };
 struct PacketFract : public PacketCommon
@@ -194,7 +188,6 @@ public:
     void set_feed_multiplier(double multiplier) override;
     void set_step_size(double stepSize[NUM_COORDS]) override;
 
-    void set_voltage(double voltage[NUM_COORDS]);
     void set_fract();
 
     int  queue_size() override;
@@ -216,7 +209,6 @@ public:
     double scale[NUM_COORDS];          //шагов на миллиметр
     double minStep;                    //макс. точность устройства
     double secToTick;                  //тиков таймера в одной секунде
-    int subSteps;                      //число делений шага на 2
     Coords lastPosition;               //последняя переданная позиция
     Coords lastDelta;                  //последний вектор сдвига
     double feed;                       //подача

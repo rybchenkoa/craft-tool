@@ -32,7 +32,6 @@ CRemoteDevice::CRemoteDevice()
     }
     minStep = INFINITY;
     secToTick = INFINITY;
-    subSteps = 0;
     feed = INFINITY;
     moveMode = MoveMode_LINEAR;
     fractSended = false;
@@ -335,18 +334,6 @@ void CRemoteDevice::set_step_size(double stepSize[NUM_COORDS])
 }
 
 //============================================================
-void CRemoteDevice::set_voltage(double voltage[NUM_COORDS])
-{
-    auto packet = new PacketSetVoltage;
-    packet->command = DeviceCommand_SET_VOLTAGE;
-    for(int i = 0; i < NUM_COORDS; ++i)
-    {
-        packet->voltage[i] = int(voltage[i]*255);
-    }
-    push_packet_common(packet);
-}
-
-//============================================================
 void CRemoteDevice::reset_packet_queue()
 {
     auto packet = new PacketResetPacketNumber;
@@ -369,15 +356,14 @@ void CRemoteDevice::init()
     };
 
     secToTick = 1000000.0;
-    subSteps = 2;
     double stepsPerMm[NUM_COORDS];
     stepsPerMm[0] = try_get_float(CFG_STEPS_PER_MM "X");
     stepsPerMm[1] = try_get_float(CFG_STEPS_PER_MM "Y");
     stepsPerMm[2] = try_get_float(CFG_STEPS_PER_MM "Z");
 
-    scale[0] = stepsPerMm[0]*(1<<subSteps);
-    scale[1] = stepsPerMm[1]*(1<<subSteps);
-    scale[2] = stepsPerMm[2]*(1<<subSteps);
+    scale[0] = stepsPerMm[0];
+    scale[1] = stepsPerMm[1];
+    scale[2] = stepsPerMm[2];
 
     minStep = 1/std::max(scale[0], std::max(scale[1], scale[2]));
 
@@ -389,18 +375,12 @@ void CRemoteDevice::init()
     acceleration[1] = try_get_float(CFG_MAX_ACCELERATION "Y");
     acceleration[2] = try_get_float(CFG_MAX_ACCELERATION "Z");
 
-    double voltage[NUM_COORDS]; // = {0.7, 0.7, 0.7};
-    voltage[0] = try_get_float(CFG_MAX_VOLTAGE "X");
-    voltage[1] = try_get_float(CFG_MAX_VOLTAGE "Y");
-    voltage[2] = try_get_float(CFG_MAX_VOLTAGE "Z");
-
     double feed = 10.0;
     double stepSize[NUM_COORDS] = {1.0/scale[0], 1.0/scale[1], 1.0/scale[2]};
 
     set_velocity_and_acceleration(velocity, acceleration);
     set_feed(feed);
     set_step_size(stepSize);
-    set_voltage(voltage);
     set_fract();
 }
 
