@@ -113,7 +113,7 @@ struct float16
 
 		int mantVal = mant > 0 ? mant : -mant;
 		int pos = 17 - __clz(mantVal);
-		if(pos > 16)
+		if(pos < 0)
 			_mantis = mant << -pos;
 		else
 			_mantis = mant >> pos;
@@ -143,7 +143,7 @@ struct float16
 
 		int mantVal = mant > 0 ? mant : -mant;
 		int pos = 17 - __clz(mantVal);
-		if(pos > 16)
+		if(pos < 0)
 			_mantis = mant << -pos;
 		else
 			_mantis = mant >> pos;
