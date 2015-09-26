@@ -233,7 +233,6 @@ public:
 	MoveMode interpolation;
 	bool needStop;            //принудительная остановка
 	float16 feedMult;         //заданная из интерейса скорость движения
-	int voltage[NUM_COORDS];  //регулировка напряжения на больших оборотах и при простое
 	
 	//расчёт ускорения не совсем корректен
 	//при движении по кривой максимальное ускорение меняется из-за изменения проекции на оси
@@ -413,13 +412,10 @@ __enable_irq();
 		
 		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
 		
-		for(int i=0; i<NUM_COORDS; ++i)
-		{
-			if(linearData.delta[i] == 0)
-				voltage[i] = 32;
-			else
-				voltage[i] = 256;
-		}
+		motor[0].set_direction(linearData.add[0] > 0);
+		motor[1].set_direction(linearData.add[0] > 0);
+		motor[2].set_direction(linearData.add[1] > 0);
+		motor[3].set_direction(linearData.add[2] > 0);
 			
 		handler = &Mover::linear;
 	}
@@ -447,9 +443,6 @@ __enable_irq();
 	void init_empty()
 	{
 		handler = &Mover::empty;
-		
-		for(int i=0; i<NUM_COORDS; ++i)
-		  voltage[i] = 64;
 	}
 	
 	
@@ -460,10 +453,10 @@ __enable_irq();
 	void update()
 	{
 		startTime = timer.get();
-		motor[0].set_sin_voltage(bufCoord[0], voltage[0]);
-		motor[1].set_sin_voltage(bufCoord[0], voltage[0]);
-		motor[2].set_sin_voltage(bufCoord[1], voltage[1]);
-		motor[3].set_sin_voltage(bufCoord[2], voltage[2]);
+		motor[0].set_position(bufCoord[0]);
+		motor[1].set_position(bufCoord[0]);
+		motor[2].set_position(bufCoord[1]);
+		motor[3].set_position(bufCoord[2]);
 		
 		for(int i = 0; i < NUM_COORDS; ++i)
 			coord[i] = bufCoord[i];
@@ -553,16 +546,6 @@ __enable_irq();
 						}
 						break;
 					}
-					case DeviceCommand_SET_VOLTAGE:
-					{
-						PacketSetVoltage *packet = (PacketSetVoltage*)common;
-						for(int i = 0; i < NUM_COORDS; ++i)
-						{
-							motor[i+1].maxVoltage = packet->voltage[i];
-						}
-						motor[0].maxVoltage = packet->voltage[0];
-						break;
-					}
 					case DeviceCommand_WAIT:
 					{
 						init_empty();
@@ -602,7 +585,7 @@ __enable_irq();
 		//это должно задаваться с компьютера
 		for(int i = 0; i < NUM_COORDS; i++)
 		{
-			const float stepSize = 0.1f / SUB_STEPS; //0.1 мм на шаг
+			const float stepSize = 0.1f; //0.1 мм на шаг
 			const float mmsec = 100; //мм/сек
 			const float delay = 0.000001; //1 тик - 1 микросекунда
 			const float accel = 100;//мм/сек^2
@@ -613,9 +596,6 @@ __enable_irq();
 		interpolation = MoveMode_FAST;
 		//feedVelocity = maxVelocity[0]; //для обычной подачи задержка больше
 		feedMult = 1;
-
-		for(int i=0; i<NUM_COORDS; ++i)
-		  voltage[i] = 64;
 	}
 };
 

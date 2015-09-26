@@ -1,102 +1,65 @@
 //#include "math.h"
 #include "common.h"
 
-//--------------------------------------------------
-int fullStep[4][2] = 
- {{ 1,0 },
-  { 0,1 },
-  {-1,0 },
-  { 0,-1}
- }; //обычный режим шагового двигателя, полный шаг
-
-int halfStep[8][2] =
- {{1,0},
-   {1,1},
-  {0,1},
-   {-1,1},
-  {-1,0},
-   {-1,-1},
-  {0,-1},
-   {1,-1}
- }; //полушаг, можно было просто складывать два соседних значения для полного шага
-
-//--------------------------------------------------
-//заполняем таблицу на этапе компиляции
-extern int8_t cosTable[COS_TABLE_COUNT]; //один период = 4 шагам, поэтому здесь cos от 0 до 2*Pi
 //===============================================================
 //всё что относится к одному экземпляру двигателя
 struct Motor
 {
 	int index;         //номер для доступа к выводам контроллера
-	int stepPhase;     //что надо прибавить к текущим координатам, чтобы получить фазу сигналов на обмотках
-	int maxVoltage;    //максимальное напряжение на обмотках 0-256 (регуляция тока)
-	int LRfactor;      //скорость нарастания тока при приложении постоянного напряжения, показатель экспоненты, 0-255
 	int position;      //по каким координатам сейчас расположена гайка
 
+	//===============================================================
 	Motor()
 	{
 		index = 0;
-		stepPhase = 0;
-		maxVoltage = 256;
 		position = 0;
 	}
-	//------------------------------------------------------------
-	//задаёт напряжение на выводах шагового двигателя
-	void set_coils_PWM(int pwm1, int pwm2)
+	
+	//===============================================================
+	void reset()
 	{
-		switch (index) //особенно интересно смотреть ассемблерный код
+		position = 0;
+	}
+	
+	//===============================================================
+	void set_direction(bool direction)
+	{
+		switch (index)
 		{
 			case 0:
-				set_inductor_pulse_width<0>(pwm1);
-				set_inductor_pulse_width<1>(pwm2);
+				set_pin_state<1>(direction);
 				break;
 			case 1:
-				set_inductor_pulse_width<2>(pwm1);
-				set_inductor_pulse_width<3>(pwm2);
+				set_pin_state<3>(direction);
 				break;
 			case 2:
-				set_inductor_pulse_width<4>(pwm1);
-				set_inductor_pulse_width<5>(pwm2);
+				set_pin_state<5>(direction);
 				break;
 			case 3:
-				set_inductor_pulse_width<6>(pwm1);
-				set_inductor_pulse_width<7>(pwm2);
+				set_pin_state<7>(direction);
 				break;
 		}
 	}
-
-	//------------------------------------------------------------
-	//в зависимости от позиции задаёт напряжение
-	void set_sin_voltage(int position, int percent) //доля напряжения изменяется от 0 до 256
+	
+	//===============================================================
+	void set_position(int position)
 	{
-		position += stepPhase;
-		//первые биты отвечают за значение косинуса
-		int cosIndex = position & (COS_TABLE_COUNT-1);    // 0b111... и так (DIV_BITS+2) раз
-		//int quart = (position >> DIV_BITS) & (0x3);  //два бита, кодирующие четверть //не будем делать кучу ifов, пусть лежит весь период в массиве
-		int sinIndex = cosIndex - COS_TABLE_COUNT / 4; //синус - это косинус, подвинутый вправо на 1/4, аргумент двигаем влево
-		if (sinIndex < 0) sinIndex += COS_TABLE_COUNT;
-		
-		int level = (PWM_SIZE * percent * maxVoltage) >> 8;
-		int voltage1 = (level * cosTable[cosIndex]) >> 15;
-		int voltage2 = (level * cosTable[sinIndex]) >> 15;
-		
-		set_coils_PWM(voltage1, voltage2);
-	}
-
-	//------------------------------------------------------------
-	//задание напряжения при полном шаге
-	void set_full_step_voltage(int position, int percent)
-	{
-		position += stepPhase;
-		int quart = (position >> DIV_BITS) & (0x3);  //два бита, кодирующие четверть
-		int cosIndex = fullStep[quart][0];
-		int sinIndex = fullStep[quart][1];
-		
-		int level = (PWM_SIZE * percent * maxVoltage) >> 8;
-		int voltage1 = (level * cosTable[cosIndex]) >> 15;
-		int voltage2 = (level * cosTable[sinIndex]) >> 15;
-		
-		set_coils_PWM(voltage1, voltage2);
+		bool state = ((position & 1) != 0);
+		switch (index)
+		{
+			case 0:
+				set_pin_state<0>(state);
+				break;
+			case 1:
+				set_pin_state<2>(state);
+				break;
+			case 2:
+				set_pin_state<4>(state);
+				break;
+			case 3:
+				set_pin_state<6>(state);
+				break;
+		}
 	}
 };
 

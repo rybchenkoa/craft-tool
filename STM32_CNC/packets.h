@@ -19,7 +19,6 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SET_FEED,         //in
 	DeviceCommand_SET_FEED_MULT,    //in
 	DeviceCommand_SET_STEP_SIZE,    //in
-	DeviceCommand_SET_VOLTAGE,      //in
 	DeviceCommand_SERVICE_COORDS,   //out
 	DeviceCommand_TEXT_MESSAGE,     //out
 	DeviceCommand_SERVICE_COMMAND,  //out
@@ -77,10 +76,6 @@ struct PacketSetStepSize : public PacketCommon
 {
 	float stepSize[NUM_COORDS];
 };
-struct PacketSetVoltage : public PacketCommon
-{
-	int voltage[NUM_COORDS];
-};
 struct PacketFract : public PacketCommon
 {
 };
@@ -130,7 +125,6 @@ union PacketUnion
 	char p6[sizeof(PacketSetFeed)];
 	char p7[sizeof(PacketSetFeedMult)];
 	char p8[sizeof(PacketSetStepSize)];
-	char p9[sizeof(PacketSetVoltage)];
 	char p10[sizeof(PacketFract)];
 };
 

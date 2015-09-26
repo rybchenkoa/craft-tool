@@ -404,11 +404,6 @@
               <FilePath>.\main.cpp</FilePath>
             </File>
             <File>
-              <FileName>hal_0.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\hal_0.h</FilePath>
-            </File>
-            <File>
               <FileName>gpio_use.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\gpio_use.h</FilePath>
@@ -427,11 +422,6 @@
               <FileName>USART_module.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\USART_module.h</FilePath>
-            </File>
-            <File>
-              <FileName>cos_table.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\cos_table.cpp</FilePath>
             </File>
             <File>
               <FileName>led.h</FileName>
