@@ -337,25 +337,30 @@ public:
 #ifdef USE_ADC_FEED
 		currentFeed *= (float16(int(adc.value())) >> 12); //на максимальном напряжении   *= 0.99999
 #endif
+
+		float16 deltaVelocity = linearData.acceleration * float16(linearData.lastPeriod);
+		if(linearData.velocity.mantis > 0 && linearData.velocity.exponent > deltaVelocity.exponent + 14)//TODO: защита от глюков, исправить увеличением разрядности
+			deltaVelocity.exponent = linearData.velocity.exponent - 14;
+
 		if(needStop)
 		{
-			linearData.velocity -= linearData.acceleration * float16(linearData.lastPeriod);
+			linearData.velocity -= deltaVelocity;
 			linearData.state = 0;
 		}
 		// v^2 = 2g*h; //length < linearData.accLength 
 		else if(pow2(linearData.velocity) > (linearData.acceleration * length << 1))
 		{
-			linearData.velocity -= linearData.acceleration * float16(linearData.lastPeriod);
+			linearData.velocity -= deltaVelocity;
 			linearData.state = 1;
 		}
 		else if(linearData.velocity > currentFeed)
 		{
-			linearData.velocity -= linearData.acceleration * float16(linearData.lastPeriod);
+			linearData.velocity -= deltaVelocity;
 			linearData.state = 2;
 		}
 		else if(linearData.velocity < currentFeed)
 		{
-			linearData.velocity += linearData.acceleration * float16(linearData.lastPeriod);
+			linearData.velocity += deltaVelocity;
 			if(linearData.velocity > currentFeed)
 				linearData.velocity = currentFeed;
 			linearData.state = 3;
