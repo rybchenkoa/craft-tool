@@ -14,7 +14,7 @@ bool Config::read_from_file(const char *fileName)
 
     while(file) //пока он не закончился
     {
-        records.emplace_back();
+        records.emplace_back(KeyData());
         KeyData &value = records.back();
         std::getline(file, value.record); //читаем строку
         size_t pos = 0;
@@ -135,7 +135,7 @@ void Config::set_int(const char *key, int value)
     auto iter = positions.find(key);
     if(iter == positions.end())
     {
-        records.emplace_back();
+        records.emplace_back(KeyData());
         KeyData &data = records.back();
         data.record = key;
         data.record += ' ';
@@ -156,7 +156,7 @@ void Config::set_float(const char *key, float value)
     auto iter = positions.find(key);
     if(iter == positions.end())
     {
-        records.emplace_back();
+        records.emplace_back(KeyData());
         KeyData &data = records.back();
         data.record = key;
         data.record += ' ';
@@ -177,7 +177,7 @@ void Config::set_string(const char *key, std::string &value)
     auto iter = positions.find(key);
     if(iter == positions.end())
     {
-        records.emplace_back();
+        records.emplace_back(KeyData());
         KeyData &data = records.back();
         data.record = key;
         data.record += ' ';

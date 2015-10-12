@@ -1,3 +1,4 @@
+#include <math.h>
 #include "GCodeInterpreter.h"
 #include "log.h"
 

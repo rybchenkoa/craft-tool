@@ -1,3 +1,8 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <math.h>
+#include <float.h>
 #include "IRemoteDevice.h"
 #include "log.h"
 #include "AutoLockCS.h"
