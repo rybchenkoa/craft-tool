@@ -846,6 +846,9 @@ void GCodeInterpreter::move(int coordNumber, coord add)
         coordsInited = true;
     }
 
+    if(abs(runner.position.r[coordNumber] - remoteDevice->get_current_coords()->r[coordNumber]) > abs(add))
+        return;
+
     runner.position.r[coordNumber] += add;
     remoteDevice->set_position(runner.position);
 }
