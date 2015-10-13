@@ -73,7 +73,7 @@ void Scene3d::mouseMoveEvent(QMouseEvent* pe)
 {
     if(m_mousePressed)
     {
-        float scale = 5.1;
+        float scale = 5.1f;
         float x = (float(m_lastMousePosition.x()) / width() - 0.5)*2;
         float y = (1 - float(m_lastMousePosition.y()) / height() - 0.5)*2;
         float newX = (float(pe->x()) / width() - 0.5)*2;
@@ -161,7 +161,7 @@ void Scene3d::draw_track()
 //--------------------------------------------------------------------
 void Scene3d::draw_bounds()
 {
-    glColor3f(0.0, 0.3, 0.3);
+    glColor3f(0.0f, 0.3f, 0.3f);
 
     glBegin(GL_LINES);
         glVertex3f(0,0,0);
@@ -198,7 +198,7 @@ void Scene3d::draw_bounds()
 //--------------------------------------------------------------------
 void Scene3d::draw_grid()
 {
-    glColor3f(0.3, 0.0, 0.0);
+    glColor3f(0.3f, 0.0f, 0.0f);
 
     glBegin(GL_LINES);
         for(float x = 0; x < m_zoneWidth; x += m_gridStep)
@@ -370,10 +370,10 @@ void make_tool_simple(Object3d& tool)
 
     glm::vec3 simple[] =
     {
-        {0,  0, 0},
-        {10, 0, 0},
-        {10, 0, -95},
-        {0,  0, -100}
+        glm::vec3(0,  0, 0),
+        glm::vec3(10, 0, 0),
+        glm::vec3(10, 0, -95),
+        glm::vec3(0,  0, -100)
     };
 
     //glm::vec3 color(1,0,0);

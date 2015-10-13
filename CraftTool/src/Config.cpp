@@ -161,14 +161,14 @@ void Config::set_float(const char *key, float value)
         data.record = key;
         data.record += ' ';
         data.valueStart = data.record.size();
-        data.record += value;
+        data.record += std::to_string((long double)value);
         data.valueEnd = data.record.size();
         return;
     }
     auto &data = *iter->second;
     auto prevRecord = data.record;
     data.record = prevRecord.substr(0, data.valueStart);
-    data.record += value;
+    data.record += std::to_string((long double)value);
     data.record += prevRecord.substr(data.valueEnd);
 }
 

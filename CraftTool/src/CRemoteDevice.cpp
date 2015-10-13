@@ -28,16 +28,16 @@ CRemoteDevice::CRemoteDevice()
 
     for(int i = 0; i < NUM_COORDS; ++i)
     {
-        scale[i]            = INFINITY;
-        lastPosition.r[i]   = INFINITY;
-        velocity[i]         = INFINITY;
-        acceleration[i]     = INFINITY;
-        currentCoords.r[i]  = INFINITY;
-        lastDelta.r[i]      = INFINITY;
+        scale[i]            = HUGE_VAL;
+        lastPosition.r[i]   = HUGE_VAL;
+        velocity[i]         = HUGE_VAL;
+        acceleration[i]     = HUGE_VAL;
+        currentCoords.r[i]  = HUGE_VAL;
+        lastDelta.r[i]      = HUGE_VAL;
     }
-    minStep = INFINITY;
-    secToTick = INFINITY;
-    feed = INFINITY;
+    minStep = HUGE_VAL;
+    secToTick = HUGE_VAL;
+    feed = HUGE_VAL;
     moveMode = MoveMode_LINEAR;
     fractSended = false;
 
@@ -160,7 +160,7 @@ void CRemoteDevice::set_position(Coords pos)
 {
     //emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
 
-    if(lastPosition.r[0] == INFINITY) //если шлём в первый раз
+    if(lastPosition.r[0] == HUGE_VAL) //если шлём в первый раз
         lastPosition = currentCoords; //то последними посланными считаем текущие реальные
 
     auto packet = new PacketMove;
@@ -207,7 +207,7 @@ void CRemoteDevice::set_position(Coords pos)
     packet->invProj = float(length / (lengths[reference] * scale[reference]));
     packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
 
-    if(lastDelta.r[0] != INFINITY)
+    if(lastDelta.r[0] != HUGE_VAL)
     {
         double scalar = 0;
         double scalar1 = 0, scalar2 = 0;
