@@ -32,7 +32,7 @@ MainWindow::~MainWindow()
 void MainWindow::menu_open_program()
 {
     QString str = QFileDialog::getOpenFileName(0, "Open Dialog", "", "*.*");
-    run_file(str.toLocal8Bit().data());
+    load_file(str.toLocal8Bit().data());
 }
 
 void MainWindow::on_c_setHomeButton_clicked()
@@ -108,7 +108,12 @@ bool MainWindow::connect_to_device()
     return true;
 }
 
-void MainWindow::run_file(char *fileName)
+void MainWindow::on_c_startButton_clicked()
+{
+    g_inter->execute_file(nullptr);//запускаем интерпретацию
+}
+
+void MainWindow::load_file(char *fileName)
 {
     g_inter->read_file(fileName); //читаем данные из файла
 
@@ -116,7 +121,19 @@ void MainWindow::run_file(char *fileName)
     for(auto i = g_inter->inputFile.begin(); i != g_inter->inputFile.end(); ++i)
         ui->c_commandList->addItem(i->c_str());
 
-    g_inter->execute_file();           //запускаем интерпретацию
+    Interpreter::Trajectory trajectory;
+    g_inter->execute_file(&trajectory); //формируем траекторию
+    ui->c_3dView->track.clear();
+    ui->c_3dView->track.reserve(trajectory.size());
+    for (unsigned i = 0; i < trajectory.size(); ++i)
+    {
+        TrackPoint point;
+        point.isFast = trajectory[i].isFast;
+        point.position = glm::vec3(trajectory[i].position.x, trajectory[i].position.y, trajectory[i].position.z);
+        ui->c_3dView->track.push_back(point);
+    }
+
+    setWindowTitle(QString(fileName));
 }
 
 bool MainWindow::eventFilter(QObject *object, QEvent *event)

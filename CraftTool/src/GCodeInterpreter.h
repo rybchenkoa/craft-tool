@@ -137,6 +137,14 @@ struct CoordSystemData
     Coords pos0;               //начало отсчёта в глобальной системе координат
 };
 
+//отрисовываемые отрезки
+struct TrajectoryPoint
+{
+    bool isFast;
+    Coords position;
+};
+
+typedef std::vector<TrajectoryPoint> Trajectory;
 //=================================================================================================
 //интерпретатор работает следующим образом
 //читается вся строка, выбираются команды и для них ищутся параметры
@@ -149,6 +157,7 @@ struct Runner
     UnitSystem units;        //текущая система единиц измерения
     bool incremental;        //абсолютная система координат?
     MotionMode motionMode;   //режим перемещения (линейная интерполяция и т.п.)
+    MoveMode deviceMoveMode; //режим перемещения устройства
     Plane plane;             //текущая плоскость интерполяции
     double feed;             //подача в мм/мин
     double cutterRadius;     //радиус фрезы
@@ -260,20 +269,23 @@ public:
     Reader reader;            //парсер команд
     FrameParams readedFrame;  //прочитанные команды одной строки
     IRemoteDevice *remoteDevice; //устройство, которое исполняет команды
+    Trajectory *trajectory;      //или массив, в который заносятся точки пути
     bool coordsInited;        //при начальной инициализации выставляем интерпретатору координаты устройства
 
     void init();                            //инициализация для нового файла
     bool read_file(const char *name);             //запоминает строки текстового файла
-    void execute_file();                    //исполняет файл
+    void execute_file(Trajectory *trajectory);                    //исполняет файл
     InterError execute_frame(const char *frame);    //выполнение строки
     InterError make_new_state();            //чтение команд из строки
     InterError run_modal_groups();          //запуск команд
     ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
+    void set_move_mode(MoveMode mode);      //изменение режима перемещения
     void local_deform(Coords &coords);      //преобразование масштаба, поворот в локальной системе координат
     void to_global(Coords &coords);         //сдвиг в глобальные координаты
     void to_local(Coords &coords);          //сдвиг в локальные координаты
     coord to_mm(coord value);               //переводит из текущих единиц в мм
     Coords to_mm(Coords value);
+    void move_to(Coords position);          //линейное перемещение
     bool is_screw(Coords center);           //проверяет, что траектория будет винтовой
     void draw_screw(Coords center, double radius, double ellipseCoef,
                     double angleStart, double angleMax, double angleToHeight,

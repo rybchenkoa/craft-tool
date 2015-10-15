@@ -9,8 +9,8 @@ namespace Ui
 
 struct TrackPoint
 {
+    bool isFast;
     glm::vec3 position;
-    glm::vec3 color;
 };
 
 struct Camera

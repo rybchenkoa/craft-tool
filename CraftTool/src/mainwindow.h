@@ -18,7 +18,7 @@ public:
     ~MainWindow();
 
     bool connect_to_device();
-    void run_file(char *fileName);
+    void load_file(char *fileName);
 
     bool eventFilter(QObject *object, QEvent *event);
 
@@ -36,6 +36,7 @@ public slots:
     void on_c_setY0Button_clicked();
     void on_c_setZ0Button_clicked();
     void on_c_feedSlider_valueChanged(int value);
+    void on_c_startButton_clicked();
 };
 
 #endif // MAINWINDOW_H

@@ -149,10 +149,14 @@ void Scene3d::paintGL()
 //--------------------------------------------------------------------
 void Scene3d::draw_track()
 {
-    glBegin(GL_LINE_STRIP);
-    for(size_t i = 0; i < track.size(); ++i)
+    glBegin(GL_LINES);
+    for(size_t i = 1; i < track.size(); ++i)
     {
-        glColor3f(track[i].color.r,track[i].color.g,track[i].color.b);
+        if (track[i].isFast)
+            glColor4f(0.3f, 0.1f, 0.0f, 0.1f);
+        else
+            glColor3f(0.1f, 0.3f, 0.0f);
+        glVertex3f(track[i - 1].position.x, track[i - 1].position.y, track[i - 1].position.z);
         glVertex3f(track[i].position.x, track[i].position.y, track[i].position.z);
     }
     glEnd();
@@ -247,10 +251,6 @@ void Scene3d::draw_border()
 void Scene3d::update_tool_coords(float x, float y, float z)
 {
     tool.position = glm::vec3(x,y,z);
-    TrackPoint point;
-    point.color = glm::vec3(0.5f, 0.5f + (rand() % 500)/1000.f, 0);
-    point.position = tool.position;
-    track.push_back(point);
     updateGL();
 }
 
@@ -350,12 +350,12 @@ void make_cylinder(Object3d& edge, int divs)
 
             edge.verts.push_back(to);
             if(j != 0)
-                push_quad(i - 1, i, j-1, j);
+                push_quad(i - 1, i, j - 1, j);
         }
     }
 
-    for(int j = 0; j < countPoints; ++j)
-        push_quad(divs - 1, 0, j, j + 1);
+    for(int j = 1; j < countPoints; ++j)
+        push_quad(divs - 1, 0, j - 1, j);
 }
 
 //--------------------------------------------------------------------
