@@ -37,6 +37,7 @@ public slots:
     void on_c_setZ0Button_clicked();
     void on_c_feedSlider_valueChanged(int value);
     void on_c_startButton_clicked();
+    void on_c_refreshTrajectory_clicked();
 };
 
 #endif // MAINWINDOW_H

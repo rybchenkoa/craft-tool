@@ -113,14 +113,8 @@ void MainWindow::on_c_startButton_clicked()
     g_inter->execute_file(nullptr);//запускаем интерпретацию
 }
 
-void MainWindow::load_file(char *fileName)
+void MainWindow::on_c_refreshTrajectory_clicked()
 {
-    g_inter->read_file(fileName); //читаем данные из файла
-
-    ui->c_commandList->clear();
-    for(auto i = g_inter->inputFile.begin(); i != g_inter->inputFile.end(); ++i)
-        ui->c_commandList->addItem(i->c_str());
-
     Interpreter::Trajectory trajectory;
     g_inter->execute_file(&trajectory); //формируем траекторию
     ui->c_3dView->track.clear();
@@ -132,7 +126,17 @@ void MainWindow::load_file(char *fileName)
         point.position = glm::vec3(trajectory[i].position.x, trajectory[i].position.y, trajectory[i].position.z);
         ui->c_3dView->track.push_back(point);
     }
+}
 
+void MainWindow::load_file(char *fileName)
+{
+    g_inter->read_file(fileName); //читаем данные из файла
+
+    ui->c_commandList->clear();
+    for(auto i = g_inter->inputFile.begin(); i != g_inter->inputFile.end(); ++i)
+        ui->c_commandList->addItem(i->c_str());
+
+    on_c_refreshTrajectory_clicked();
     setWindowTitle(QString(fileName));
 }
 

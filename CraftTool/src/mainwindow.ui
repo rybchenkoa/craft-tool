@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>501</width>
-    <height>610</height>
+    <height>615</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -251,6 +251,25 @@
                  </property>
                  <property name="text">
                   <string>TO HOME</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="c_refreshTrajectory">
+                 <property name="minimumSize">
+                  <size>
+                   <width>40</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>40</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>C|</string>
                  </property>
                 </widget>
                </item>
