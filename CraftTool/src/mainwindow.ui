@@ -204,7 +204,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="c_stopButton">
+                <widget class="QPushButton" name="c_pauseButton">
                  <property name="minimumSize">
                   <size>
                    <width>40</width>
@@ -219,6 +219,9 @@
                  </property>
                  <property name="text">
                   <string>||</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>

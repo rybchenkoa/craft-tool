@@ -45,6 +45,7 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_TEXT_MESSAGE,
     DeviceCommand_SERVICE_COMMAND,
     DeviceCommand_SET_FRACT,
+    DeviceCommand_PAUSE,
 };
 enum MoveMode:char //режим движения/интерполяции
 {
@@ -113,6 +114,11 @@ struct PacketFract : public PacketCommon
 {
     int crc;
 };
+struct PacketPause : public PacketCommon
+{
+    char needStop;
+    int crc;
+};
 
 //принимаемые от мк пакеты
 struct PacketReceived //сообщение о том, что пакет принят
@@ -160,6 +166,7 @@ public:
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
     virtual void set_step_size(double stepSize[NUM_COORDS])=0; //длина одного шага
+    virtual void pause_moving(bool needStop)=0; //временная остановка движения
 
     virtual int  queue_size() = 0; //длина очереди команд
 
@@ -187,13 +194,14 @@ public:
     void set_feed(double feed) override;
     void set_feed_multiplier(double multiplier) override;
     void set_step_size(double stepSize[NUM_COORDS]) override;
+    void pause_moving(bool needStop) override;
 
     void set_fract();
 
     int  queue_size() override;
 
-    virtual void set_current_line(int line) override;
-    virtual int  get_current_line() override;
+    void set_current_line(int line) override;
+    int  get_current_line() override;
     const Coords* get_current_coords() override;
     double get_min_step() override;
 

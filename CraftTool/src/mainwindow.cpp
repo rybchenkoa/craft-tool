@@ -108,6 +108,11 @@ bool MainWindow::connect_to_device()
     return true;
 }
 
+void MainWindow::on_c_pauseButton_clicked()
+{
+    g_device->pause_moving(ui->c_pauseButton->isChecked());
+}
+
 void MainWindow::on_c_startButton_clicked()
 {
     g_inter->execute_file(nullptr);//запускаем интерпретацию
