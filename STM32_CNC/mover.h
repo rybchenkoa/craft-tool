@@ -618,6 +618,14 @@ void process_packet(char *common, int size)
 			send_packet_received(++receiver.packetNumber);
 			break;
 		}
+		case DeviceCommand_PAUSE:
+		{
+			PacketPause *packet = (PacketPause*)common;
+			mover.needStop = (packet->needStop != 0);
+			log_console("needStop %d\n", int(mover.needStop));
+			send_packet_received(++receiver.packetNumber);
+			break;
+		}
 		default:
 		{
 			if(!receiver.queue.IsFull())

@@ -23,6 +23,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_TEXT_MESSAGE,     //out
 	DeviceCommand_SERVICE_COMMAND,  //out
 	DeviceCommand_SET_FRACT,        //in
+	DeviceCommand_PAUSE,            //in
 };
 enum MoveMode //:char режим движения/интерполяции
 {
@@ -79,6 +80,10 @@ struct PacketSetStepSize : public PacketCommon
 struct PacketFract : public PacketCommon
 {
 };
+struct PacketPause : public PacketCommon
+{
+	char needStop;
+};
 
 //принимаемые от мк пакеты-----------------------------------------------------
 struct PacketReceived //сообщение о том, что пакет принят
@@ -126,6 +131,7 @@ union PacketUnion
 	char p7[sizeof(PacketSetFeedMult)];
 	char p8[sizeof(PacketSetStepSize)];
 	char p10[sizeof(PacketFract)];
+	char p11[sizeof(PacketPause)];
 };
 
 //размер структуры выровнен на 4, чтобы быстро копировать int[]
