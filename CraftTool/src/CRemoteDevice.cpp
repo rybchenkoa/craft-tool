@@ -339,6 +339,15 @@ void CRemoteDevice::set_step_size(double stepSize[NUM_COORDS])
 }
 
 //============================================================
+void CRemoteDevice::pause_moving(bool needStop)
+{
+    auto packet = new PacketPause;
+    packet->command = DeviceCommand_PAUSE;
+    packet->needStop = needStop ? 1 : 0;
+    push_packet_modal(packet);
+}
+
+//============================================================
 void CRemoteDevice::reset_packet_queue()
 {
     auto packet = new PacketResetPacketNumber;
