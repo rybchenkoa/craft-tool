@@ -66,7 +66,7 @@ struct PacketMove : public PacketCommon
     float16 velocity;      //скорость перемещения
     float16 acceleration;  //ускорение, шагов/тик^2
     int uLength;           //длина в микронах
-    float16 invProj;       // длина опорной координаты / полную длину, шаг/мм
+    float16 length;        //полная длина
     int crc;
 };
 struct PacketWait : public PacketCommon

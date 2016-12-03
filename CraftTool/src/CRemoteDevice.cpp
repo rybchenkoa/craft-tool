@@ -204,7 +204,7 @@ void CRemoteDevice::set_position(Coords pos)
         lengths[i] = fabs(delta.r[i]);
 
     packet->refCoord = reference;
-    packet->invProj = float(length / (lengths[reference] * scale[reference]));
+    packet->length = float(length);
     packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
 
     if(lastDelta.r[0] != HUGE_VAL)
@@ -369,7 +369,7 @@ void CRemoteDevice::init()
         return value;
     };
 
-    secToTick = 1000000.0;
+    secToTick = 24000000.0;
     double stepsPerMm[NUM_COORDS];
     stepsPerMm[0] = try_get_float(CFG_STEPS_PER_MM "X");
     stepsPerMm[1] = try_get_float(CFG_STEPS_PER_MM "Y");
