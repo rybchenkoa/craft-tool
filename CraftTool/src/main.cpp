@@ -55,7 +55,8 @@ int main(int argc, char* argv[])
 {
     g_application = new QApplication(argc, argv);
     g_config = new Config();
-    g_config->read_from_file(CFG_CONFIG_NAME);
+    if (!g_config->read_from_file(CFG_CONFIG_NAME))
+        log_warning("config not found");;
     g_inter = new Interpreter::GCodeInterpreter();
     g_mainWindow = new MainWindow();
     QObject::connect(&g_logger, SIGNAL(send_string(QColor, QString)),
