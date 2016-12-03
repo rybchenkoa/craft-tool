@@ -68,6 +68,7 @@ protected:
     void draw_bounds();
     void draw_grid();
     void draw_track();
+    void draw_real_track();
     void draw_border();
 
 public:
@@ -88,6 +89,7 @@ public:
     Object3d tool;
 
     std::vector<TrackPoint> track; //траектория фрезы
+    std::vector<glm::vec3> realTrack; //пройденная фрезой траектория
 
 public slots:
     void update_tool_coords(float x, float y, float z);

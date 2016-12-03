@@ -133,11 +133,9 @@ void Scene3d::paintGL()
     glLoadIdentity();
 
     draw_bounds();
-
     draw_grid();
-
     draw_track();
-
+    draw_real_track();
     tool.draw();
 
     glFlush();
@@ -153,12 +151,25 @@ void Scene3d::draw_track()
     for(size_t i = 1; i < track.size(); ++i)
     {
         if (track[i].isFast)
+        {
+            continue;
             glColor4f(0.3f, 0.1f, 0.0f, 0.1f);
+        }
         else
             glColor3f(0.1f, 0.3f, 0.0f);
         glVertex3f(track[i - 1].position.x, track[i - 1].position.y, track[i - 1].position.z);
         glVertex3f(track[i].position.x, track[i].position.y, track[i].position.z);
     }
+    glEnd();
+}
+
+//--------------------------------------------------------------------
+void Scene3d::draw_real_track()
+{
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0.5f, 0.5f, 0.0f);
+    for(size_t i = 0; i < realTrack.size(); ++i)
+        glVertex3f(realTrack[i].x, realTrack[i].y, realTrack[i].z);
     glEnd();
 }
 
@@ -251,6 +262,8 @@ void Scene3d::draw_border()
 void Scene3d::update_tool_coords(float x, float y, float z)
 {
     tool.position = glm::vec3(x,y,z);
+    if (realTrack.empty() || realTrack.back() != tool.position)
+        realTrack.push_back(tool.position);
     updateGL();
 }
 

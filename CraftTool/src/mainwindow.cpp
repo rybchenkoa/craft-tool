@@ -131,6 +131,7 @@ void MainWindow::on_c_refreshTrajectory_clicked()
         point.position = glm::vec3(trajectory[i].position.x, trajectory[i].position.y, trajectory[i].position.z);
         ui->c_3dView->track.push_back(point);
     }
+    ui->c_3dView->realTrack.clear();
 }
 
 void MainWindow::load_file(char *fileName)
