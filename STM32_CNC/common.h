@@ -3,11 +3,12 @@
 
 //#define USE_ADC_FEED                    //регулировка подачи напряжением
 
-const int COUNT_DRIVES = 4; //количество двигателей
-
 #define M_PI 3.1415f
 
 const int NUM_COORDS = 3;
+const int PWM_SIZE = 24000000 / 30000;
+const int MAX_STEP_TIME = 1<<30;
+
 //#define log_console(format, ...) {}
 
 #define log_console(format, ...) \

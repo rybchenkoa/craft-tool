@@ -45,7 +45,7 @@ struct PacketMove : public PacketCommon
 	float16 velocity;      //скорость подачи, мм/тик
 	float16 acceleration;  //ускорение, мм/тик^2
 	int uLength;           //длина в микронах
-	float16 invProj;       // полная длина / длина опорной координаты, мм/шаг
+	float16 length;        // полная длина
 };
 struct PacketWait : public PacketCommon
 {

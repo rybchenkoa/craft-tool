@@ -12,8 +12,8 @@
 //===============================================================
 void init_motors()
 {
-	for (int i=0; i < COUNT_DRIVES; ++i)
-		motor[i].index = i;
+	for (int i=0; i < NUM_COORDS; ++i)
+		motor[i]._index = i;
 }
 
 //===============================================================
@@ -27,8 +27,9 @@ void init()
 	
 	usart.init();
 	receiver.init();
-	configure_GPIO();
-	init_motors(); //уже использует ШИМ
+	configure_gpio();
+	configure_timers();
+	init_motors();
 	adc.init();
 }
 
@@ -40,28 +41,30 @@ int main()
 
 	mover.init();
 	int timeToSend = timer.get_ms(500);
-	int busyTime = 0; //запаздывание обработки следующего тика (джиттер)
-	int stepTime = 0; //необходимое время между двумя шагами
+	int stepTime; //время обработки одного шага
+	mover.canLog = true;
 	while(1)
 	{
-
-		if(!timer.check(mover.stopTime))
-		{
-			busyTime = mover.stopTime - timer.get();
-			stepTime = mover.stopTime;
-			mover.update();
-			stepTime -= mover.stopTime;
-		}
+		stepTime = timer.get();
+		mover.update();
+		stepTime = timer.get() - stepTime;
 
 		if(!timer.check(timeToSend))
 		{
 			led.flip();
 			timeToSend = timer.get_ms(100);
-			//log_console("dest %d %d %d, sc %d\n", mover.to[0], mover.to[1], mover.to[2], int(float16(1)/mover.circleData.scale2));
-			//log_console("stepT %d, jitter %d, st %d\n", stepTime, busyTime, mover.linearData.state);
+			//log_console("dest %d %d %d, sc %d\n", mover.to[0], mover.to[1], mover.to[2]);
+			//log_console("stepT %d, st %d\n", stepTime, mover.linearData.state);
+			//log_console("mot %d, %d, %d\n", motor[0]._isHardware, motor[1]._isHardware, motor[2]._isHardware);
+			log_console("err %d, %d, %d\n", mover.linearData.err[0], mover.linearData.err[1], mover.linearData.err[2]);
+			log_console("errX: %d\n", mover.linearData.err[0]/(iabs(mover.linearData.size[0]) + 1));
+			//log_console("Astep %d, %d, %d\n", get_steps(0), get_steps(1), get_steps(2));
 			//log_console("adc %d\n", adc.value());
 			send_packet_service_coords(mover.coord);
+			mover.canLog = true;
 		}
+		else
+			mover.canLog = false;
 	}
 }
 

@@ -16,11 +16,11 @@ struct Track
 
 class Receiver
 {
-	public:
+public:
 	FIFOBuffer<MaxPacket, 5> queue; //28*32+8 = 904
 	FIFOBuffer<Track, 6> tracks;
 	PacketCount packetNumber;
-	
+
 	void init()
 	{
 		queue.Clear();
@@ -129,12 +129,12 @@ void on_packet_received(char * __restrict packet, int size)
 	int receivedCrc = *(int*)(packet+size-4);
 	if(crc != receivedCrc)
 	{
-  	//log_console("\n0x%X, 0x%X\n", receivedCrc, crc);
+		//log_console("\n0x%X, 0x%X\n", receivedCrc, crc);
 		send_wrong_crc();
 		return;
 	}
 	if(size > sizeof(MaxPacket))
-		log_console("rec pack %d, max %d\n", size, sizeof(MaxPacket));
+		log_console("ERR: rec pack %d, max %d\n", size, sizeof(MaxPacket));
 	if(*packet == DeviceCommand_RESET_PACKET_NUMBER)
 	{
 		receiver.packetNumber = PacketCount(-1);
@@ -146,8 +146,6 @@ void on_packet_received(char * __restrict packet, int size)
 		if (common->packetNumber == receiver.packetNumber) //до хоста не дошёл ответ о принятом пакете
 		{
 			send_packet_repeat(receiver.packetNumber);                       //шлём ещё раз
-			
-			//log_console("\nBYLO %d %d\n", common->packetNumber, receiver.packetNumber);
 		}
 		else if(common->packetNumber == PacketCount(receiver.packetNumber + 1)) //принят следующий пакет
 		{
@@ -182,6 +180,7 @@ int isqrt(int value)
 			minVal = current+1;
 	}
 	return minVal;*/
+	//dx = dy/(2*x0) - dy^2/(8*x0^3)
 	minVal = (value/minVal + minVal)/2;
 	minVal = (value/minVal + minVal)/2;
 	minVal = (value/minVal + minVal)/2;
@@ -216,256 +215,417 @@ int isign(int value)
 class Mover
 {
 public:
-	int minCoord[NUM_COORDS]; //габариты станка
-	int maxCoord[NUM_COORDS]; //должны определяться по концевым выключателям
 	float16 maxVelocity[NUM_COORDS];      // мм/мкс
 	float16 maxAcceleration[NUM_COORDS];  // мм/мкс^2
 	float16 stepLength[NUM_COORDS]; // мм/шаг
-	
+
 	int coord[NUM_COORDS];    //текущие координаты
-	int bufCoord[NUM_COORDS]; //предрассчитанные новые координаты
 	int stopTime;             //время следующей остановки
-	int startTime;            //время начала текущего тика обработки
 
 	int from[NUM_COORDS];     //откуда двигаемся
 	int to[NUM_COORDS];       //куда двигаемся
-	
+
 	MoveMode interpolation;
 	bool needStop;            //принудительная остановка
-	float16 feedMult;         //заданная из интерейса скорость движения
-	
+	float16 feedMult;         //заданная из интерфейса скорость движения
+
+bool canLog;
+
 	//расчёт ускорения не совсем корректен
 	//при движении по кривой максимальное ускорение меняется из-за изменения проекции на оси
 	//и расстояние торможения неизвестно
 	//но на малых скоростях это не должно проявляться
 	//поскольку расстояние торможения маленькое
 	//и касательная к кривой поворачивается не сильно
-	
-//=====================================================================================================
+
+	//=====================================================================================================
 	enum State
 	{
 		FAST = 0,
 		LINEAR,
 	};
-	
-	
-//=====================================================================================================
+
+
+	//=====================================================================================================
 	enum OperateResult
 	{
 		END = 1,
 		WAIT,
 	};
-	
-	
-//=====================================================================================================
+
+
+	//=====================================================================================================
+	/*
+	диапазоны
+	скорость:
+	1 шаг/10 сек
+	10 000 000 шаг/сек   (если 0.0001 мм/шаг)
+	240 000 000 тактов/шаг
+	2.4 такта/шаг
+
+	ускорение:
+	100 шаг/сек2      (если 0.1 мм на шаг)
+	100 000 000 шаг/сек2    (если 0.0001 мм/шаг)
+	5 760 000 000 000 тактов2/шаг
+	5 760 000 тактов2/шаг
+
+	v += a*dt
+	dt - 1000, 10000 тактов
+
+
+	для float
+	сложение 147 тактов
+	вычитание 153
+	умножение 209
+	деление 597 (на M0 ядре)
+	сравнение 137
+	*/
+
 	struct LinearData
 	{
+		bool enabled;          //моторы включены
 		int refCoord;          //индекс координаты, по которой шагаем
-		int refDelta;          //разность опорной координаты
-		int delta[NUM_COORDS]; //увеличение ошибки округления координат
-		int err[NUM_COORDS];   //ошибка округления координат
-		int add[NUM_COORDS];   //изменение координаты при превышении ошибки {-1 || 1}
-		
-		float16 feedVelocity;   //скорость подачи
-		float16 acceleration;  //ускорение, шагов/тик^2
-		float16 velocity;      //скорость на прошлом шаге
-		float16 invProj;       //(длина опорной координаты / полную длину)
-		int     lastPeriod;    //длительность предыдущего шага
-		int state;
+		int size[NUM_COORDS];  //размеры линии
+		int err[NUM_COORDS];   //ошибка координат
+		int sign[NUM_COORDS];  //изменение координаты при превышении ошибки {-1 || 1}
+		int last[NUM_COORDS];   //последние координаты: для которых была посчитана ошибка
+		float16 velCoef[NUM_COORDS]; //на что умножить скорость, чтобы получить число тактов на шаг
+
+		float16 maxFeedVelocity;	//скорость подачи, мм/тик
+		float16 acceleration;		//ускорение, мм/тик^2
+		float16 velocity;			//скорость на прошлом шаге
+		float16 invProj;			//(длина опорной координаты / полную длину)
+		int state;			//ускорение/замедление/стабильное движение
+		int lastTime;		//предыдущее время, нужно для вычисления разницы
+		float16 lastVelocity; //предыдущая скорость
 	};
 	LinearData linearData;
-	
-	
-//=====================================================================================================
-	bool brez_step()
+
+
+
+	//=====================================================================================================
+	void start_motors()
 	{
-		if(coord[linearData.refCoord] == to[linearData.refCoord]) //дошли до конца, выходим
-			return false;
+		if (!linearData.enabled)
+		{
+			for (int i = 0; i < NUM_COORDS; ++i)
+				motor[i].start(MAX_STEP_TIME);
+			linearData.enabled = true;
+		}
+	}
+
+	//=====================================================================================================
+	void stop_motors()
+	{
+		if (linearData.enabled)
+		{
+			for (int i = 0; i < NUM_COORDS; ++i)
+				motor[i].stop();
+			linearData.enabled = false;
+		}
+	}
+
+	//=====================================================================================================
+	void compute_error()
+	{
+		int ref = linearData.refCoord;
+		//допустим, размеры по x, y = a, b  , отрезок начинается с 0
+		//тогда уравнение будет a*y = b*x;   a*dy = b*dx;  a*dy - b*dx = 0
+		//ошибка по y относительно x при смещении:  (a*dy - b*dx) / a
+		int dx = (motor[ref]._position - linearData.last[ref]) * linearData.sign[ref]; //находим изменение опорной координаты
+		for (int i = 0; i < NUM_COORDS; ++i)
+		{
+			int dy = (motor[i]._position - linearData.last[i]) * linearData.sign[i]; //находим изменение текущей координаты
+			int derr = dy * linearData.size[ref] - dx * linearData.size[i]; //находим ошибку текущей координаты//какой должен быть знак?
+			linearData.err[i] += derr;
+			linearData.last[i] = motor[i]._position;
+		}
+	}
+
+	//=====================================================================================================
+	void set_velocity()
+	{
+		//выбираем максимальную ошибку оси
+		//и для неё округляем скорость двигателя в меньшую сторону
+		int maxAxe = linearData.refCoord;//сначала считаем опорную максимальной
+		int maxErr = 0; //по опорной ошибка всегда = 0
 
 		for (int i = 0; i < NUM_COORDS; ++i)
 		{
-			linearData.err[i] += linearData.delta[i];     //считаем ошибку
-			bufCoord[i] = coord[i];
-			if(2 * linearData.err[i] >= linearData.refDelta)
+			int err = linearData.err[i];
+			if (err > maxErr)
 			{
-				bufCoord[i] += linearData.add[i];           //добавляем координату
-				linearData.err[i] -= linearData.refDelta;   //вычитаем ошибку
+				maxErr = err;
+				maxAxe = i;
 			}
 		}
+
+		//задаем скорости
+		if (linearData.velocity.mantis != 0)
+			for (int i = 0; i < NUM_COORDS; ++i)
+			{
+				if (linearData.velCoef[i].mantis == 0)
+				{
+					motor[i].set_period(MAX_STEP_TIME);
+					continue;
+				}
+				int stepTime = linearData.velCoef[i] / linearData.velocity;
+				if (i == maxAxe)
+					stepTime += (stepTime >> 2) + 1; //регулировка скорости на 1 %
+				if (uint32_t(stepTime) > MAX_STEP_TIME)
+					stepTime = MAX_STEP_TIME;
+				motor[i].set_period(stepTime);
+
+				//if(canLog) log_console("st[%d] = %d\n", i, stepTime);
+			}
+			//if(canLog) log_console("maxe %d, %d\n", maxAxe, maxErr);
+	}
+
+	//=====================================================================================================
+	bool brez_step()
+	{
+		int time = timer.get();
+		for (int i = 0; i < NUM_COORDS; ++i) //быстро запоминаем текущее состояние координат
+			if (linearData.size[i] != 0)
+				motor[i].shot(time);
+
+		for (int i = 0; i < NUM_COORDS; ++i)
+			coord[i] = motor[i]._position;
+
+		int ref = linearData.refCoord;
+		if((coord[ref] - to[ref]) * linearData.sign[ref] >= 0) //если дошли до конца, выходим
+			return false;
+
+		//находим ошибку новых координат
+		compute_error();
+
+		//обновляем скорости двигателей
+		set_velocity();
+		
 		return true;
 	}
-	
-	
-//=====================================================================================================
+
+
+	//=====================================================================================================
 	bool brez_init(int dest[NUM_COORDS])
 	{
 		bool diff = false;
 		for(int i = 0; i < NUM_COORDS; ++i) //для алгоритма рисования
 		{
+			from[i] = to[i];       //куда должны были доехать
 			to[i] = dest[i];       //куда двигаемся
-			from[i] = coord[i];    //откуда (текущие координаты)
-			linearData.err[i] = 0; //накопленная ошибка
 			if(to[i] > from[i])
 			{
-				linearData.delta[i] = to[i] - from[i]; //увеличение ошибки
-				linearData.add[i] = 1;                 //изменение координаты
+				linearData.size[i] = to[i] - from[i]; //увеличение ошибки
+				linearData.sign[i] = 1;                 //изменение координаты
 			}
 			else
 			{
-				linearData.delta[i] = from[i] - to[i];
-				linearData.add[i] = -1;
+				linearData.size[i] = from[i] - to[i];
+				linearData.sign[i] = -1;
 			}
+
 			if(to[i] != from[i])
 				diff = true;
 		}
-		
-		return diff;	
+
+		//инициализируем ошибку, учитывая, что в начале отрезка она = 0
+		for(int i = 0; i < NUM_COORDS; ++i)
+		{
+			linearData.err[i] = 0;
+			linearData.last[i] = from[i];
+		}
+		compute_error();
+
+		return diff;
 	}
-	
-//=====================================================================================================
+
+	//=====================================================================================================
 	OperateResult linear()
 	{
 		int reference = linearData.refCoord;
-		if(!brez_step())
-			return END;
 
-		float16 length = linearData.invProj * float16(iabs(coord[reference] - to[reference]));
-		length += (float16(1) / float16(1000)) * float16(receiver.tracks.Front().uLength);
+		float16 length = linearData.invProj * float16(to[reference] - coord[reference]);
+		length += (float16(1) / float16(1000)) * float16(current_track_length());
 
 		// 1/linearData.velocity = тик/мм
-		float16 currentFeed = linearData.feedVelocity * feedMult;
+		float16 currentFeed = linearData.maxFeedVelocity * feedMult;
 #ifdef USE_ADC_FEED
 		currentFeed *= (float16(int(adc.value())) >> 12); //на максимальном напряжении   *= 0.99999
 #endif
+/*log_console("step %d, %d, %d, %d\n", length.mantis, length.exponent,
+ currentFeed.mantis, currentFeed.exponent);*/
 
-		float16 deltaVelocity = linearData.acceleration * float16(linearData.lastPeriod);
-		if(linearData.velocity.mantis > 0 && linearData.velocity.exponent > deltaVelocity.exponent + 14)//TODO: защита от глюков, исправить увеличением разрядности
-			deltaVelocity.exponent = linearData.velocity.exponent - 14;
-
-		if(needStop)
+		int lastState = linearData.state;
+		if (needStop
+		// v^2 = 2g*h;
+		|| (pow2(linearData.velocity) > (linearData.acceleration * length << 1))
+		|| (linearData.velocity > currentFeed))
 		{
-			linearData.velocity -= deltaVelocity;
-			linearData.state = 0;
+			linearData.state = -1;
 		}
-		// v^2 = 2g*h; //length < linearData.accLength 
-		else if(pow2(linearData.velocity) > (linearData.acceleration * length << 1))
+		else if (linearData.velocity < currentFeed)
 		{
-			linearData.velocity -= deltaVelocity;
 			linearData.state = 1;
 		}
-		else if(linearData.velocity > currentFeed)
+		else
+			linearData.state = 0;
+
+		if (lastState != linearData.state)
 		{
-			linearData.velocity -= deltaVelocity;
-			linearData.state = 2;
+			linearData.lastVelocity = linearData.velocity;
+			linearData.lastTime = timer.get();
 		}
-		else if(linearData.velocity < currentFeed)
+
+		if (lastState == -1)
 		{
-			linearData.velocity += deltaVelocity;
+			int currentTime = timer.get();
+			int delta = currentTime - linearData.lastTime;
+			linearData.velocity = linearData.lastVelocity - float16(delta) * linearData.acceleration;
+			if (delta > 100000)
+			{
+				linearData.lastVelocity = linearData.velocity;
+				linearData.lastTime = currentTime;
+			}
+			if(linearData.velocity.mantis <= 0)
+			{
+				linearData.velocity.mantis = 0;
+				linearData.velocity.exponent = 0;
+			}
+		}
+		else if (lastState == 1)
+		{
+			int currentTime = timer.get();
+			int delta = currentTime - linearData.lastTime;
+			linearData.velocity = linearData.lastVelocity + float16(delta) * linearData.acceleration;
+			if (delta > 100000)
+			{
+				linearData.lastVelocity = linearData.velocity;
+				linearData.lastTime = currentTime;
+			}
 			if(linearData.velocity > currentFeed)
 				linearData.velocity = currentFeed;
-			linearData.state = 3;
 		}
-		else
-			linearData.state = 4;
-			
-		if(linearData.velocity.mantis <= 0)
+/*log_console("step %d, %d, %d, %d, %d, %d, %d\n", linearData.velocity.mantis, linearData.velocity.exponent,
+linearData.acceleration.mantis, linearData.acceleration.exponent,
+linearData.state,
+linearData.lastTime, timer.get()
+);*/
+		if (!brez_step())
 		{
-			linearData.velocity.mantis = 0;
-			linearData.velocity.exponent = 0;
-			linearData.lastPeriod = 10000;
+			if (current_track_length() == 0)
+				stop_motors();
+			return END;
 		}
-		else
-			linearData.lastPeriod = linearData.invProj / linearData.velocity;
-
-		stopTime = timer.get_mks(startTime, linearData.lastPeriod);
 
 		return WAIT;
 	}
 
 
-//=====================================================================================================
-	void init_linear(int dest[NUM_COORDS], int refCoord, float16 acceleration, int uLength, float16 invProj, float16 velocity)
+	//=====================================================================================================
+	void init_linear(int dest[NUM_COORDS], int refCoord, float16 acceleration, int uLength, float16 length, float16 velocity)
 	{
-		Track *track = &receiver.tracks.Front();
-__disable_irq();
-		while(track->segments == 0)
-		{
-			//log_console("fract2 %d\n", receiver.tracks.Size());
-			receiver.tracks.Pop();
-			linearData.velocity = 0;
-			linearData.lastPeriod = 1000;
-			track = &receiver.tracks.Front();
-		}
+		dec_track(uLength);
 
-		--track->segments;
-		track->uLength -= uLength;
-		if(track->uLength < 0)
-			log_console("err len %d, %d, %d\n", track->segments, track->uLength, uLength);
-__enable_irq();
-		
+		linearData.refCoord = refCoord; //используется в brez_init
+
 		if(!brez_init(dest)) //если двигаться никуда не надо, то выйдет на первом такте
 		{
-			log_console("err brez %d, %d, %d\n", dest[0], dest[1], dest[2]);
+			log_console("ERR: brez %d, %d, %d\n", dest[0], dest[1], dest[2]);
 			return;
 		}
-		
-		linearData.refCoord = refCoord;
-		linearData.refDelta = linearData.delta[refCoord];     //находим опорную координату (максимальной длины)
+
+		start_motors();
+
 		linearData.acceleration = acceleration;
-		linearData.feedVelocity = velocity;
-		linearData.invProj = invProj;
-		
-		//log_console("len %d, acc %d, vel %d, ref %d\n", accLength, linearData.maxrAcceleration, linearData.maxrVelocity, ref);
-		
-		motor[0].set_direction(linearData.add[0] > 0);
-		motor[1].set_direction(linearData.add[0] > 0);
-		motor[2].set_direction(linearData.add[1] > 0);
-		motor[3].set_direction(linearData.add[2] > 0);
-			
+		linearData.maxFeedVelocity = velocity;
+		linearData.invProj = length / float16(linearData.size[refCoord] * linearData.sign[refCoord]);
+
+		for (int i = 0; i < NUM_COORDS; ++i)
+		{
+			motor[i].set_direction(linearData.sign[i] > 0);
+			//нужна скорость в тиках/шаг по оси
+			//есть скорость мм/тик вдоль отрезка
+			//находим проекцию на ось
+			//stepLength[i]; мм/шаг
+			if (linearData.size[i] == 0)
+				linearData.velCoef[i].mantis = linearData.velCoef[i].exponent = 0;
+			else
+				linearData.velCoef[i] = length / float16(linearData.size[i]);
+		}
+
 		handler = &Mover::linear;
 	}
 
-	
-//=====================================================================================================
+
+	//=====================================================================================================
 	OperateResult empty()
 	{
 		if((unsigned int)timer.get() % 12000000 > 6000000)
 			led.show();
 		else
 			led.hide();
-			
+
 		if(receiver.queue.IsEmpty())
-		{
-			stopTime = timer.get_ms(10);
 			return WAIT;
-		}
 		else
 			return END;
 	}
-	
-	
-//=====================================================================================================
+
+
+	//=====================================================================================================
 	void init_empty()
 	{
 		handler = &Mover::empty;
 	}
-	
-	
-//=====================================================================================================
+
+
+	//=====================================================================================================
+	OperateResult wait()
+	{
+		if(timer.check(stopTime))
+			return WAIT;
+		else
+			return END;
+	}
+
+
+	//=====================================================================================================
+	void init_wait(int delay)
+	{
+		stopTime = timer.get_mks(delay);
+		handler = &Mover::wait;
+	}
+
+
+	//=====================================================================================================
+	void process_packet_move(PacketMove *packet)
+	{
+		switch (interpolation)
+		{
+		case MoveMode_FAST:
+		case MoveMode_LINEAR:
+			{
+				led.flip();
+
+				//log_console("pos %7d, %7d, %5d, time %d init\n",
+				//       packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
+				send_packet_service_coords(coord);
+				init_linear(packet->coord, packet->refCoord, packet->acceleration, packet->uLength, packet->length, packet->velocity);
+				break;
+			}
+		}
+
+		//log_console("posle1  first %d, last %d\n", receiver.queue.first, receiver.queue.last);
+	}
+
+
+	//=====================================================================================================
 	typedef OperateResult (Mover::*Handler)();
 	Handler handler;
-	
+
 	void update()
 	{
-		startTime = timer.get();
-		motor[0].set_position(bufCoord[0]);
-		motor[1].set_position(bufCoord[0]);
-		motor[2].set_position(bufCoord[1]);
-		motor[3].set_position(bufCoord[2]);
-		
-		for(int i = 0; i < NUM_COORDS; ++i)
-			coord[i] = bufCoord[i];
-		
 		OperateResult result = (this->*handler)();
 		if(result == END) //если у нас что-то шло и кончилось
 		{
@@ -476,72 +636,47 @@ __enable_irq();
 			}
 			else
 			{
-			  //log_console("DO  first %d, last %d\n", receiver.queue.first, receiver.queue.last);	
-
 				const PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
 				send_packet_service_command(common->packetNumber);
-				//log_console("queue[%d] = %d\n", receiver.queue.first, common->command);
+				
 				switch(common->command)
 				{
-					case DeviceCommand_MOVE:
+				case DeviceCommand_MOVE:
 					{
-						switch (interpolation)
-						{
-							case MoveMode_FAST:
-							case MoveMode_LINEAR:
-							{
-								PacketMove *packet = (PacketMove*)common;
-								led.flip();
-
-			//log_console("pos %7d, %7d, %5d, time %d init\n",
-			 //       packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
-								send_packet_service_coords(coord);
-								init_linear(packet->coord, packet->refCoord, packet->acceleration, packet->uLength, packet->invProj, packet->velocity);
-								break;
-							}
-						}
-
-			      //log_console("posle1  first %d, last %d\n", receiver.queue.first, receiver.queue.last);
+						process_packet_move((PacketMove*)common);
 						break;
 					}
-					case DeviceCommand_MOVE_MODE:
+				case DeviceCommand_MOVE_MODE:
 					{
 						interpolation = ((PacketInterpolationMode*)common)->mode;
 						log_console("mode %d\n", interpolation);
-            //log_console("posle2  first %d, last %d\n",
-			      //     receiver.queue.first, receiver.queue.last);
-						
+
 						break;
 					}
-					case DeviceCommand_SET_BOUNDS:
+				case DeviceCommand_SET_BOUNDS:
+				{
+					//PacketSetBounds *packet = (PacketSetBounds*)common;
+					break;
+				}
+				case DeviceCommand_SET_VEL_ACC:
+				{
+					PacketSetVelAcc *packet = (PacketSetVelAcc*)common;
+					for(int i = 0; i < NUM_COORDS; ++i)
 					{
-						PacketSetBounds *packet = (PacketSetBounds*)common;
-						for(int i = 0; i < NUM_COORDS; ++i)
-						{
-							minCoord[i] = packet->minCoord[i];
-							maxCoord[i] = packet->maxCoord[i];
-						}
-						break;
+						maxVelocity[i] = packet->maxVelocity[i];
+						maxAcceleration[i] = packet->maxAcceleration[i];
+						log_console("[%d]: maxVel %d, maxAcc %d\n", i, int(maxVelocity[i]), int(maxAcceleration[i]));
 					}
-					case DeviceCommand_SET_VEL_ACC:
+					break;
+				}
+				case DeviceCommand_SET_FEED:
 					{
-						PacketSetVelAcc *packet = (PacketSetVelAcc*)common;
-						for(int i = 0; i < NUM_COORDS; ++i)
-						{
-							maxVelocity[i] = packet->maxVelocity[i];
-							maxAcceleration[i] = packet->maxAcceleration[i];
-							log_console("[%d]: maxVel %d, maxAcc %d\n", i, int(maxVelocity[i]), int(maxAcceleration[i]));
-						}
-						break;
-					}
-					case DeviceCommand_SET_FEED:
-					{
-						PacketSetFeed *packet = (PacketSetFeed*)common;
+						/*PacketSetFeed *packet = (PacketSetFeed*)common;
 						linearData.feedVelocity = packet->feedVel;
-						log_console("feed %d\n", int(linearData.feedVelocity));
+						log_console("feed %d\n", int(linearData.feedVelocity));*/
 						break;
 					}
-					case DeviceCommand_SET_STEP_SIZE:
+				case DeviceCommand_SET_STEP_SIZE:
 					{
 						PacketSetStepSize *packet = (PacketSetStepSize*)common;
 						for(int i = 0; i < NUM_COORDS; ++i)
@@ -551,44 +686,40 @@ __enable_irq();
 						}
 						break;
 					}
-					case DeviceCommand_WAIT:
+				case DeviceCommand_WAIT:
 					{
-						init_empty();
 						PacketWait *packet = (PacketWait*)common;
-						stopTime = timer.get_mks(packet->delay);
+						init_wait(packet->delay);
 						break;
 					}
-						
-					default:
-						log_console("undefined packet type %d, %d\n", common->command, common->packetNumber);
-						break;
+
+				default:
+					log_console("ERR: undefined packet type %d, %d\n", common->command, common->packetNumber);
+					break;
 				}
-				
+
 				receiver.queue.Pop();
 				//log_console("POSLE  first %d, last %d\n",
 				//      receiver.queue.first, receiver.queue.last);
 			}
 		}
 	}
-	
-	
-//=====================================================================================================
+
+
+	//=====================================================================================================
 	void init()
 	{
 		for(int i = 0; i < NUM_COORDS; i++)
 		{
-			minCoord[i] = 0;
-			maxCoord[i] = 0;
 			coord[i] = 0;
-			bufCoord[i] = 0;
 		}
-		
+
 		needStop = false;
 		stopTime = 0;
 		handler = &Mover::empty;
-		
+
 		//это должно задаваться с компьютера
-		for(int i = 0; i < NUM_COORDS; i++)
+		/*for(int i = 0; i < NUM_COORDS; i++)
 		{
 			const float stepSize = 0.1f; //0.1 мм на шаг
 			const float mmsec = 100; //мм/сек
@@ -597,20 +728,83 @@ __enable_irq();
 			
 			maxVelocity[i] = mmsec/stepSize*delay;
 			maxAcceleration[i] = accel/stepSize*delay*delay;
-		}
+		}*/
 		interpolation = MoveMode_FAST;
 		//feedVelocity = maxVelocity[0]; //для обычной подачи задержка больше
 		feedMult = 1;
+	}
+
+	//=====================================================================================================
+	//вызывается в потоке приёма
+	void new_track()
+	{
+		if(receiver.tracks.IsFull())
+			log_console("ERR: fracts overflow %d\n", 1);
+		Track track;
+		track.segments = 0;
+		track.uLength = 0;
+		receiver.tracks.Push(track);
+		//log_console("fract %d\n", receiver.tracks.Size());
+	}
+
+	//=====================================================================================================
+	//вызывается в потоке приёма перед добавлением пакета
+	void add_to_track(int length)
+	{
+		if(receiver.tracks.IsEmpty())
+		{
+			Track track;
+			track.segments = 0;
+			track.uLength = 0;
+			receiver.tracks.Push(track);
+			log_console("no fract %d\n", 0);
+		}
+		Track *track = &receiver.tracks.Back();
+		++track->segments;
+		track->uLength += length;
+		//log_console("move %d, %d, %d\n", track->uLength, track->segments, receiver.tracks.Size());
+	}
+
+	//=====================================================================================================
+	//вызывается в основном потоке
+	//на момент извлечения отрезок уже есть в линии,
+	//так что число отрезков в ней != 0
+	void dec_track(int uLength)
+	{
+		Track *track = &receiver.tracks.Front();
+		__disable_irq();
+		while(track->segments == 0)
+		{
+			//log_console("fract2 %d\n", receiver.tracks.Size());
+			receiver.tracks.Pop();
+			linearData.velocity = 0;         //при завершении линии сбрасываем скорость
+			linearData.state = 0;
+			track = &receiver.tracks.Front();
+		}
+
+		--track->segments;
+		track->uLength -= uLength;
+		if(track->uLength < 0) //вычитаем то, что перед этим было добавлено
+			log_console("ERR: len %d, %d, %d\n", track->segments, track->uLength, uLength);
+		__enable_irq();
+	}
+
+	//=====================================================================================================
+	int current_track_length()
+	{
+		return receiver.tracks.Front().uLength;
 	}
 };
 
 Mover mover;
 
+
+//=====================================================================================================
 void process_packet(char *common, int size)
 {
 	switch(((PacketCommon*)common)->command)
 	{
-		case DeviceCommand_SET_FEED_MULT:
+	case DeviceCommand_SET_FEED_MULT:
 		{
 			PacketSetFeedMult *packet = (PacketSetFeedMult*)common;
 			mover.feedMult = packet->feedMult;
@@ -618,7 +812,7 @@ void process_packet(char *common, int size)
 			send_packet_received(++receiver.packetNumber);
 			break;
 		}
-		case DeviceCommand_PAUSE:
+	case DeviceCommand_PAUSE:
 		{
 			PacketPause *packet = (PacketPause*)common;
 			mover.needStop = (packet->needStop != 0);
@@ -626,41 +820,20 @@ void process_packet(char *common, int size)
 			send_packet_received(++receiver.packetNumber);
 			break;
 		}
-		default:
+	default:
 		{
 			if(!receiver.queue.IsFull())
 			{
 				++(receiver.packetNumber);
 				if(*common == DeviceCommand_SET_FRACT)
-				{
-					if(receiver.tracks.IsFull())
-						log_console("fract full %d\n", 1);
-					Track track;
-					track.segments = 0;
-					track.uLength = 0;
-					receiver.tracks.Push(track);
-					//log_console("fract %d\n", receiver.tracks.Size());
-				}
+					mover.new_track();
 				else if(*common == DeviceCommand_MOVE)
-				{
-					if(receiver.tracks.IsEmpty())
-					{
-						Track track;
-						track.segments = 0;
-						track.uLength = 0;
-						receiver.tracks.Push(track);
-						log_console("no fract %d\n", 0);
-					}
-					Track *track = &receiver.tracks.Back();
-					++track->segments;
-					track->uLength += ((PacketMove*)common)->uLength;
-					//log_console("move %d, %d, %d\n", track->uLength, track->segments, receiver.tracks.Size());
-				}
+					mover.add_to_track(((PacketMove*)common)->uLength);
+
 				if(*common != DeviceCommand_SET_FRACT)
 				{
 					push_received_packet(common, size); //при использовании указателей можно было бы не копировать ещё раз
 					send_packet_received(receiver.packetNumber); //говорим, что приняли пакет
-					//log_console("\nGOTOV %d %d\n", common->packetNumber, receiver.packetNumber);
 				}
 			}
 			else

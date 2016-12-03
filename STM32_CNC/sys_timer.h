@@ -13,7 +13,7 @@ class SysTimer
 		}
 		
 		inline int get()
-		{
+		{//DWT->CYCCNT
 			return (highCounter - SysTick->VAL); //mks*24
 		}
 		
