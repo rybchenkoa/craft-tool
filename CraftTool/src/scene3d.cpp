@@ -1,5 +1,7 @@
 #include "scene3d.h"
 #include <QWheelEvent>
+#include <QCursor>
+#include <QApplication>
 #include "log.h"
 //#include "ui_mainwindow.h"
 
@@ -14,7 +16,7 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
     m_showGrid = true;
 
     camera.scale = 1;
-    camera.position = glm::vec3(0,0,2000);  //находится сверху
+    camera.position = glm::vec3(0,0,0);  //находится сверху
     camera.look     = glm::vec3(0,0,-1); //смотрит вниз
     camera.top      = glm::vec3(0,1,0);  //смотрит ровно
 
@@ -73,15 +75,27 @@ void Scene3d::mouseMoveEvent(QMouseEvent* pe)
 {
     if(m_mousePressed)
     {
-        float scale = 5.1f;
-        float x = (float(m_lastMousePosition.x()) / width() - 0.5)*2;
-        float y = (1 - float(m_lastMousePosition.y()) / height() - 0.5)*2;
-        float newX = (float(pe->x()) / width() - 0.5)*2;
-        float newY = (1 - float(pe->y()) / height() - 0.5)*2;
-        float deltaX = scale * (newX - x);
-        float deltaY = scale * (newY - y);
+        if (QApplication::keyboardModifiers() == Qt::ShiftModifier)
+        {
+            float dx = pe->x() - m_lastMousePosition.x();
+            float dy = -pe->y() + m_lastMousePosition.y();
+            glm::vec3 axisX = glm::cross(camera.look, camera.top);
+            glm::vec3 axisY = camera.top;
+            camera.position -= dx / camera.scale * axisX + dy / camera.scale * axisY;
+        }
+        else
+        {
+            float scale = 5.1f;
+            float x = (float(m_lastMousePosition.x()) / width() - 0.5)*2;
+            float y = (1 - float(m_lastMousePosition.y()) / height() - 0.5)*2;
+            float newX = (float(pe->x()) / width() - 0.5)*2;
+            float newY = (1 - float(pe->y()) / height() - 0.5)*2;
+            float deltaX = scale * (newX - x);
+            float deltaY = scale * (newY - y);
 
-        camera.rotate_cursor(x, y, deltaX, deltaY);
+            camera.rotate_cursor(x, y, deltaX, deltaY);
+        }
+
         recalc_matrices();
         updateGL();
 
@@ -92,10 +106,23 @@ void Scene3d::mouseMoveEvent(QMouseEvent* pe)
 //--------------------------------------------------------------------
 void Scene3d::wheelEvent(QWheelEvent* pe)
 {
+    float scale;
     if (pe->delta() > 0)
-        camera.scale *= 2;
+        scale = 2;
     else if (pe->delta() < 0)
-        camera.scale /= 2;
+        scale = 0.5;
+
+    if (scale > 1)
+    {
+        QPoint cur = mapFromGlobal(QCursor::pos());
+        float curX = (float)cur.x() - width() * 0.5f;
+        float curY = -(float)cur.y() + height() * 0.5f;
+        glm::vec3 axisX = glm::cross(camera.look, camera.top);
+        glm::vec3 axisY = camera.top;
+        float offset = (1 - 1/scale) / camera.scale;
+        camera.position += offset * curX * axisX + offset * curY * axisY;
+    }
+    camera.scale *= scale;
 
     recalc_matrices();
     updateGL();
@@ -152,7 +179,7 @@ void Scene3d::draw_track()
     {
         if (track[i].isFast)
         {
-            continue;
+            //continue;
             glColor4f(0.3f, 0.1f, 0.0f, 0.1f);
         }
         else
@@ -270,16 +297,21 @@ void Scene3d::update_tool_coords(float x, float y, float z)
 //--------------------------------------------------------------------
 void Camera::recalc_matrix(int width, int height)
 {
-    glm::mat4 mView  = glm::lookAt(position,
-                                   position + look,
+    glm::mat4 mView  = glm::lookAt(position-look,
+                                   position,
                                    top);
 
-    float fscale = scale * 1000; //1пиксель - 1мм
+    float fscale = scale * 2; //1пиксель - 1мм, координаты на виджете от -1 до 1
     glm::mat4 mScale = glm::scale(glm::mat4(), glm::vec3(fscale/width, fscale/height, 1.f));
 
-    glm::mat4 mProj  = glm::perspective(glm::pi<float>()/4, 1.f, 0.01f, 10000.0f);
+    //float angle = glm::pi<float>()/40;
+    //glm::mat4 mProj  = glm::perspective(angle, 1.0f, 0.0f, 10000.0f);
+    glm::mat4 mProj  = glm::ortho(-1.f,1.f,-1.f,1.f, -1000.f, 10000.f);
 
-    viewProjection = mProj * mScale * mView;// * mScale;
+    //сначала располагаем объекты перед камерой
+    //потом масштабируем по размеру окна
+    //и считаем искривление перспективы
+    viewProjection = mProj * mScale * mView;
 
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(glm::value_ptr(viewProjection));
@@ -304,7 +336,7 @@ void Camera::rotate_cursor(float x, float y, float deltaX, float deltaY)
     rotation = glm::rotate(rotation, glm::sqrt(deltaX*deltaX + deltaY*deltaY), localAxis);
 
     look = glm::vec3(glm::vec4(look,0) * rotation);
-    position = glm::vec3(glm::vec4(position,0) * rotation);
+    //position = glm::vec3(glm::vec4(position,0) * rotation);
     top = glm::vec3(glm::vec4(top,0) * rotation);
 }
 
@@ -358,7 +390,7 @@ void make_cylinder(Object3d& edge, int divs)
             pos.x = from.position.x * cosPhi - from.position.y * sinPhi;
             pos.y = from.position.y * cosPhi + from.position.x * sinPhi;
             pos.z = from.position.z;
-            glm::vec3 color((rand()%1000)/1000.0,0,0);
+            glm::vec3 color((rand()%1000)/10000.0 + 0.8,0,0);
             Vertex to(pos, color);
 
             edge.verts.push_back(to);
@@ -392,10 +424,10 @@ void make_tool_simple(Object3d& tool)
     //glm::vec3 color(1,0,0);
     for(int i = 0; i < _countof(simple); ++i)
     {
-        glm::vec3 color((rand()%1000)/1000.0,0,0);
+        glm::vec3 color((rand()%1000)/100000.0+0.8,0,0);
         Vertex vert(simple[i], color);
         tool.verts.push_back(vert);
     }
 
-    make_cylinder(tool, 4);
+    make_cylinder(tool, 20);
 }
