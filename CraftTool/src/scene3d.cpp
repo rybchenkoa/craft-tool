@@ -282,33 +282,44 @@ void Scene3d::draw_grid()
 	float width = m_windowWidth / camera.scale;
 	float height = m_windowHeight / camera.scale;
 
+	glm::vec4 pos0 = camera.viewProjection * glm::vec4(0.f, 0.f, 0.f, 1.f);
+	pos0.x += 1.f;
+	pos0.x *= -width/2;
+	pos0.y += 1.f;
+	pos0.y *= -height/2;
+
+	float offsetX = -pos0.x + floor(pos0.x / quadSize) * quadSize;
+	float offsetY = -pos0.y + floor(pos0.y / quadSize) * quadSize;
+
     glBegin(GL_LINES);
 
+		//мелкая сетка
 		float alpha = 0.2 + quadSize / maxSize * 0.7;
 		glColor4f(0.8f, 0.5f, 0.0f, alpha/3);
-	    for(float x = -width/2; x < width / 2; x += quadSize / 10)
+	    for(float x = -width/2; x < width / 2 + quadSize; x += quadSize / 10)
         {
-            glVertex2f(x, -height/2);
-            glVertex2f(x,  height/2);
+            glVertex2f(x + offsetX, -height/2);
+            glVertex2f(x + offsetX,  height/2);
         }
 
-		for(float y = -height/2; y < height / 2; y += quadSize / 10)
+		for(float y = -height/2; y < height / 2 + quadSize; y += quadSize / 10)
         {
-            glVertex2f(-width/2, y);
-            glVertex2f( width/2, y);
+            glVertex2f(-width/2, y + offsetY);
+            glVertex2f( width/2, y + offsetY);
         }
 
+		//крупная сетка
 		glColor4f(0.8f, 0.5f, 0.0f, 1.f/3);
-        for(float x = -width/2; x < width / 2; x += quadSize)
+        for(float x = -width/2; x < width / 2 + quadSize; x += quadSize)
         {
-            glVertex2f(x, -height/2);
-            glVertex2f(x,  height/2);
+            glVertex2f(x + offsetX, -height/2);
+            glVertex2f(x + offsetX,  height/2);
         }
 
-        for(float y = -height/2; y < height / 2; y += quadSize)
+        for(float y = -height/2; y < height / 2 + quadSize; y += quadSize)
         {
-            glVertex2f(-width/2, y);
-            glVertex2f( width/2, y);
+            glVertex2f(-width/2, y + offsetY);
+            glVertex2f( width/2, y + offsetY);
         }
     glEnd();
 }
