@@ -39,9 +39,10 @@ Scene3d::~Scene3d()
 void Scene3d::initializeGL()
 {
    qglClearColor(Qt::black);
-   glEnable(GL_DEPTH_TEST);
    glShadeModel(GL_FLAT);
    glEnable(GL_CULL_FACE);
+   glEnable(GL_BLEND);
+   glBlendFunc(GL_SRC_ALPHA,GL_ONE);
 
    /*getVertexArray();
    getColorArray();
@@ -96,7 +97,7 @@ void Scene3d::mouseMoveEvent(QMouseEvent* pe)
             camera.rotate_cursor(x, y, deltaX, deltaY);
         }
 
-        recalc_matrices();
+        //recalc_matrices();
         updateGL();
 
         m_lastMousePosition = pe->pos();
@@ -108,9 +109,9 @@ void Scene3d::wheelEvent(QWheelEvent* pe)
 {
     float scale;
     if (pe->delta() > 0)
-        scale = 2;
+        scale = 4.f/3;
     else if (pe->delta() < 0)
-        scale = 0.5;
+        scale = 3.f/4;
 
     if (scale > 1)
     {
@@ -124,7 +125,7 @@ void Scene3d::wheelEvent(QWheelEvent* pe)
     }
     camera.scale *= scale;
 
-    recalc_matrices();
+    //recalc_matrices();
     updateGL();
     log_message("%f\n", camera.scale);
 }
@@ -139,7 +140,7 @@ void Scene3d::resizeGL(int nWidth, int nHeight)
 
     glMatrixMode(GL_PROJECTION);
 
-    recalc_matrices();
+    //recalc_matrices();
 }
 
 //--------------------------------------------------------------------
@@ -159,11 +160,18 @@ void Scene3d::paintGL()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
+	glEnable(GL_DEPTH_TEST);
     draw_bounds();
-    draw_grid();
+    draw_3d_grid();
     draw_track();
     draw_real_track();
     tool.draw();
+	glDisable(GL_DEPTH_TEST);
+
+	camera.screen_matrix(m_windowWidth, m_windowHeight);
+
+	if (m_showGrid)
+		draw_grid();
 
     glFlush();
 
@@ -238,7 +246,7 @@ void Scene3d::draw_bounds()
 }
 
 //--------------------------------------------------------------------
-void Scene3d::draw_grid()
+void Scene3d::draw_3d_grid()
 {
     glColor3f(0.3f, 0.0f, 0.0f);
 
@@ -253,6 +261,54 @@ void Scene3d::draw_grid()
         {
             glVertex3f(0,y,-m_zoneTop);
             glVertex3f(m_zoneWidth,y,-m_zoneTop);
+        }
+    glEnd();
+}
+
+//--------------------------------------------------------------------
+void Scene3d::draw_grid()
+{
+	//при масштабе 1:1 квадрат занимает 500 пикселей, это его максимальный размер
+	//на 1 толстую линию еще 10 тонких
+	//если между совсем тонкими больше 2 пикселей, показываем и их
+	float maxSize = 500.f / camera.scale;
+	float quadSize = 1.f;
+
+	while (quadSize < maxSize) //находим подходящий размер
+		quadSize *= 10;
+	while (quadSize > maxSize)
+		quadSize /= 10;
+
+	float width = m_windowWidth / camera.scale;
+	float height = m_windowHeight / camera.scale;
+
+    glBegin(GL_LINES);
+
+		float alpha = 0.2 + quadSize / maxSize * 0.7;
+		glColor4f(0.8f, 0.5f, 0.0f, alpha/3);
+	    for(float x = -width/2; x < width / 2; x += quadSize / 10)
+        {
+            glVertex2f(x, -height/2);
+            glVertex2f(x,  height/2);
+        }
+
+		for(float y = -height/2; y < height / 2; y += quadSize / 10)
+        {
+            glVertex2f(-width/2, y);
+            glVertex2f( width/2, y);
+        }
+
+		glColor4f(0.8f, 0.5f, 0.0f, 1.f/3);
+        for(float x = -width/2; x < width / 2; x += quadSize)
+        {
+            glVertex2f(x, -height/2);
+            glVertex2f(x,  height/2);
+        }
+
+        for(float y = -height/2; y < height / 2; y += quadSize)
+        {
+            glVertex2f(-width/2, y);
+            glVertex2f( width/2, y);
         }
     glEnd();
 }
@@ -315,6 +371,16 @@ void Camera::recalc_matrix(int width, int height)
 
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(glm::value_ptr(viewProjection));
+}
+
+//--------------------------------------------------------------------
+void Camera::screen_matrix(int width, int height)
+{
+    float fscale = scale * 2; //1пиксель - 1мм, координаты на виджете от -1 до 1
+    glm::mat4 mScale = glm::scale(glm::mat4(), glm::vec3(fscale/width, fscale/height, 1.f));
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(glm::value_ptr(mScale));
 }
 
 //--------------------------------------------------------------------

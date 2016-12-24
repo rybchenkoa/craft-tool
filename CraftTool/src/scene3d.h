@@ -24,6 +24,7 @@ struct Camera
 
     void recalc_matrix(int width, int height);     //пересчитать матрицу проекции
     void rotate_cursor(float x, float y, float deltaX, float deltaY); //обработка поворота камеры
+	void screen_matrix(int width, int height);     //вывод 2d графики
 };
 
 struct Vertex
@@ -66,7 +67,8 @@ protected:
 
     void recalc_matrices();
     void draw_bounds();
-    void draw_grid();
+    void draw_3d_grid();
+	void draw_grid();
     void draw_track();
     void draw_real_track();
     void draw_border();
@@ -79,7 +81,7 @@ public:
     float  m_zoneHeight;
     float  m_zoneTop;
 
-    bool   m_showGrid;
+    bool   m_showGrid;   //показывать ли сетку масштаба
     float  m_gridStep;   //размер €чейки сетки
 
     QPoint m_lastMousePosition;
