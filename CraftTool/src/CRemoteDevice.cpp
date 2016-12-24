@@ -365,7 +365,7 @@ void CRemoteDevice::init()
     {
         float value;
         if(!g_config->get_float(key, value))
-            throw(std::string("key not found in konfig: ") + key);
+            throw(std::string("key not found in config: ") + key);
         return value;
     };
 

@@ -39,14 +39,22 @@ static DWORD WINAPI execute( LPVOID lpParam )
     {
         qWarning(message);
         log_warning(message);
-        return 0;
-        exit(1);
+        //return 0;
+        //exit(1);
     }
 
     g_inter->remoteDevice = remoteDevice;
 
-    g_device->init();
-    g_inter->init();
+	try
+    {
+		g_device->init();
+		g_inter->init();
+	}
+	catch(std::string message)
+    {
+        qWarning(message.c_str());
+        log_warning(message.c_str());
+    }
 
     return 0;
 }
