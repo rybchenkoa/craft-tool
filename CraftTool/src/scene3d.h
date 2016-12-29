@@ -13,6 +13,16 @@ struct TrackPoint
     glm::vec3 position;
 };
 
+enum View
+{
+	TOP,
+	BOTTOM,
+	LEFT,
+	RIGHT,
+	FRONT,
+	BACK
+};
+
 struct Camera
 {
     float     scale;          //масштаб изображения
@@ -54,6 +64,7 @@ class Scene3d :  public QGLWidget
 public:
     Scene3d(QWidget *parent = 0);
     ~Scene3d();
+	void set_view(View view);
 
 protected:
     void initializeGL();

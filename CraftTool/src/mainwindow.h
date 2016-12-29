@@ -39,6 +39,13 @@ public slots:
     void on_c_startButton_clicked();
     void on_c_refreshTrajectory_clicked();
     void on_c_pauseButton_clicked();
+
+	void on_c_topViewButton_clicked();
+	void on_c_bottomViewButton_clicked();
+	void on_c_frontViewButton_clicked();
+	void on_c_backViewButton_clicked();
+	void on_c_leftViewButton_clicked();
+	void on_c_rightViewButton_clicked();
 };
 
 #endif // MAINWINDOW_H

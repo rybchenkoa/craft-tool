@@ -134,6 +134,36 @@ void MainWindow::on_c_refreshTrajectory_clicked()
     ui->c_3dView->realTrack.clear();
 }
 
+void MainWindow::on_c_topViewButton_clicked()
+{
+	ui->c_3dView->set_view(View::TOP);
+}
+
+void MainWindow::on_c_bottomViewButton_clicked()
+{
+	ui->c_3dView->set_view(View::BOTTOM);
+}
+
+void MainWindow::on_c_frontViewButton_clicked()
+{
+	ui->c_3dView->set_view(View::FRONT);
+}
+
+void MainWindow::on_c_backViewButton_clicked()
+{
+	ui->c_3dView->set_view(View::BACK);
+}
+
+void MainWindow::on_c_leftViewButton_clicked()
+{
+	ui->c_3dView->set_view(View::LEFT);
+}
+
+void MainWindow::on_c_rightViewButton_clicked()
+{
+	ui->c_3dView->set_view(View::RIGHT);
+}
+
 void MainWindow::load_file(char *fileName)
 {
     g_inter->read_file(fileName); //читаем данные из файла

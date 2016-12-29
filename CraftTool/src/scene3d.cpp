@@ -362,6 +362,23 @@ void Scene3d::update_tool_coords(float x, float y, float z)
 }
 
 //--------------------------------------------------------------------
+void Scene3d::set_view(View view)
+{
+	glm::vec3 x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
+
+	switch(view)
+	{
+		case View::TOP: camera.look = -z; camera.top = y; break;
+		case View::BOTTOM: camera.look = z; camera.top = -y; break;
+		case View::LEFT: camera.look = x; camera.top = z; break;
+		case View::RIGHT: camera.look = -x; camera.top = z; break;
+		case View::FRONT: camera.look = y; camera.top = z; break;
+		case View::BACK: camera.look = -y; camera.top = z; break;
+	}
+	updateGL();
+}
+
+//--------------------------------------------------------------------
 void Camera::recalc_matrix(int width, int height)
 {
     glm::mat4 mView  = glm::lookAt(position-look,
