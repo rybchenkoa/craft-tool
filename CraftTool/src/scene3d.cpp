@@ -321,7 +321,45 @@ void Scene3d::draw_grid()
             glVertex2f(-width/2, y + offsetY);
             glVertex2f( width/2, y + offsetY);
         }
+
+		//מענוחמך לונû
+		float line = quadSize / 10;
+		float notch = 3.f / camera.scale;
+		float offset = 15.f / camera.scale;
+		float baseX = width/2 - line - offset;
+		float baseY = -height/2 + offset;
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		glVertex2f(baseX, baseY);
+		glVertex2f(baseX + line, baseY);
+
+		glVertex2f(baseX, baseY - notch);
+		glVertex2f(baseX, baseY + notch);
+
+		glVertex2f(baseX + line, baseY - notch);
+		glVertex2f(baseX + line, baseY + notch);
     glEnd();
+
+	int exp = floor(log10(line) + 0.5f);
+	QString text;
+	switch (exp)
+	{
+		case -3: text = QString::fromLocal8Bit("1 לךל"); break;
+		case -2: text = QString::fromLocal8Bit("10 לךל"); break;
+		case -1: text = QString::fromLocal8Bit("100 לךל"); break;
+		case 0: text = QString::fromLocal8Bit("1 לל"); break;
+		case 1: text = QString::fromLocal8Bit("1 סל"); break;
+		case 2: text = QString::fromLocal8Bit("10 סל"); break;
+		case 3: text = QString::fromLocal8Bit("1 ל"); break;
+		case 4: text = QString::fromLocal8Bit("10 ל"); break;
+		default: text = "undef"; break;
+	}
+
+	QFont font("Arial", 10, QFont::Bold);
+	QFontMetrics fm(font);
+	QRect rect = fm.boundingRect(text);
+	int x = m_windowWidth - (offset + line / 2) * camera.scale - rect.width() / 2;
+	int y = m_windowHeight - (offset + notch) * camera.scale;
+	renderText(x, y, text, font);
 }
 
 //--------------------------------------------------------------------
