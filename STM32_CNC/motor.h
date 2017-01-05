@@ -64,8 +64,9 @@ struct Motor
 					++_position;
 				else
 					--_position;
-				//_lastTime += _period; //запоминаем время шага
-				_lastTime = time;
+				_lastTime += _period; //запоминаем время шага (так должна получиться стабильная частота программных шагов)
+				if (time - _lastTime > _period/2) //чтобы не получилось, что при резком уменьшении времени шага сделало несколько шагов
+					_lastTime = time;
 			}
 		}
 	}
