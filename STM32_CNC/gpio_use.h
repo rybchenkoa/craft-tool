@@ -105,7 +105,8 @@ void config_step_timer(TIM_TypeDef *tim, DMA_Channel_TypeDef* dma, bool isNeg)
 	tim->ARR = 65000; //(минимальная частота = 2)на каждом апдейте меняем полярность выхода
 	tim->CNT = 0;
 	tim->CCR1 = 0; //выход переключается, когда значение совпадает, пусть это происходит в конце
-
+	tim->CR1 |= TIM_CR1_ARPE; //сравнение CNT == ARR, поэтому чтобы не пролететь мимо во время обновления
+	
 	//включаем выход
 	if (!isNeg)
 		tim->CCER |= TIM_CCER_CC1E | TIM_CCER_CC1P; //TIM_CCER_CC1P - обратная полярность
@@ -140,6 +141,7 @@ void config_pwm_timer()
 
 	TIM1->PSC = 0;
 	TIM1->ARR = PWM_SIZE;
+	TIM1->CR1 |= TIM_CR1_ARPE; //чтобы при обновлении с большего на меньшее не считать до 2^16
 	TIM1->CR1 |= TIM_CR1_CEN; //запускаем таймер
 }
 
