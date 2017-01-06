@@ -98,7 +98,7 @@ void Scene3d::mouseMoveEvent(QMouseEvent* pe)
         }
 
         //recalc_matrices();
-        updateGL();
+        update();
 
         m_lastMousePosition = pe->pos();
     }
@@ -126,7 +126,7 @@ void Scene3d::wheelEvent(QWheelEvent* pe)
     camera.scale *= scale;
 
     //recalc_matrices();
-    updateGL();
+    update();
     log_message("%f\n", camera.scale);
 }
 
@@ -396,7 +396,7 @@ void Scene3d::update_tool_coords(float x, float y, float z)
     tool.position = glm::vec3(x,y,z);
     if (realTrack.empty() || realTrack.back() != tool.position)
         realTrack.push_back(tool.position);
-    updateGL();
+    update();
 }
 
 //--------------------------------------------------------------------
@@ -413,7 +413,7 @@ void Scene3d::set_view(View view)
 		case View::FRONT: camera.look = y; camera.top = z; break;
 		case View::BACK: camera.look = -y; camera.top = z; break;
 	}
-	updateGL();
+	update();
 }
 
 //--------------------------------------------------------------------
