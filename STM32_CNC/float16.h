@@ -279,3 +279,13 @@ float16 abs(float16 value)
 	_mantis = (value.mantis > 0 ? value.mantis : -value.mantis);
 	return float16(_mantis, _exponent);
 }
+
+int sign(float16 value)
+{
+	if (value.mantis > 0)
+		return 1;
+	else if (value.mantis < 0)
+		return -1;
+	else
+		return 0;
+}
