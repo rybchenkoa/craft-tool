@@ -286,7 +286,8 @@ bool canLog;
 		bool enabled;          //моторы включены
 		int refCoord;          //индекс координаты, по которой шагаем
 		int size[NUM_COORDS];  //размеры линии
-		int err[NUM_COORDS];   //ошибка координат
+		int err[NUM_COORDS];   //ошибка координат (внутреннее представление)
+		int error[NUM_COORDS]; //ошибка координат
 		int sign[NUM_COORDS];  //изменение координаты при превышении ошибки {-1 || 1}
 		int last[NUM_COORDS];   //последние координаты: для которых была посчитана ошибка
 		float16 velCoef[NUM_COORDS]; //на что умножить скорость, чтобы получить число тактов на шаг
@@ -339,46 +340,56 @@ bool canLog;
 			int derr = dy * linearData.size[ref] - dx * linearData.size[i]; //находим ошибку текущей координаты//какой должен быть знак?
 			linearData.err[i] += derr;
 			linearData.last[i] = motor[i]._position;
+			
+			int floorAdd = linearData.size[ref] / 2 * isign(linearData.err[i]);
+			linearData.error[i] = (linearData.err[i] + floorAdd) / linearData.size[ref];
 		}
 	}
 
 	//=====================================================================================================
+	/*
+		один апдейт занимает T=3000 тактов в дебаге
+		время шага t=1000, ошибка e=1
+		надо сделать лишний шаг за эти 3000 сек
+		для этого изменим время шага
+		число шагов s=T/t между апдейтами
+		новое число шагов s1=T/t-e
+		t1=T/s1=T/(T/t-e)=Tt/(T-t*e)=t/(1-t*e/T)~=t*(1+t*e/T)
+	*/
 	void set_velocity()
 	{
-		//выбираем максимальную ошибку оси
-		//и для неё округляем скорость двигателя в меньшую сторону
-		int maxAxe = linearData.refCoord;//сначала считаем опорную максимальной
-		int maxErr = 0; //по опорной ошибка всегда = 0
-
-		for (int i = 0; i < NUM_COORDS; ++i)
-		{
-			int err = linearData.err[i];
-			if (err > maxErr)
-			{
-				maxErr = err;
-				maxAxe = i;
-			}
-		}
-
 		//задаем скорости
 		if (linearData.velocity.mantis != 0)
+		{
+			int stepTimeArr[NUM_COORDS];
 			for (int i = 0; i < NUM_COORDS; ++i)
 			{
 				if (linearData.velCoef[i].mantis == 0)
 				{
-					motor[i].set_period(MAX_STEP_TIME);
+					stepTimeArr[i] = MAX_STEP_TIME;
 					continue;
 				}
-				int stepTime = linearData.velCoef[i] / linearData.velocity;
-				if (i == maxAxe)
-					stepTime += (stepTime >> 2) + 1; //регулировка скорости на 1 %
+
+				float16 step = linearData.velCoef[i] / linearData.velocity;//linearData.maxFeedVelocity;//
+				int err = linearData.error[i];
+				float16 add = step * step * float16(err) / float16(1024); //t*(1+t*e/T)
+				float16 maxAdd = step * float16(0.1f); //регулировка скорости максимально на 10 %
+				if (abs(add) > maxAdd)
+					add = maxAdd * float16(sign(add));
+				int stepTime = step + add;
+				
 				if (uint32_t(stepTime) > MAX_STEP_TIME)
 					stepTime = MAX_STEP_TIME;
-				motor[i].set_period(stepTime);
+				stepTimeArr[i] = stepTime;
+			}
+			for (int i = 0; i < NUM_COORDS; ++i)
+			{
+				motor[i].set_period(stepTimeArr[i]);
 
-				//if(canLog) log_console("st[%d] = %d\n", i, stepTime);
+				if(canLog) log_console("st[%X] = %d\n", i, stepTimeArr[i]);
 			}
 			//if(canLog) log_console("maxe %d, %d\n", maxAxe, maxErr);
+		}
 	}
 
 	//=====================================================================================================
