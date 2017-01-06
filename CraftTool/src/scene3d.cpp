@@ -188,7 +188,7 @@ void Scene3d::draw_track()
         if (track[i].isFast)
         {
             //continue;
-            glColor4f(0.3f, 0.1f, 0.0f, 0.1f);
+            glColor4f(0.3f, 0.1f, 0.0f, 1.0f);
         }
         else
             glColor3f(0.1f, 0.3f, 0.0f);
@@ -201,11 +201,20 @@ void Scene3d::draw_track()
 //--------------------------------------------------------------------
 void Scene3d::draw_real_track()
 {
-    glBegin(GL_LINE_STRIP);
-    glColor3f(0.5f, 0.5f, 0.0f);
+	glColor3f(0.5f, 0.5f, 0.0f);
+    /*glBegin(GL_LINE_STRIP);
     for(size_t i = 0; i < realTrack.size(); ++i)
         glVertex3f(realTrack[i].x, realTrack[i].y, realTrack[i].z);
     glEnd();
+	*/
+	glEnableClientState(GL_VERTEX_ARRAY);
+	if (realTrack.size() > 0)
+	{
+		glVertexPointer(3, GL_FLOAT, 0, &realTrack[0]);
+		glDrawArrays(GL_LINE_STRIP, 0, realTrack.size());
+	}
+	glDisableClientState(GL_VERTEX_ARRAY);
+
 }
 
 //--------------------------------------------------------------------
