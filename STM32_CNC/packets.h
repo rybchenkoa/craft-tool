@@ -40,7 +40,7 @@ struct PacketCommon
 };
 struct PacketMove : public PacketCommon
 {
-	int coord[NUM_COORDS];
+	__packed int coord[NUM_COORDS];
 	char refCoord;
 	float16 velocity;      //скорость подачи, мм/тик
 	float16 acceleration;  //ускорение, мм/тик^2
@@ -57,10 +57,10 @@ struct PacketInterpolationMode : public PacketCommon
 };
 struct PacketSetBounds : public PacketCommon
 {
-	int minCoord[NUM_COORDS];
-	int maxCoord[NUM_COORDS];
+	__packed int minCoord[NUM_COORDS];
+	__packed int maxCoord[NUM_COORDS];
 };
-struct PacketSetVelAcc : public PacketCommon
+struct PacketSetVelAcc : public PacketCommon //осторожно, объявлено без packed
 {
 	float16 maxVelocity[NUM_COORDS];
 	float16 maxAcceleration[NUM_COORDS];
@@ -75,7 +75,7 @@ struct PacketSetFeedMult : public PacketCommon
 };
 struct PacketSetStepSize : public PacketCommon
 {
-	float stepSize[NUM_COORDS];
+	__packed float stepSize[NUM_COORDS];
 };
 struct PacketFract : public PacketCommon
 {
@@ -106,7 +106,7 @@ struct PacketErrorPacketNumber //сообщение о том, что сбила
 struct PacketServiceCoords  //сообщение с текущими координатами сверла
 {
 	DeviceCommand command;
-	int coords[NUM_COORDS];
+	__packed int coords[NUM_COORDS];
 	int crc;
 };
 struct PacketServiceCommand  //сообщение с текущим исполняемым пакетом

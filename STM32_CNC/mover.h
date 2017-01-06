@@ -611,7 +611,10 @@ linearData.lastTime, timer.get()
 				//log_console("pos %7d, %7d, %5d, time %d init\n",
 				//       packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
 				send_packet_service_coords(coord);
-				init_linear(packet->coord, packet->refCoord, packet->acceleration, packet->uLength, packet->length, packet->velocity);
+				int coord[NUM_COORDS];
+				for (int i = 0; i < NUM_COORDS; ++i)
+					coord[i] = packet->coord[i];
+				init_linear(coord, packet->refCoord, packet->acceleration, packet->uLength, packet->length, packet->velocity);
 				break;
 			}
 		}
