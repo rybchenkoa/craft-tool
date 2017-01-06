@@ -68,4 +68,8 @@ int main()
 	}
 }
 
-
+extern "C" void NMI_Handler()
+{
+	RCC->CIR |= RCC_CIR_CSSC; //если сломалось тактирование от внешнего кварца
+	log_console("err: external quarz has broken, use internal source %d\n", 0);//сообщим об этом и будем работать от внутреннего
+}
