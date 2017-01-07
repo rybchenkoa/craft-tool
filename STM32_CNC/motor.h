@@ -99,6 +99,14 @@ struct Motor
 				enable_step_timer(_index);
 				_isHardware = true;
 			}
+			else //масштабируем прошедшее время для более точного учета шагов
+			{
+				int curTime = timer.get();
+				int timeLeft = _lastTime + _period - curTime;
+				//timeLeft = timeLeft * period / _period, чтобы не было потери точности, это выражение переписано в другом виде
+				timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
+				_lastTime = curTime - period + timeLeft;
+			}
 		}
 		_period = period;
 	}
