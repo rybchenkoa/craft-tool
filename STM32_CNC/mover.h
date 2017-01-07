@@ -362,6 +362,7 @@ bool canLog;
 		if (linearData.velocity.mantis != 0)
 		{
 			int stepTimeArr[NUM_COORDS];
+			float16 errCoef = float16(1.0f) / float16(linearData.size[linearData.refCoord]);
 			for (int i = 0; i < NUM_COORDS; ++i)
 			{
 				if (linearData.velCoef[i].mantis == 0)
@@ -371,8 +372,8 @@ bool canLog;
 				}
 
 				float16 step = linearData.velCoef[i] / linearData.velocity;//linearData.maxFeedVelocity;//
-				int err = linearData.error[i];
-				float16 add = step * step * float16(err) / float16(1024); //t*(1+t*e/T)
+				int err = linearData.err[i];
+				float16 add = step * step * float16(err) * errCoef / float16(1024); //t*(1+t*e/T)
 				float16 maxAdd = step * float16(0.1f); //регулировка скорости максимально на 10 %
 				if (abs(add) > maxAdd)
 					add = maxAdd * float16(sign(add));
