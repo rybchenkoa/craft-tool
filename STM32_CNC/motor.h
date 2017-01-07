@@ -91,7 +91,10 @@ struct Motor
 			if (period < MAX_PERIOD) //переключаем на аппаратный счёт
 			{
 				set_step_time(_index, period);
-				set_next_step_time(_index, _lastTime + _period - timer.get());
+				int timeLeft = _lastTime + _period - timer.get();
+				if (timeLeft < 0)
+					timeLeft = 0;
+				set_next_step_time(_index, timeLeft);
 				_lastCnt = get_steps(_index);
 				enable_step_timer(_index);
 				_isHardware = true;
