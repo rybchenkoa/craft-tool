@@ -21,7 +21,7 @@ int ComPortConnect::init_port(int portNumber)
     if (!GetCommState(hCom, &dcb))
         throw("cant read port params");
 
-    dcb.BaudRate = 500000;//115200;
+    dcb.BaudRate = 230400;//460800;//115200;//500000;//
     dcb.ByteSize = 8;
     dcb.Parity = NOPARITY;
     dcb.StopBits = ONESTOPBIT;
