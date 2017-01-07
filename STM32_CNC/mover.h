@@ -474,9 +474,12 @@ bool canLog;
  currentFeed.mantis, currentFeed.exponent);*/
 
 		int lastState = linearData.state;
-		if (needStop
-		// v^2 = 2g*h;
-		|| (pow2(linearData.velocity) > (linearData.acceleration * length << 1))
+		//v^2 = 2g*h; //сначала проверяем, что не врежемся с разгона
+		if (pow2(linearData.velocity) > (linearData.acceleration * length << 1))
+		{
+			linearData.state = -2;
+		}
+		else if (needStop
 		|| (linearData.velocity > currentFeed))
 		{
 			linearData.state = -1;
@@ -494,7 +497,12 @@ bool canLog;
 			linearData.lastTime = timer.get();
 		}
 
-		if (lastState == -1)
+		if (lastState == -2)
+		{
+			//v = sqrt(2*g*h)
+			linearData.velocity = sqrt(linearData.acceleration * length << 1);
+		}
+		else if (lastState == -1)
 		{
 			int currentTime = timer.get();
 			int delta = currentTime - linearData.lastTime;
