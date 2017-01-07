@@ -39,6 +39,9 @@ struct Motor
 	//захватывает текущее состояние шагов
 	void shot(int time)
 	{
+		if (_period == MAX_STEP_TIME)
+			return;
+			
 		if (_isHardware) //аппаратные шаги
 		{
 			int currentCnt = get_steps(_index);
@@ -102,10 +105,15 @@ struct Motor
 			else //масштабируем прошедшее время для более точного учета шагов
 			{
 				int curTime = timer.get();
-				int timeLeft = _lastTime + _period - curTime;
-				//timeLeft = timeLeft * period / _period, чтобы не было потери точности, это выражение переписано в другом виде
-				timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
-				_lastTime = curTime - period + timeLeft;
+				if (_period == MAX_STEP_TIME)
+					_lastTime = curTime;
+				else
+				{
+					int timeLeft = _lastTime + _period - curTime;
+					//timeLeft = timeLeft * period / _period, чтобы не было потери точности, это выражение переписано в другом виде
+					timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
+					_lastTime = curTime - period + timeLeft;
+				}
 			}
 		}
 		_period = period;

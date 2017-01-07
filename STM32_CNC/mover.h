@@ -359,7 +359,12 @@ bool canLog;
 	void set_velocity()
 	{
 		//задаем скорости
-		if (linearData.velocity.mantis != 0)
+		if (linearData.velocity.mantis == 0)
+		{
+			for (int i = 0; i < NUM_COORDS; ++i)
+				motor[i].set_period(MAX_STEP_TIME);
+		}
+		else
 		{
 			int stepTimeArr[NUM_COORDS];
 			float16 errCoef = float16(1.0f) / float16(linearData.size[linearData.refCoord]);
