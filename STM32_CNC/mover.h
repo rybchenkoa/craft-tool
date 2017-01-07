@@ -378,7 +378,7 @@ bool canLog;
 					add = maxAdd * float16(sign(add));
 				int stepTime = step + add;
 				
-				if (uint32_t(stepTime) > MAX_STEP_TIME)
+				if (stepTime > MAX_STEP_TIME || stepTime <= 0) //0 возможен при переполнении разрядов
 					stepTime = MAX_STEP_TIME;
 				stepTimeArr[i] = stepTime;
 			}
