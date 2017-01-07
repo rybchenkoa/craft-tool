@@ -212,6 +212,10 @@ void Scene3d::draw_real_track()
 	{
 		glVertexPointer(3, GL_FLOAT, 0, &realTrack[0]);
 		glDrawArrays(GL_LINE_STRIP, 0, realTrack.size());
+
+		glColor3f(0.2f, 0.7f, 0.9f);
+		glPointSize(3.0f);
+		glDrawArrays(GL_POINTS, 0, realTrack.size());
 	}
 	glDisableClientState(GL_VERTEX_ARRAY);
 
