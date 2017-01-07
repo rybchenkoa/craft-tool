@@ -41,7 +41,7 @@ CRemoteDevice::CRemoteDevice()
     moveMode = MoveMode_LINEAR;
     fractSended = false;
 
-    InitializeCriticalSection(&queueCS);
+    InitializeCriticalSectionAndSpinCount(&queueCS, 1000);
     eventQueueAdd = CreateEvent(nullptr, false, false, nullptr);
     eventPacketReceived = CreateEvent(nullptr, false, false, nullptr);
     DWORD   threadId;
@@ -167,7 +167,7 @@ void CRemoteDevice::set_position(Coords pos)
     packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
 
     for(int i = 0; i < NUM_COORDS; ++i)
-        packet->coord[i] = int(pos.r[i] * scale[i]);    //переводим мм в шаги
+        packet->coord[i] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
 
     Coords delta;
     int referenceLen = 0; //максимальное число шагов по координате
@@ -647,6 +647,7 @@ DWORD WINAPI CRemoteDevice::send_thread(void *__this)
             if(result == WAIT_TIMEOUT)
             {
                 ++_this->missedSends;
+				//log_message("send timeout\n");
                 ResetEvent(_this->eventPacketReceived);
             }
             //Sleep(500);
