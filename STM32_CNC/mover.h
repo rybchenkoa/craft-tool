@@ -395,7 +395,7 @@ bool canLog;
 				if(canLog) log_console("st[%X] = %d\n", i, stepTimeArr[i]);
 			}
 			virtualAxe.set_period(stepTimeArr[NUM_COORDS]);
-			//if(canLog) log_console("maxe %d, %d\n", maxAxe, maxErr);
+			if(canLog) log_console("st[v] = %d\n", stepTimeArr[NUM_COORDS]);
 		}
 	}
 
@@ -457,7 +457,7 @@ bool canLog;
 			linearData.err[i] = 0;
 			linearData.last[i] = from[i];
 		}
-		linearData.last[NUM_COORDS] = virtualAxe._position;
+		linearData.last[NUM_COORDS] = 0;
 		compute_error();
 
 		return diff;
