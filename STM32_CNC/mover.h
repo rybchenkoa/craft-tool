@@ -322,7 +322,7 @@ bool canLog;
 		//допустим, размеры по x, y = a, b  , отрезок начинается с 0
 		//тогда уравнение будет a*y = b*x;   a*dy = b*dx;  a*dy - b*dx = 0
 		//ошибка по y относительно x при смещении:  (a*dy - b*dx) / a
-		int dx = virtualAxe._position - linearData.last[NUM_COORDS]; //находим изменение опорной координаты
+		int dx = -(virtualAxe._position - linearData.last[NUM_COORDS]); //находим изменение опорной координаты
 		linearData.last[NUM_COORDS] = virtualAxe._position;
 		for (int i = 0; i < NUM_COORDS; ++i)
 		{
@@ -402,8 +402,6 @@ bool canLog;
 	//=====================================================================================================
 	bool brez_step()
 	{
-		int ref = linearData.refCoord;
-		
 		int time = timer.get();
 		for (int i = 0; i < NUM_COORDS; ++i) //быстро запоминаем текущее состояние координат
 			if (linearData.size[i] != 0)
@@ -413,7 +411,7 @@ bool canLog;
 		for (int i = 0; i < NUM_COORDS; ++i)
 			coord[i] = motor[i]._position;
 
-		if(virtualAxe._position >= linearData.size[ref]) //если дошли до конца, выходим
+		if(virtualAxe._position <= 0) //если дошли до конца, выходим
 			return false;
 
 		//находим ошибку новых координат
@@ -450,14 +448,14 @@ bool canLog;
 		}
 
 		int ref = linearData.refCoord;
-		virtualAxe._position = (coord[ref] - from[ref]) * linearData.sign[ref];
+		virtualAxe._position = (to[ref] - coord[ref]) * linearData.sign[ref];
 		//инициализируем ошибку, учитывая, что в начале отрезка она = 0
 		for(int i = 0; i < NUM_COORDS; ++i)
 		{
 			linearData.err[i] = 0;
 			linearData.last[i] = from[i];
 		}
-		linearData.last[NUM_COORDS] = 0;
+		linearData.last[NUM_COORDS] = linearData.size[ref];
 		compute_error();
 
 		return diff;
@@ -466,7 +464,7 @@ bool canLog;
 	//=====================================================================================================
 	OperateResult linear()
 	{
-		float16 length = linearData.invProj * float16(linearData.size[linearData.refCoord] - virtualAxe._position);
+		float16 length = linearData.invProj * float16(virtualAxe._position);
 		length += (float16(1) / float16(1000)) * float16(current_track_length());
 
 		// 1/linearData.velocity = тик/мм
