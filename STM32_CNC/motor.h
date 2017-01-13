@@ -147,3 +147,48 @@ struct Motor
 };
 
 Motor motor[MAX_AXES];
+
+
+//===============================================================
+struct VirtualMotor
+{
+	int _position;
+	int _period;
+	int _lastTime;
+	
+	VirtualMotor() { _position = 0; }
+
+	//===============================================================
+	void shot(int time)
+	{
+		if (_period == MAX_STEP_TIME)
+			return;
+		int delta = (time - _lastTime) / _period;
+		_position += delta;
+		_lastTime += delta * _period;
+	}
+	
+	//===============================================================
+	void set_period(int period)
+	{
+		int curTime = timer.get();
+		if (_period == MAX_STEP_TIME)
+			_lastTime = curTime;
+		else
+		{
+			int timeLeft = _lastTime + _period - curTime;
+			timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
+			_lastTime = curTime - period + timeLeft;
+		}
+		_period = period;
+	}
+	
+	//===============================================================
+	void start(int period)
+	{
+		_lastTime = timer.get();
+		_period = period;
+	}
+};
+
+VirtualMotor virtualAxe;

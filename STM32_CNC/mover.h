@@ -258,20 +258,8 @@ bool canLog;
 	/*
 	диапазоны
 	скорость:
-	1 шаг/10 сек
-	10 000 000 шаг/сек   (если 0.0001 мм/шаг)
-	240 000 000 тактов/шаг
-	2.4 такта/шаг
-
-	ускорение:
-	100 шаг/сек2      (если 0.1 мм на шаг)
-	100 000 000 шаг/сек2    (если 0.0001 мм/шаг)
-	5 760 000 000 000 тактов2/шаг
-	5 760 000 тактов2/шаг
-
-	v += a*dt
-	dt - 1000, 10000 тактов
-
+	1 шаг/40 сек
+	1 000 000 шаг/сек   (если 0.0001 мм/шаг)
 
 	для float
 	сложение 147 тактов
@@ -289,7 +277,7 @@ bool canLog;
 		int err[NUM_COORDS];   //ошибка координат (внутреннее представление)
 		int error[NUM_COORDS]; //ошибка координат
 		int sign[NUM_COORDS];  //изменение координаты при превышении ошибки {-1 || 1}
-		int last[NUM_COORDS];   //последние координаты: для которых была посчитана ошибка
+		int last[NUM_COORDS+1];   //последние координаты, для которых была посчитана ошибка
 		float16 velCoef[NUM_COORDS]; //на что умножить скорость, чтобы получить число тактов на шаг
 
 		float16 maxFeedVelocity;	//скорость подачи, мм/тик
@@ -311,6 +299,7 @@ bool canLog;
 		{
 			for (int i = 0; i < NUM_COORDS; ++i)
 				motor[i].start(MAX_STEP_TIME);
+			virtualAxe.start(MAX_STEP_TIME);
 			linearData.enabled = true;
 		}
 	}
@@ -333,7 +322,8 @@ bool canLog;
 		//допустим, размеры по x, y = a, b  , отрезок начинается с 0
 		//тогда уравнение будет a*y = b*x;   a*dy = b*dx;  a*dy - b*dx = 0
 		//ошибка по y относительно x при смещении:  (a*dy - b*dx) / a
-		int dx = (motor[ref]._position - linearData.last[ref]) * linearData.sign[ref]; //находим изменение опорной координаты
+		int dx = virtualAxe._position - linearData.last[NUM_COORDS]; //находим изменение опорной координаты
+		linearData.last[NUM_COORDS] = virtualAxe._position;
 		for (int i = 0; i < NUM_COORDS; ++i)
 		{
 			int dy = (motor[i]._position - linearData.last[i]) * linearData.sign[i]; //находим изменение текущей координаты
@@ -363,11 +353,13 @@ bool canLog;
 		{
 			for (int i = 0; i < NUM_COORDS; ++i)
 				motor[i].set_period(MAX_STEP_TIME);
+			virtualAxe.set_period(MAX_STEP_TIME);
 		}
 		else
 		{
-			int stepTimeArr[NUM_COORDS];
-			float16 errCoef = float16(1.0f) / float16(linearData.size[linearData.refCoord]);
+			int ref = linearData.refCoord;
+			int stepTimeArr[NUM_COORDS+1];
+			float16 errCoef = float16(1.0f) / float16(linearData.size[ref]);
 			for (int i = 0; i < NUM_COORDS; ++i)
 			{
 				if (linearData.velCoef[i].mantis == 0)
@@ -388,12 +380,21 @@ bool canLog;
 					stepTime = MAX_STEP_TIME;
 				stepTimeArr[i] = stepTime;
 			}
+			//для виртуальной оси тоже считаем скорость
+			{
+				int stepTime = linearData.velCoef[ref] / linearData.velocity;//linearData.maxFeedVelocity;//
+				if (stepTime > MAX_STEP_TIME || stepTime <= 0) //0 возможен при переполнении разрядов
+					stepTime = MAX_STEP_TIME;
+				stepTimeArr[NUM_COORDS] = stepTime;
+			}
+			
 			for (int i = 0; i < NUM_COORDS; ++i)
 			{
 				motor[i].set_period(stepTimeArr[i]);
 
 				if(canLog) log_console("st[%X] = %d\n", i, stepTimeArr[i]);
 			}
+			virtualAxe.set_period(stepTimeArr[NUM_COORDS]);
 			//if(canLog) log_console("maxe %d, %d\n", maxAxe, maxErr);
 		}
 	}
@@ -401,16 +402,18 @@ bool canLog;
 	//=====================================================================================================
 	bool brez_step()
 	{
+		int ref = linearData.refCoord;
+		
 		int time = timer.get();
 		for (int i = 0; i < NUM_COORDS; ++i) //быстро запоминаем текущее состояние координат
 			if (linearData.size[i] != 0)
 				motor[i].shot(time);
-
+		virtualAxe.shot(time); //виртуальная ось самая большая, если она = 0, то выйдет еще при инициализации
+			
 		for (int i = 0; i < NUM_COORDS; ++i)
 			coord[i] = motor[i]._position;
 
-		int ref = linearData.refCoord;
-		if((coord[ref] - to[ref]) * linearData.sign[ref] >= 0) //если дошли до конца, выходим
+		if(virtualAxe._position >= linearData.size[ref]) //если дошли до конца, выходим
 			return false;
 
 		//находим ошибку новых координат
@@ -446,12 +449,15 @@ bool canLog;
 				diff = true;
 		}
 
+		int ref = linearData.refCoord;
+		virtualAxe._position = (coord[ref] - from[ref]) * linearData.sign[ref];
 		//инициализируем ошибку, учитывая, что в начале отрезка она = 0
 		for(int i = 0; i < NUM_COORDS; ++i)
 		{
 			linearData.err[i] = 0;
 			linearData.last[i] = from[i];
 		}
+		linearData.last[NUM_COORDS] = virtualAxe._position;
 		compute_error();
 
 		return diff;
@@ -460,9 +466,7 @@ bool canLog;
 	//=====================================================================================================
 	OperateResult linear()
 	{
-		int reference = linearData.refCoord;
-
-		float16 length = linearData.invProj * float16(to[reference] - coord[reference]);
+		float16 length = linearData.invProj * float16(linearData.size[linearData.refCoord] - virtualAxe._position);
 		length += (float16(1) / float16(1000)) * float16(current_track_length());
 
 		// 1/linearData.velocity = тик/мм
@@ -564,7 +568,6 @@ linearData.lastTime, timer.get()
 
 		linearData.acceleration = acceleration;
 		linearData.maxFeedVelocity = velocity;
-		linearData.invProj = length / float16(linearData.size[refCoord] * linearData.sign[refCoord]);
 
 		for (int i = 0; i < NUM_COORDS; ++i)
 		{
@@ -578,6 +581,8 @@ linearData.lastTime, timer.get()
 			else
 				linearData.velCoef[i] = length / float16(linearData.size[i]);
 		}
+		
+		linearData.invProj = linearData.velCoef[refCoord];
 
 		handler = &Mover::linear;
 	}
