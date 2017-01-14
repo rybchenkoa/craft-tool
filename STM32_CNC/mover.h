@@ -330,12 +330,20 @@ bool canLog;
 			int derr = dy * linearData.size[ref] - dx * linearData.size[i]; //находим ошибку текущей координаты//какой должен быть знак?
 			linearData.err[i] += derr;
 			linearData.last[i] = motor[i]._position;
-			
+		}
+	}
+
+	//=====================================================================================================
+	void floor_error()
+	{
+		int ref = linearData.refCoord;
+		for (int i = 0; i < NUM_COORDS; ++i)
+		{
 			int floorAdd = linearData.size[ref] / 2 * isign(linearData.err[i]);
 			linearData.error[i] = (linearData.err[i] + floorAdd) / linearData.size[ref];
 		}
 	}
-
+	
 	//=====================================================================================================
 	/*
 		один апдейт занимает T=3000 тактов в дебаге
@@ -392,10 +400,10 @@ bool canLog;
 			{
 				motor[i].set_period(stepTimeArr[i]);
 
-				if(canLog) log_console("st[%X] = %d\n", i, stepTimeArr[i]);
+				//if(canLog) log_console("st[%X] = %d\n", i, stepTimeArr[i]);
 			}
 			virtualAxe.set_period(stepTimeArr[NUM_COORDS]);
-			if(canLog) log_console("st[v] = %d\n", stepTimeArr[NUM_COORDS]);
+			//if(canLog) log_console("st[v] = %d\n", stepTimeArr[NUM_COORDS]);
 		}
 	}
 
@@ -404,22 +412,35 @@ bool canLog;
 	{
 		int time = timer.get();
 		for (int i = 0; i < NUM_COORDS; ++i) //быстро запоминаем текущее состояние координат
-			if (linearData.size[i] != 0)
+			if (linearData.size[i] != 0 && motor[i]._isHardware)
 				motor[i].shot(time);
 		virtualAxe.shot(time); //виртуальная ось самая большая, если она = 0, то выйдет еще при инициализации
 			
-		for (int i = 0; i < NUM_COORDS; ++i)
-			coord[i] = motor[i]._position;
-
-		if(virtualAxe._position <= 0) //если дошли до конца, выходим
-			return false;
-
 		//находим ошибку новых координат
 		compute_error();
+		
+		int ref = linearData.refCoord;
+		
+		for (int i = 0; i < NUM_COORDS; ++i) //медленными осями шагаем точно
+			if (linearData.size[i] != 0 && !motor[i]._isHardware)
+				if (motor[i].can_step(time) && linearData.err[i] < -linearData.size[ref] / 2)
+				{
+					motor[i].one_step(time);
+					linearData.err[i] += linearData.size[ref];
+					linearData.last[i] += linearData.sign[i];
+				}
+		
+		floor_error();
+		
+		for (int i = 0; i < NUM_COORDS; ++i)
+			coord[i] = motor[i]._position;
 
 		//обновляем скорости двигателей
 		set_velocity();
 		
+		if(virtualAxe._position <= 0) //если дошли до конца, выходим
+			return false;
+			
 		return true;
 	}
 

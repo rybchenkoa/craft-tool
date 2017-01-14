@@ -36,6 +36,23 @@ struct Motor
 	}
 
 	//===============================================================
+	bool can_step(int time)
+	{
+		return time - _lastTime > _period / 2;
+	}
+	
+	//===============================================================
+	void one_step(int time)
+	{
+		step(_index); //делаем шаг
+		if (_direction) //двигаем позицию
+			++_position;
+		else
+			--_position;
+		_lastTime = time;
+	}
+	
+	//===============================================================
 	//захватывает текущее состояние шагов
 	void shot(int time)
 	{
@@ -164,7 +181,7 @@ struct VirtualMotor
 		if (_period == MAX_STEP_TIME)
 			return;
 		int delta = (time - _lastTime) / _period;
-		_position += delta;
+		_position -= delta;
 		_lastTime += delta * _period;
 	}
 	
