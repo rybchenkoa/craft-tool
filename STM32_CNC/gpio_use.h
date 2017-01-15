@@ -29,22 +29,30 @@ bool          CHANNEL_NEG[] = {false, false, false, true, true};
 DMA_Channel_TypeDef* DMA_CHANNELS[] = {DMA1_Channel2, DMA1_Channel5, DMA1_Channel3, DMA1_Channel7, DMA1_Channel6};
 char dummy;
 
+//входы b2, b10, b11, b12, a12, a15, b3, b4, b5
+GPIO_TypeDef* IN_PINS[]  = {GPIOB, GPIOB, GPIOB, GPIOB, GPIOA, GPIOA, GPIOB, GPIOB, GPIOB};
+int           IN_PORTS[] = {2,        10,    11,    12,    12,    15,     3,     4,     5};
 //--------------------------------------------------
 inline void gpio_port_crl(GPIO_TypeDef *port, unsigned int mask, unsigned int val)
 {
-	port->CRL &= ~(mask * 0xF); //очищаем
-	port->CRL |=  mask * val;			//output 10 MHz
+	int reg = port->CRL;
+	reg &= ~(mask * 0xF); //очищаем
+	reg |=  mask * val;
+	port->CRL = reg;
 }
 
 //--------------------------------------------------
 inline void gpio_port_crh(GPIO_TypeDef *port, unsigned int mask, unsigned int val)
 {
-	port->CRH &= ~(mask * 0xF); //очищаем
-	port->CRH |=  mask * val;			//output 10 MHz
+	int reg = port->CRH;
+	reg &= ~(mask * 0xF); //очищаем
+	reg |=  mask * val;
+	port->CRH = reg;
 }
 
 #define MANUAL_OUT 1
 #define AF_OUT     9
+#define PULL_UP_IN 12
 //--------------------------------------------------
 void configure_gpio()
 {
@@ -76,6 +84,16 @@ void configure_gpio()
 	//PWM B: 14, 15
 	//                     54321098
 	gpio_port_crh(GPIOA, 0x11000000, AF_OUT);
+	
+	//входы a12, a15
+	//                     54321098
+	gpio_port_crh(GPIOA, 0x10010000, PULL_UP_IN);
+	
+	//входы b2, b10, b11, b12, b3, b4, b5
+	//                     76543210
+	gpio_port_crl(GPIOB, 0x00111100, PULL_UP_IN);
+	//                     54321098
+	gpio_port_crh(GPIOB, 0x00011100, PULL_UP_IN);
 }
 
 
@@ -205,6 +223,13 @@ void __forceinline set_port_af(GPIO_TypeDef *port, int pinnum, bool state)
 void inline set_dir(int index, bool state)
 {
 	set_pin_state(DIR_PORTS[index], DIR_PINS[index], state);
+}
+
+//--------------------------------------------------
+//задает направление
+bool inline get_pin(int index)
+{
+	return IN_PINS[index]->IDR | (1 << IN_PORTS[index]);
 }
 
 //--------------------------------------------------
