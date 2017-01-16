@@ -10,7 +10,7 @@
 //DIR [a1, a3, a7, b9, b8]
 //выводы ШИМ [b14, b15, a8, a11]
 
-#define MAX_AXES 5
+#define MAX_HARD_AXES 5
 #define MAX_PWM  4
 
 #define MAX_PERIOD 65535 //максимальное время между шагами для аппаратного таймера
@@ -171,7 +171,7 @@ void connect_step_channels()
 	//RM0041, стр 114
 	//AFIO->MAPR |= AFIO_MAPR_TIM2_REMAP_1; //перекидываем tim2 ch3,ch4 на b10, b11
 
-	for (int i = 0; i < MAX_AXES; ++i)
+	for (int i = 0; i < MAX_HARD_AXES; ++i)
 		config_step_timer(STEP_TIMERS[i], DMA_CHANNELS[i], CHANNEL_NEG[i]);
 }
 

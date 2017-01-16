@@ -163,7 +163,7 @@ struct Motor
 	}
 };
 
-Motor motor[MAX_AXES];
+Motor motor[MAX_HARD_AXES];
 
 
 //===============================================================
