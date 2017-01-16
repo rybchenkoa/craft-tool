@@ -196,6 +196,15 @@ void Scene3d::draw_track()
         glVertex3f(track[i].position.x, track[i].position.y, track[i].position.z);
     }
     glEnd();
+
+	glBegin(GL_POINTS);
+	glColor3f(0.7f, 0.2f, 0.9f);
+	glPointSize(3.0f);
+    for(size_t i = 0; i < track.size(); ++i)
+    {
+        glVertex3f(track[i].position.x, track[i].position.y, track[i].position.z);
+    }
+    glEnd();
 }
 
 //--------------------------------------------------------------------
@@ -513,13 +522,13 @@ void make_cylinder(Object3d& edge, int divs)
     auto push_quad = [&edge, &countPoints](int x1, int x2, int y1, int y2)
     {
         edge.indices.push_back(x1 * countPoints + y1);
-        edge.indices.push_back(x1 * countPoints + y2);
         edge.indices.push_back(x2 * countPoints + y1);
+        edge.indices.push_back(x1 * countPoints + y2);
 
 
         edge.indices.push_back(x2 * countPoints + y2);
-        edge.indices.push_back(x2 * countPoints + y1);
         edge.indices.push_back(x1 * countPoints + y2);
+        edge.indices.push_back(x2 * countPoints + y1);
     };
 
     for(int i = 1; i < divs; ++i)
@@ -535,7 +544,7 @@ void make_cylinder(Object3d& edge, int divs)
             pos.x = from.position.x * cosPhi - from.position.y * sinPhi;
             pos.y = from.position.y * cosPhi + from.position.x * sinPhi;
             pos.z = from.position.z;
-            glm::vec3 color((rand()%1000)/10000.0 + 0.8,0,0);
+            glm::vec4 color(i % 2 * 0.2 + 0.4, 0, 0, 0.1f);
             Vertex to(pos, color);
 
             edge.verts.push_back(to);
@@ -560,16 +569,15 @@ void make_tool_simple(Object3d& tool)
 
     glm::vec3 simple[] =
     {
-        glm::vec3(0,  0, 0),
-        glm::vec3(10, 0, 0),
-        glm::vec3(10, 0, -95),
-        glm::vec3(0,  0, -100)
+        glm::vec3(0, 0, 0),
+		glm::vec3(10, 0, 10),
+		glm::vec3(0, 0, 10),
     };
 
     //glm::vec3 color(1,0,0);
     for(int i = 0; i < _countof(simple); ++i)
     {
-        glm::vec3 color((rand()%1000)/100000.0+0.8,0,0);
+        glm::vec4 color(i % 2 * 0.2 + 0.4, 0, 0, 0.1f);
         Vertex vert(simple[i], color);
         tool.verts.push_back(vert);
     }

@@ -40,9 +40,9 @@ struct Camera
 struct Vertex
 {
     glm::vec3 position;
-    glm::vec3 color;
+    glm::vec4 color;
 
-    Vertex(glm::vec3 _position, glm::vec3 _color):
+    Vertex(glm::vec3 _position, glm::vec4 _color):
         position(_position), color(_color) {};
 };
 
