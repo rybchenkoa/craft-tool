@@ -37,8 +37,9 @@ bool Config::read_from_file(const char *fileName)
 
         auto skip_string = [&pos, &value]()
         {
-            while(pos < value.record.size() && value.record[pos] != '\"')
-                ++pos;
+			++pos;
+            while(pos < value.record.size() && value.record[pos++] != '\"')
+                ;
         };
 
         whitespace();  //пропускаем пробелы в начале
