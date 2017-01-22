@@ -5,7 +5,9 @@
 #include "ComPortConnect.h"
 #include "float16.h"
 
-#define NUM_COORDS 3
+#define NUM_COORDS 3 //сколько координат задаем в G-коде
+#define NUM_AXES   4 //сколько осей используем (координаты плюс подчиненные им оси)
+#define MAX_AXES   5 //сколько всего есть осей на контроллере
 
 typedef double coord;//чтобы не путаться, координатный тип введём отдельно
 
@@ -15,13 +17,15 @@ struct Coords   //все координаты устройства
     {
         struct
         {
-            coord x, y, z;
+            coord x, y, z, a, b;
         };
         struct
         {
-            coord r[NUM_COORDS];
+            coord r[MAX_AXES];
         };
     };
+
+	Coords() { for (int i = 0; i < MAX_AXES; ++i) r[i] = 0; };
 };
 
 typedef char PacketCount;
@@ -61,7 +65,7 @@ struct PacketCommon
 };
 struct PacketMove : public PacketCommon
 {
-    int coord[NUM_COORDS];
+    int coord[MAX_AXES];
     char refCoord;
     float16 velocity;      //скорость перемещения
     float16 acceleration;  //ускорение, шагов/тик^2
@@ -85,14 +89,14 @@ struct PacketResetPacketNumber : public PacketCommon //сообщение о том, что паке
 };
 struct PacketSetBounds : public PacketCommon //задать максимальные координаты
 {
-    int minCoord[NUM_COORDS];
-    int maxCoord[NUM_COORDS];
+    int minCoord[MAX_AXES];
+    int maxCoord[MAX_AXES];
     int crc;
 };
 struct PacketSetVelAcc : public PacketCommon //задать ускорение и скорость
 {
-    float16 maxVelocity[NUM_COORDS];
-    float16 maxAcceleration[NUM_COORDS];
+    float16 maxVelocity[MAX_AXES];
+    float16 maxAcceleration[MAX_AXES];
     int crc;
 };
 struct PacketSetFeed : public PacketCommon //задать подачу
@@ -107,7 +111,7 @@ struct PacketSetFeedMult : public PacketCommon //задать подачу
 };
 struct PacketSetStepSize : public PacketCommon
 {
-    float stepSize[NUM_COORDS];
+    float stepSize[MAX_AXES];
     int crc;
 };
 struct PacketFract : public PacketCommon
@@ -141,7 +145,7 @@ struct PacketErrorPacketNumber //сообщение о том, что сбилась очередь пакетов
 struct PacketServiceCoords //текущие координаты устройства
 {
     DeviceCommand command;
-    int coords[NUM_COORDS];
+    int coords[MAX_AXES];
     int crc;
 };
 struct PacketServiceCommand //текущий исполняемый устройством пакет
@@ -162,10 +166,10 @@ public:
     virtual void set_position(Coords position)=0; //перемещаем фрезу
     virtual void wait(double time)=0; //задержка
     virtual void set_bounds(Coords rMin, Coords rMax)=0; //границы координат
-    virtual void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS])=0; //задать скорость и ускорение
+    virtual void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])=0; //задать скорость и ускорение
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
-    virtual void set_step_size(double stepSize[NUM_COORDS])=0; //длина одного шага
+    virtual void set_step_size(double stepSize[MAX_AXES])=0; //длина одного шага
     virtual void pause_moving(bool needStop)=0; //временная остановка движения
 
     virtual int  queue_size() = 0; //длина очереди команд
@@ -190,10 +194,10 @@ public:
     void set_position(Coords position) override;
     void wait(double time) override;
     void set_bounds(Coords rMin, Coords rMax) override;
-    void set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS]) override;
+    void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES]) override;
     void set_feed(double feed) override;
     void set_feed_multiplier(double multiplier) override;
-    void set_step_size(double stepSize[NUM_COORDS]) override;
+    void set_step_size(double stepSize[MAX_AXES]) override;
     void pause_moving(bool needStop) override;
 
     void set_fract();
@@ -214,16 +218,21 @@ public:
     int missedHalfSend;                //принято сообщение о битом пакете
 
     //текущее состояние
-    double scale[NUM_COORDS];          //шагов на миллиметр
+    double scale[MAX_AXES];            //шагов на миллиметр
     double minStep;                    //макс. точность устройства
     double secToTick;                  //тиков таймера в одной секунде
     Coords lastPosition;               //последняя переданная позиция
     Coords lastDelta;                  //последний вектор сдвига
     double feed;                       //подача
     MoveMode moveMode;                 //режим перемещения
-    double velocity[NUM_COORDS];       //максимальная скорость по каждой оси
-    double acceleration[NUM_COORDS];   //максимальное ускорение по каждой оси
+    double velocity[MAX_AXES];         //максимальная скорость по каждой оси
+    double acceleration[MAX_AXES];     //максимальное ускорение по каждой оси
     bool fractSended;                  //послан ли уже излом траектории
+	bool usedCoords[MAX_AXES];         //используемые интерпретатором координаты
+	bool usedAxes[MAX_AXES];           //используемые станком оси
+	int  slaveAxes[MAX_AXES];          //связанная ось (к одной оси можно привязать еще только одну)
+	std::vector<int> toDeviceIndex;    //перевод номеров координат в номера генераторов сигнала на устройстве
+	std::vector<int> fromDeviceIndex;  //обратное преобразование при получении координат с устройства
 
     //состояние удалённого устройства
     Coords currentCoords;              //текущие координаты

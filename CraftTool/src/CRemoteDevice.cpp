@@ -26,7 +26,7 @@ CRemoteDevice::CRemoteDevice()
     workLine = -1;
     lastQueue = -1;
 
-    for(int i = 0; i < NUM_COORDS; ++i)
+    for(int i = 0; i < MAX_AXES; ++i)
     {
         scale[i]            = HUGE_VAL;
         lastPosition.r[i]   = HUGE_VAL;
@@ -156,7 +156,7 @@ void CRemoteDevice::set_fract()
 }
 
 //============================================================
-void CRemoteDevice::set_position(Coords pos)
+void CRemoteDevice::set_position(Coords posIn)
 {
     //emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
 
@@ -166,15 +166,27 @@ void CRemoteDevice::set_position(Coords pos)
     auto packet = new PacketMove;
     packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
 
-    for(int i = 0; i < NUM_COORDS; ++i)
-        packet->coord[i] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
+	Coords pos = posIn;
+	for (int i = 0; i < MAX_AXES; ++i) //заполняем подчиненные оси
+		if (slaveAxes[i] >= 0)
+			pos.r[slaveAxes[i]] = pos.r[i];
+
+	//сначала задаем используемые координаты
+    for (int i = 0; i < MAX_AXES; ++i)
+		if (usedAxes[i])
+			packet->coord[toDeviceIndex[i]] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
+		else
+			packet->coord[toDeviceIndex[i]] = 0;
 
     Coords delta;
     int referenceLen = 0; //максимальное число шагов по координате
     int reference = 0;    //номер самой длинной по шагам координаты
 
-    for(int i = 0; i < NUM_COORDS; ++i)
+    for(int i = 0; i < MAX_AXES; ++i)
     {
+		if (!usedAxes[i])
+			continue;
+
         delta.r[i] = pos.r[i] - lastPosition.r[i];
 
         int steps = abs(int(delta.r[i] * scale[i]));
@@ -194,16 +206,16 @@ void CRemoteDevice::set_position(Coords pos)
     }
 
     double length = 0;
-    for(int i = 0; i < NUM_COORDS; ++i)
+    for(int i = 0; i < NUM_COORDS; ++i) //TODO для поворотной оси неизвестно как считать
         length += pow2(delta.r[i]);
 
     length = sqrt(length);
 
-    double lengths[NUM_COORDS];
+    double lengths[NUM_COORDS]; //у подчиненных осей те же параметры, поэтому смотрим только на главные
     for(int i = 0; i < NUM_COORDS; ++i)
         lengths[i] = fabs(delta.r[i]);
 
-    packet->refCoord = reference;
+    packet->refCoord = toDeviceIndex[reference];
     packet->length = float(length);
     packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
 
@@ -211,7 +223,7 @@ void CRemoteDevice::set_position(Coords pos)
     {
         double scalar = 0;
         double scalar1 = 0, scalar2 = 0;
-        for(int i = 0; i < NUM_COORDS; ++i)
+        for(int i = 0; i < NUM_COORDS; ++i) //поворотные оси тоже учитываем, так как на них тоже действует физика
         {
             scalar += lastDelta.r[i] * delta.r[i];
             scalar1 += delta.r[i] * delta.r[i];
@@ -272,7 +284,7 @@ void CRemoteDevice::wait(double time)
 }
 
 //============================================================
-void CRemoteDevice::set_bounds(Coords rMin, Coords rMax)
+void CRemoteDevice::set_bounds(Coords rMin, Coords rMax) //TODO удалить или переделать на концевики
 {
     auto packet = new PacketSetBounds;
     packet->command = DeviceCommand_SET_BOUNDS;
@@ -288,16 +300,14 @@ void CRemoteDevice::set_bounds(Coords rMin, Coords rMax)
 
 //============================================================
 //мм/сек, мм/сек^2
-//переводим в шаг/мкс, шаг/мкс^2
-//значения хранятся в виде 1.0/value, поскольку в int
-void CRemoteDevice::set_velocity_and_acceleration(double velocity[NUM_COORDS], double acceleration[NUM_COORDS])
+void CRemoteDevice::set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])
 {
     auto packet = new PacketSetVelAcc;
     packet->command = DeviceCommand_SET_VEL_ACC; //задать макс скорость и ускорение
-    for(int i = 0; i < NUM_COORDS; ++i)
+    for(int i = 0; i < MAX_AXES; ++i)
     {
-        packet->maxVelocity[i] = float(velocity[i]);
-        packet->maxAcceleration[i] = float(acceleration[i]);
+        packet->maxVelocity[toDeviceIndex[i]] = float(velocity[i]);
+        packet->maxAcceleration[toDeviceIndex[i]] = float(acceleration[i]);
     }
     push_packet_common(packet);
 }
@@ -327,13 +337,13 @@ void CRemoteDevice::set_feed_multiplier(double multiplier)
 }
 
 //============================================================
-void CRemoteDevice::set_step_size(double stepSize[NUM_COORDS])
+void CRemoteDevice::set_step_size(double stepSize[MAX_AXES])
 {
     auto packet = new PacketSetStepSize;
     packet->command = DeviceCommand_SET_STEP_SIZE; //задать макс скорость и ускорение
-    for(int i = 0; i < NUM_COORDS; ++i)
+    for(int i = 0; i < MAX_AXES; ++i)
     {
-        packet->stepSize[i] = float(stepSize[i]);
+        packet->stepSize[toDeviceIndex[i]] = float(stepSize[i]);
     }
     push_packet_common(packet);
 }
@@ -369,28 +379,128 @@ void CRemoteDevice::init()
         return value;
     };
 
+	auto try_get_string = [](const char *key) -> std::string
+    {
+        std::string value;
+        if(!g_config->get_string(key, value))
+            throw(std::string("key not found in config: ") + key);
+        return value;
+    };
+
+	auto letter_to_axe = [](char letter) -> int
+	{
+		switch (letter)
+		{
+			case 'x': case 'X': return 0;
+			case 'y': case 'Y': return 1;
+			case 'z': case 'Z': return 2;
+			case 'a': case 'A': return 3;
+			case 'b': case 'B': return 4;
+			default:  return -1;
+		}
+	};
+
+	std::string coordList = try_get_string(CFG_USED_COORDS); //читаем используемые интерпретатором координаты
+
+	for (int i = 0; i < MAX_AXES; ++i)
+		usedCoords[i] = false;
+
+	for (int i = 0; i < coordList.length(); ++i)
+	{
+		int numAxe = letter_to_axe(coordList[i]);
+		if (numAxe == -1)
+			throw(std::string("invalid value of 'usedCoords' in config: letter ") + coordList[i] + "'");
+		usedCoords[numAxe] = true;
+	}
+	memcpy(usedAxes, usedCoords, sizeof(usedCoords));
+
+	std::string slave = CFG_SLAVE;
+	std::string AXE_LIST = "XYZAB";
+	for (int i = 0; i < AXE_LIST.size(); ++i)
+	{
+		std::string value, key = slave + AXE_LIST[i];
+		if (g_config->get_string(key.c_str(), value))
+		{
+			int numAxe = letter_to_axe(value[0]);
+			if (value.length() != 1 || numAxe == -1 || usedAxes[numAxe] || !usedCoords[i])
+				throw("invalid value of '" + value + "' in config: '" + value + "'");
+			
+			usedAxes[numAxe] = true; //пишем используемые станком оси
+			slaveAxes[i] = numAxe;
+		}
+		else
+			slaveAxes[i] = -1;
+	}
+
     secToTick = 24000000.0;
-    double stepsPerMm[NUM_COORDS];
-    stepsPerMm[0] = try_get_float(CFG_STEPS_PER_MM "X");
-    stepsPerMm[1] = try_get_float(CFG_STEPS_PER_MM "Y");
-    stepsPerMm[2] = try_get_float(CFG_STEPS_PER_MM "Z");
+	double stepSize[MAX_AXES];
+	minStep = 1000000; //километровых шагов уж точно ни у кого не будет
+	for (int i = 0; i < MAX_AXES; ++i)
+		if (usedAxes[i]) //дискретизация нужна для всех осей
+		{
+			scale[i] = try_get_float((std::string(CFG_STEPS_PER_MM) + AXE_LIST[i]).c_str());
+			stepSize[i] = 1 / scale[i];
+			minStep = std::min(minStep, stepSize[i]);
+		}
+		else
+		{
+			scale[i] = 0;
+			stepSize[i] = 0;
+		}
 
-    scale[0] = stepsPerMm[0];
-    scale[1] = stepsPerMm[1];
-    scale[2] = stepsPerMm[2];
+	for (int i = 0; i < MAX_AXES; ++i)
+		if (usedCoords[i]) //ограничение скорости надо только для ведущих осей
+		{
+			velocity[i] = try_get_float((std::string(CFG_MAX_VELOCITY) + AXE_LIST[i]).c_str()) / 60;
+			acceleration[i] = try_get_float((std::string(CFG_MAX_ACCELERATION) + AXE_LIST[i]).c_str());
+		}
+		else
+		{
+			velocity[i] = 0;
+			acceleration[i] = 0;
+		}
 
-    minStep = 1/std::max(scale[0], std::max(scale[1], scale[2]));
-
-    velocity[0] = try_get_float(CFG_MAX_VELOCITY "X") / 60;
-    velocity[1] = try_get_float(CFG_MAX_VELOCITY "Y") / 60;
-    velocity[2] = try_get_float(CFG_MAX_VELOCITY "Z") / 60;
-
-    acceleration[0] = try_get_float(CFG_MAX_ACCELERATION "X");
-    acceleration[1] = try_get_float(CFG_MAX_ACCELERATION "Y");
-    acceleration[2] = try_get_float(CFG_MAX_ACCELERATION "Z");
+	for (int i = 0; i < MAX_AXES; ++i)
+		if (slaveAxes[i] >= 0) //для ведомых осей задаем скорость на основе числа шагов
+		{
+			int slave = slaveAxes[i];
+			double reScale = scale[slave] / scale[i];
+			velocity[slave] = velocity[i] * reScale;
+			acceleration[slave] = acceleration[i] * reScale;
+		}
 
     double feed = 10.0;
-    double stepSize[NUM_COORDS] = {1.0/scale[0], 1.0/scale[1], 1.0/scale[2]};
+
+	//назначаем группы выводов, которые будут генерировать сигнал
+	std::string pinsMap = try_get_string(CFG_AXE_MAP);
+	std::stringstream ss(pinsMap);
+	std::string token;
+	while (ss >> token)
+	{
+		bool processed = false;
+		if (token.size() == 2)
+		{
+			int numAxe = letter_to_axe(token[0]);
+			int numPin = token[1] - '0';
+			if (numAxe >= 0 && numPin >= 0 && numPin < MAX_AXES && 
+				std::find(toDeviceIndex.begin(), toDeviceIndex.end(), numAxe) == toDeviceIndex.end())
+			{
+				processed = true;
+				toDeviceIndex.push_back(numAxe);
+			}
+		}
+		if (!processed)
+			throw("invalid value of '" + std::string(CFG_AXE_MAP) + "' in config: '" + token + "'");
+	}
+
+	for (int i = 0; i < MAX_AXES; ++i)
+		if (std::find(toDeviceIndex.begin(), toDeviceIndex.end(), i) == toDeviceIndex.end())
+			toDeviceIndex.push_back(i);
+
+	// строим обратный индекс
+	fromDeviceIndex.resize(MAX_AXES);
+	for (int i = 0; i < MAX_AXES; ++i)
+		fromDeviceIndex[toDeviceIndex[i]] = i;
 
     set_velocity_and_acceleration(velocity, acceleration);
     set_feed(feed);
@@ -448,9 +558,9 @@ bool CRemoteDevice::process_packet(char *data, int size)
     case DeviceCommand_SERVICE_COORDS:
     {
         PacketServiceCoords *packet = (PacketServiceCoords*) data;
-        for(int i = 0; i < NUM_COORDS; ++i)
-            currentCoords.r[i] = packet->coords[i] / scale[i];
-        emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]);
+        for(int i = 0; i < MAX_AXES; ++i)
+            currentCoords.r[i] = packet->coords[fromDeviceIndex[i]] / scale[i];
+        emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]); //TODO: переделать на правильные координаты?
         //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
         return true;
     }
