@@ -12,7 +12,7 @@
 //===============================================================
 void init_motors()
 {
-	for (int i=0; i < NUM_COORDS; ++i)
+	for (int i=0; i < MAX_HARD_AXES; ++i)
 		motor[i]._index = i;
 }
 
