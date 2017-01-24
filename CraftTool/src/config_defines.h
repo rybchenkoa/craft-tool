@@ -10,3 +10,4 @@ extern Config *g_config;
 #define CFG_USED_COORDS        "usedCoords"
 #define CFG_SLAVE              "slave"
 #define CFG_AXE_MAP            "axeMap"
+#define CFG_INVERTED_AXES      "invertedAxes"

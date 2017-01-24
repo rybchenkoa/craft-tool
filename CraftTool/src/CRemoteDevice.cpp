@@ -173,10 +173,16 @@ void CRemoteDevice::set_position(Coords posIn)
 
 	//сначала задаем используемые координаты
     for (int i = 0; i < MAX_AXES; ++i)
+	{
+		int index = toDeviceIndex[i];
 		if (usedAxes[i])
-			packet->coord[toDeviceIndex[i]] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
+			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
 		else
-			packet->coord[toDeviceIndex[i]] = 0;
+			packet->coord[index] = 0;
+
+		if (invertAxe[i])
+			packet->coord[index] *= -1;
+	}
 
     Coords delta;
     int referenceLen = 0; //максимальное число шагов по координате
@@ -502,6 +508,20 @@ void CRemoteDevice::init()
 	for (int i = 0; i < MAX_AXES; ++i)
 		fromDeviceIndex[toDeviceIndex[i]] = i;
 
+	//какие оси надо инвертировать
+	std::string inverted;
+	if (g_config->get_string(CFG_INVERTED_AXES, inverted))
+	{
+		for (int i = 0; i < AXE_LIST.size(); ++i)
+			if (inverted.find(AXE_LIST[i]) == std::string::npos)
+				invertAxe[i] = false;
+			else
+				invertAxe[i] = true;
+	}
+	else
+		for (int i = 0; i < AXE_LIST.size(); ++i)
+			invertAxe[i] = false;
+
     set_velocity_and_acceleration(velocity, acceleration);
     set_feed(feed);
     set_step_size(stepSize);
@@ -559,7 +579,7 @@ bool CRemoteDevice::process_packet(char *data, int size)
     {
         PacketServiceCoords *packet = (PacketServiceCoords*) data;
         for(int i = 0; i < MAX_AXES; ++i)
-            currentCoords.r[i] = packet->coords[fromDeviceIndex[i]] / scale[i];
+            currentCoords.r[i] = packet->coords[fromDeviceIndex[i]] / scale[i] * (invertAxe[i] ? -1 : 1);
         emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]); //TODO: переделать на правильные координаты?
         //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
         return true;
