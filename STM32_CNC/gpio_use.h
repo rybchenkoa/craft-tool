@@ -30,8 +30,9 @@ DMA_Channel_TypeDef* DMA_CHANNELS[] = {DMA1_Channel2, DMA1_Channel5, DMA1_Channe
 char dummy;
 
 //входы b2, b10, b11, b12, a12, a15, b3, b4, b5
-GPIO_TypeDef* IN_PINS[]  = {GPIOB, GPIOB, GPIOB, GPIOB, GPIOA, GPIOA, GPIOB, GPIOB, GPIOB};
-int           IN_PORTS[] = {2,        10,    11,    12,    12,    15,     3,     4,     5};
+GPIO_TypeDef* IN_PORTS[] = {GPIOB, GPIOB, GPIOB, GPIOB, GPIOA, GPIOA, GPIOB, GPIOB, GPIOB};
+int           IN_PINS[]  = {2,        10,    11,    12,    12,    15,     3,     4,     5};
+int polarity = 0; //надо ли инвертировать вход (битовый массив)
 //--------------------------------------------------
 inline void gpio_port_crl(GPIO_TypeDef *port, unsigned int mask, unsigned int val)
 {
@@ -226,10 +227,11 @@ void inline set_dir(int index, bool state)
 }
 
 //--------------------------------------------------
-//задает направление
+//получает сигнал на ножке
 bool inline get_pin(int index)
 {
-	return IN_PINS[index]->IDR | (1 << IN_PORTS[index]);
+	int pinNum = IN_PINS[index];
+	return ((IN_PORTS[index]->IDR >> pinNum) ^ (polarity >> index)) && 1;
 }
 
 //--------------------------------------------------
