@@ -14,8 +14,9 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_PACKET_ERROR_CRC, //out
 	DeviceCommand_RESET_PACKET_NUMBER,//in
 	DeviceCommand_ERROR_PACKET_NUMBER,//out
-	DeviceCommand_SET_BOUNDS,       //in
 	DeviceCommand_SET_VEL_ACC,      //in
+	DeviceCommand_SET_SWITCHES,     //in
+	DeviceCommand_SET_COORDS,       //in
 	DeviceCommand_SET_FEED,         //in
 	DeviceCommand_SET_FEED_MULT,    //in
 	DeviceCommand_SET_STEP_SIZE,    //in
@@ -29,6 +30,12 @@ enum MoveMode //:char режим движения/интерполяции
 {
 	MoveMode_LINEAR = 0, //обычное движение по прямой
 	MoveMode_HOME,       //наезд на дом
+};
+enum SwitchGroup //:char
+{
+	SwitchGroup_MIN = 0,
+	SwitchGroup_MAX,
+	SwitchGroup_HOME,
 };
 
 //--------------------------------------------------------------------
@@ -84,6 +91,17 @@ struct PacketPause : public PacketCommon
 {
 	char needStop;
 };
+struct PacketSetSwitches : public PacketCommon
+{
+	char group;
+	__packed char pins[MAX_AXES];
+	int16_t polarity;
+};
+struct PacketSetCoords : public PacketCommon
+{
+	int coord[MAX_AXES];
+	int16_t used;
+};
 
 //принимаемые от мк пакеты-----------------------------------------------------
 struct PacketReceived //сообщение о том, что пакет принят
@@ -132,6 +150,8 @@ union PacketUnion
 	char p8[sizeof(PacketSetStepSize)];
 	char p10[sizeof(PacketFract)];
 	char p11[sizeof(PacketPause)];
+	char p12[sizeof(PacketSetSwitches)];
+	char p13[sizeof(PacketSetCoords)];
 };
 
 //размер структуры выровнен на 4, чтобы быстро копировать int[]

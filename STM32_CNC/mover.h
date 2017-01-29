@@ -780,11 +780,6 @@ bool canLog;
 
 						break;
 					}
-				case DeviceCommand_SET_BOUNDS:
-				{
-					//PacketSetBounds *packet = (PacketSetBounds*)common;
-					break;
-				}
 				case DeviceCommand_SET_VEL_ACC:
 				{
 					PacketSetVelAcc *packet = (PacketSetVelAcc*)common;
@@ -794,6 +789,33 @@ bool canLog;
 						maxAcceleration[i] = packet->maxAcceleration[i];
 						log_console("[%d]: maxVel %d, maxAcc %d\n", i, int(maxVelocity[i]), int(maxAcceleration[i]));
 					}
+					break;
+				}
+				case DeviceCommand_SET_SWITCHES:
+				{
+					PacketSetSwitches *packet = (PacketSetSwitches*)common;
+					char *pins = 0;
+					switch (packet->group)
+					{
+						case SwitchGroup_MIN: pins = limitSwitchMin; break;
+						case SwitchGroup_MAX: pins = limitSwitchMax; break;
+						case SwitchGroup_HOME: pins = homeSwitch; break;
+					}
+					for (int i = 0; i < MAX_AXES; ++i)
+						pins[i] = packet->pins[i];
+					polarity = packet->polarity;
+					break;
+				}
+				case DeviceCommand_SET_COORDS:
+				{
+					PacketSetCoords *packet = (PacketSetCoords*)common;
+					for (int i = 0; i < MAX_AXES; ++i)
+						if (packet->used | (1 << i))
+						{
+							coord[i] = packet->coord[i];
+							motor[i]._position = coord[i];
+							to[i] = coord[i];
+						}
 					break;
 				}
 				case DeviceCommand_SET_FEED:
