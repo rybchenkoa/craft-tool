@@ -229,6 +229,18 @@ public:
 	bool needStop;            //принудительная остановка
 	float16 feedMult;         //заданная из интерфейса скорость движения
 
+	//данные, отвечающие за раздельное движение по осям (концевики и ручное управление)
+	char limitSwitchMin[MAX_AXES]; //концевики
+	char limitSwitchMax[MAX_AXES];
+	char activeSwitch[MAX_AXES]; //концевики, в сторону которых сейчас едем
+	char activeSwitchCount;      //количество активных концевиков
+	
+	char homeSwitch[MAX_AXES]; //датчики дома
+	float16 axeVelocity[MAX_AXES]; //скорость оси во время попадания в концевик
+	int timeActivate[MAX_AXES]; //время начала остановки
+	bool homeActivated[MAX_AXES]; //при наезде на дом выставляем бит
+	bool homeReached;
+
 bool canLog;
 
 	//расчёт ускорения не совсем корректен
@@ -237,14 +249,6 @@ bool canLog;
 	//но на малых скоростях это не должно проявляться
 	//поскольку расстояние торможения маленькое
 	//и касательная к кривой поворачивается не сильно
-
-	//=====================================================================================================
-	enum State
-	{
-		FAST = 0,
-		LINEAR,
-	};
-
 
 	//=====================================================================================================
 	enum OperateResult
@@ -291,7 +295,37 @@ bool canLog;
 	LinearData linearData;
 
 
+	
+	//=====================================================================================================
+	//наезд на хард лимит
+	bool switch_reached()
+	{
+		//при обычной езде при налете на концевик прекращаем выдавать STEP
+		if (interpolation == MoveMode_LINEAR)
+		{
+			for (int i = 0; i < activeSwitchCount; ++i)
+				if (get_pin(activeSwitch[i]))
+					return true;
+		}
+		//при поиске дома датчик дома может быть и хард лимитом
+		else if (interpolation == MoveMode_HOME)
+		{
+			for (int i = 0; i < MAX_AXES; ++i)
+				if (linearData.size[i] != 0)
+					if (activeSwitch[i] != -1 && //если концевик задан, и не равен концевику дома
+						homeSwitch[i] != activeSwitch[i] && get_pin(activeSwitch[i])) //и сработал
+						return true;
+		}
+		return false;
+	}
 
+	//=====================================================================================================
+	//наезд на дом
+	bool home_reached()
+	{
+		return interpolation == MoveMode_HOME && homeReached;
+	}
+	
 	//=====================================================================================================
 	void start_motors()
 	{
@@ -366,14 +400,41 @@ bool canLog;
 		else
 		{
 			int ref = linearData.refCoord;
+			int curTime = timer.get();
 			int stepTimeArr[MAX_AXES+1];
 			float16 errCoef = float16(1.0f) / float16(linearData.size[ref]);
+			homeReached = true;
 			for (int i = 0; i < MAX_AXES; ++i)
 			{
 				if (linearData.velCoef[i].mantis == 0)
 				{
 					stepTimeArr[i] = MAX_STEP_TIME;
 					continue;
+				}
+				else if (interpolation == MoveMode_HOME)
+				{
+					//если не задали концевик, но пытаемся на него наехать, то считаем что уже на нем
+					if (homeSwitch[i] == -1 || get_pin(homeSwitch[i]))
+					{
+						if (!homeActivated[i])
+						{
+							axeVelocity[i] = linearData.velocity / linearData.velCoef[i];
+							timeActivate[i] = curTime;
+							homeActivated[i] = true;
+						}
+						
+						if (curTime - timeActivate[i] > (1<<30)) //страховка на случай переполнения таймера
+							timeActivate[i] = curTime - (1<<30);
+							
+						float16 vel = axeVelocity[i] - maxAcceleration[i] * float16(curTime - timeActivate[i]);
+						int stepTime = float16(1) / vel;
+						if (stepTime > MAX_STEP_TIME || stepTime <= 0)
+							stepTime = MAX_STEP_TIME;
+						stepTimeArr[i] = stepTime;
+						if (vel.mantis >= 0)
+							homeReached = false;
+						continue;
+					}
 				}
 
 				float16 step = linearData.velCoef[i] / linearData.velocity;//linearData.maxFeedVelocity;//
@@ -485,16 +546,25 @@ bool canLog;
 	//=====================================================================================================
 	OperateResult linear()
 	{
+		if (switch_reached())
+		{
+			stop_motors(); //TODO сделать обработку остановки
+			return END;
+		}
+		
+		if (home_reached())
+		{
+			stop_motors();
+			return END;
+		}
+			
 		float16 length = linearData.invProj * float16(virtualAxe._position);
 		length += (float16(1) / float16(1000)) * float16(current_track_length());
 
-		// 1/linearData.velocity = тик/мм
 		float16 currentFeed = linearData.maxFeedVelocity * feedMult;
 #ifdef USE_ADC_FEED
 		currentFeed *= (float16(int(adc.value())) >> 12); //на максимальном напряжении   *= 0.99999
 #endif
-/*log_console("step %d, %d, %d, %d\n", length.mantis, length.exponent,
- currentFeed.mantis, currentFeed.exponent);*/
 
 		int lastState = linearData.state;
 		//v^2 = 2g*h; //сначала проверяем, что не врежемся с разгона
@@ -554,11 +624,7 @@ bool canLog;
 			if(linearData.velocity > currentFeed)
 				linearData.velocity = currentFeed;
 		}
-/*log_console("step %d, %d, %d, %d, %d, %d, %d\n", linearData.velocity.mantis, linearData.velocity.exponent,
-linearData.acceleration.mantis, linearData.acceleration.exponent,
-linearData.state,
-linearData.lastTime, timer.get()
-);*/
+
 		if (!brez_step())
 		{
 			if (current_track_length() == 0)
@@ -587,22 +653,31 @@ linearData.lastTime, timer.get()
 
 		linearData.acceleration = acceleration;
 		linearData.maxFeedVelocity = velocity;
+		activeSwitchCount = 0;
 
 		for (int i = 0; i < MAX_AXES; ++i)
 		{
 			motor[i].set_direction(linearData.sign[i] > 0);
-			//нужна скорость в тиках/шаг по оси
-			//есть скорость мм/тик вдоль отрезка
-			//находим проекцию на ось
-			//stepLength[i]; мм/шаг
+			
 			if (linearData.size[i] == 0)
 				linearData.velCoef[i].mantis = linearData.velCoef[i].exponent = 0;
 			else
+			{
 				linearData.velCoef[i] = length / float16(linearData.size[i]);
+				
+				int lim = linearData.sign[i] > 0 ? limitSwitchMax[i] : limitSwitchMin[i];
+				if (interpolation == MoveMode_HOME)
+						activeSwitch[i] = lim; //при движении домой торможение раздельное
+				else
+					if (lim != -1)
+						activeSwitch[activeSwitchCount++] = lim; //иначе нас интересует любое срабатывание
+				homeActivated[i] = false;
+			}
 		}
 		
 		linearData.invProj = linearData.velCoef[refCoord];
-
+		homeReached = false;
+		
 		handler = &Mover::linear;
 	}
 
@@ -652,8 +727,8 @@ linearData.lastTime, timer.get()
 	{
 		switch (interpolation)
 		{
-		case MoveMode_FAST:
 		case MoveMode_LINEAR:
+		case MoveMode_HOME:
 			{
 				led.flip();
 
@@ -764,6 +839,9 @@ linearData.lastTime, timer.get()
 		for(int i = 0; i < MAX_AXES; i++)
 		{
 			coord[i] = 0;
+			limitSwitchMin[i] = -1;
+			limitSwitchMax[i] = -1;
+			homeSwitch[i] = -1;
 		}
 
 		needStop = false;
@@ -781,7 +859,7 @@ linearData.lastTime, timer.get()
 			maxVelocity[i] = mmsec/stepSize*delay;
 			maxAcceleration[i] = accel/stepSize*delay*delay;
 		}*/
-		interpolation = MoveMode_FAST;
+		interpolation = MoveMode_LINEAR;
 		//feedVelocity = maxVelocity[0]; //для обычной подачи задержка больше
 		feedMult = 1;
 	}

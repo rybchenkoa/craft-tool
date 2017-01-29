@@ -27,8 +27,8 @@ enum DeviceCommand //:char какие команды получает устро
 };
 enum MoveMode //:char режим движения/интерполяции
 {
-	MoveMode_FAST = 0,
-	MoveMode_LINEAR,
+	MoveMode_LINEAR = 0, //обычное движение по прямой
+	MoveMode_HOME,       //наезд на дом
 };
 
 //--------------------------------------------------------------------
