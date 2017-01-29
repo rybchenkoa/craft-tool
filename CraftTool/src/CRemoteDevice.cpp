@@ -295,18 +295,49 @@ void CRemoteDevice::wait(double time)
 }
 
 //============================================================
-void CRemoteDevice::set_bounds(Coords rMin, Coords rMax) //TODO удалить или переделать на концевики
+//задает номера концевиков всех осей
+void CRemoteDevice::set_switches(SwitchGroup group, int pins[MAX_AXES])
 {
-    auto packet = new PacketSetBounds;
-    packet->command = DeviceCommand_SET_BOUNDS;
-    for(int i = 0; i < NUM_COORDS; ++i)
-    {
-        packet->minCoord[i] = int(rMin.r[i]*scale[i]);
-        packet->maxCoord[i] = int(rMax.r[i]*scale[i]);
-    }
-    push_packet_common(packet);
-    //this->rMin = rMin;
-    //this->rMax = rMax;
+	auto packet = new PacketSetSwitches;
+	packet->command = DeviceCommand_SET_SWITCHES;
+	packet->group = group;
+	for(int i = 0; i < MAX_AXES; ++i)
+		packet->pins[toDeviceIndex[i]] = pins[i];
+	packet->polarity = switchPolarity;
+	push_packet_common(packet);
+}
+
+//============================================================
+//записывает аппаратные координаты
+void CRemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
+{
+	auto packet = new PacketSetCoords;
+	packet->command = DeviceCommand_SET_COORDS;
+
+	Coords pos = posIn;
+	for (int i = 0; i < MAX_AXES; ++i) //заполняем подчиненные оси
+		if (slaveAxes[i] >= 0)
+			pos.r[slaveAxes[i]] = pos.r[i];
+
+	int usedBit = 0;
+	//сначала задаем используемые координаты
+    for (int i = 0; i < MAX_AXES; ++i)
+	{
+		int index = toDeviceIndex[i];
+		if (usedAxes[i])
+			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
+		else
+			packet->coord[index] = 0;
+
+		if (invertAxe[i])
+			packet->coord[index] *= -1;
+
+		if (used[i])
+			usedBit |= 1 << index;
+	}
+
+	packet->used = usedBit;
+	push_packet_common(packet);
 }
 
 //============================================================
@@ -425,6 +456,7 @@ void CRemoteDevice::init()
 	}
 	memcpy(usedAxes, usedCoords, sizeof(usedCoords));
 
+	//читаем подчиненные оси
 	std::string slave = CFG_SLAVE;
 	std::string AXE_LIST = "XYZAB";
 	for (int i = 0; i < AXE_LIST.size(); ++i)
@@ -443,6 +475,7 @@ void CRemoteDevice::init()
 			slaveAxes[i] = -1;
 	}
 
+	//читаем параметры дискретизации
     secToTick = 24000000.0;
 	double stepSize[MAX_AXES];
 	minStep = 1000000; //километровых шагов уж точно ни у кого не будет
@@ -459,6 +492,7 @@ void CRemoteDevice::init()
 			stepSize[i] = 0;
 		}
 
+	//читаем скорости и ускорения
 	for (int i = 0; i < MAX_AXES; ++i)
 		if (usedCoords[i]) //ограничение скорости надо только для ведущих осей
 		{
@@ -526,6 +560,59 @@ void CRemoteDevice::init()
 	else
 		for (int i = 0; i < AXE_LIST.size(); ++i)
 			invertAxe[i] = false;
+
+	//читаем концевики
+	auto get_in_pin = [](std::string key) -> int
+	{
+		int value;
+		if (g_config->get_int(key.c_str(), value))
+		{
+			if (value < 0 || value >= MAX_IN_PINS)
+				throw ("invalid value of '" + key + "' in config");
+		}
+		else
+			value = -1;
+		return value;
+	};
+
+	for (int i = 0; i < MAX_AXES; ++i)
+	{
+		int value = get_in_pin(std::string(CFG_SWITCH_MIN) + AXE_LIST[i]);
+		(invertAxe[i] ? switchMax[i] : switchMin[i]) = value;
+
+		value = get_in_pin(std::string(CFG_SWITCH_MAX) + AXE_LIST[i]);
+		(invertAxe[i] ? switchMin[i] : switchMax[i]) = value;
+
+		value = get_in_pin(std::string(CFG_SWITCH_HOME) + AXE_LIST[i]);
+		switchHome[i] = value;
+
+		std::string key = std::string(CFG_BACK_HOME) + AXE_LIST[i];
+		float dValue;
+		if (!g_config->get_float(key.c_str(), dValue))
+			dValue = 0;
+		backHome[i] = dValue;
+
+		key = std::string(CFG_COORD_HOME) + AXE_LIST[i];
+		if (!g_config->get_float(key.c_str(), dValue))
+			dValue = 0;
+		coordHome[i] = dValue;
+	}
+
+	switchPolarity = 0;
+	std::string value;
+	if (g_config->get_string(CFG_SWITCH_POLARITY, value))
+	{
+		for (int i = 0; i < value.size(); ++i)
+			if (i > MAX_IN_PINS || value[i] != '0' && value[i] != '1')
+				throw ("invalid value of '"  CFG_SWITCH_POLARITY  "' in config");
+			else
+				if (value[i] == '1')
+					switchPolarity |= (1 << i);
+	}
+	
+	set_switches(SwitchGroup_MIN, switchMin);
+	set_switches(SwitchGroup_MAX, switchMax);
+	set_switches(SwitchGroup_HOME, switchHome);
 
     set_velocity_and_acceleration(velocity, acceleration);
     set_feed(feed);

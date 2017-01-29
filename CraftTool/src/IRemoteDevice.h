@@ -8,6 +8,7 @@
 #define NUM_COORDS 3 //сколько координат задаем в G-коде
 #define NUM_AXES   4 //сколько осей используем (координаты плюс подчиненные им оси)
 #define MAX_AXES   5 //сколько всего есть осей на контроллере
+#define MAX_IN_PINS 11 //количество входных пинов
 
 typedef double coord;//чтобы не путаться, координатный тип введём отдельно
 
@@ -40,8 +41,9 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_PACKET_ERROR_CRC,    //пакет пришёл побитым
     DeviceCommand_RESET_PACKET_NUMBER, //сбросить очередь пакетов
     DeviceCommand_ERROR_PACKET_NUMBER, //пришёл пакет с неправильным номером
-    DeviceCommand_SET_BOUNDS,
     DeviceCommand_SET_VEL_ACC,
+	DeviceCommand_SET_SWITCHES,
+	DeviceCommand_SET_COORDS,
     DeviceCommand_SET_FEED, //выпилить?
     DeviceCommand_SET_FEED_MULT,
     DeviceCommand_SET_STEP_SIZE,
@@ -57,6 +59,12 @@ enum MoveMode:char //режим движения/интерполяции
 	MoveMode_HOME,
 
 	MoveMode_FAST,
+};
+enum SwitchGroup:char
+{
+	SwitchGroup_MIN = 0,
+	SwitchGroup_MAX,
+	SwitchGroup_HOME,
 };
 #pragma pack(push, 1)
 struct PacketCommon
@@ -125,6 +133,19 @@ struct PacketPause : public PacketCommon
     char needStop;
     int crc;
 };
+struct PacketSetSwitches : public PacketCommon
+{
+	char group;
+	char pins[MAX_AXES];
+	int16_t polarity;
+	int crc;
+};
+struct PacketSetCoords : public PacketCommon
+{
+	int coord[MAX_AXES];
+	int16_t used;
+	int crc;
+};
 
 //принимаемые от мк пакеты
 struct PacketReceived //сообщение о том, что пакет принят
@@ -167,7 +188,6 @@ public:
     virtual void set_move_mode(MoveMode mode)=0; //задаём режим интерполяции
     virtual void set_position(Coords position)=0; //перемещаем фрезу
     virtual void wait(double time)=0; //задержка
-    virtual void set_bounds(Coords rMin, Coords rMax)=0; //границы координат
     virtual void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])=0; //задать скорость и ускорение
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
@@ -195,7 +215,6 @@ public:
     void set_move_mode(MoveMode mode) override;
     void set_position(Coords position) override;
     void wait(double time) override;
-    void set_bounds(Coords rMin, Coords rMax) override;
     void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES]) override;
     void set_feed(double feed) override;
     void set_feed_multiplier(double multiplier) override;
@@ -236,11 +255,20 @@ public:
 	std::vector<int> toDeviceIndex;    //перевод номеров координат в номера генераторов сигнала на устройстве
 	std::vector<int> fromDeviceIndex;  //обратное преобразование при получении координат с устройства
 	bool invertAxe[MAX_AXES];          //инвертировать ли ось
+	int switchPolarity;                //биты - значения активного уровня сигнала
+	int  switchMin[MAX_AXES];          //концевик на минимум
+	int  switchMax[MAX_AXES];          //концевик на максимум
+	int  switchHome[MAX_AXES];         //концевик для дома
+	double backHome[MAX_AXES];         //на сколько отъехать от дома
+	double coordHome[MAX_AXES];        //какие задать координаты дому
 
     //состояние удалённого устройства
     Coords currentCoords;              //текущие координаты
 
 protected:
+	void set_switches(SwitchGroup group, int pins[MAX_AXES]);
+	void set_coord(Coords pos, bool used[MAX_AXES]);
+
     void init_crc();
     void make_crc(char *packet);
     unsigned crc32_stm32(unsigned init_crc, unsigned *buf, int len);
