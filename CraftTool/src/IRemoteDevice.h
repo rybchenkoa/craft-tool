@@ -53,8 +53,10 @@ enum DeviceCommand:char //какие команды получает устройство
 };
 enum MoveMode:char //режим движения/интерполяции
 {
-    MoveMode_FAST = 0,
-    MoveMode_LINEAR,
+    MoveMode_LINEAR = 0,
+	MoveMode_HOME,
+
+	MoveMode_FAST,
 };
 #pragma pack(push, 1)
 struct PacketCommon
