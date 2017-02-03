@@ -231,7 +231,7 @@ void inline set_dir(int index, bool state)
 bool inline get_pin(int index)
 {
 	int pinNum = IN_PINS[index];
-	return ((IN_PORTS[index]->IDR >> pinNum) ^ (polarity >> index)) && 1;
+	return ((IN_PORTS[index]->IDR >> pinNum) ^ (polarity >> index)) & 1;
 }
 
 //--------------------------------------------------

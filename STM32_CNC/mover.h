@@ -304,7 +304,7 @@ bool canLog;
 		if (interpolation == MoveMode_LINEAR)
 		{
 			for (int i = 0; i < activeSwitchCount; ++i)
-				if (get_pin(activeSwitch[i]))
+				if (activeSwitch[i] != -1 && get_pin(activeSwitch[i]))
 					return true;
 		}
 		//при поиске дома датчик дома может быть и хард лимитом
