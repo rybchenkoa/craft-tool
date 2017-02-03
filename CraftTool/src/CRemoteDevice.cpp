@@ -408,6 +408,87 @@ void CRemoteDevice::reset_packet_queue()
 }
 
 //============================================================
+std::vector<std::string> split(std::string str, char delim)
+{
+	std::vector<std::string> result;
+	std::istringstream ss(str);
+	std::string s;
+	while (std::getline(ss, s, delim))
+		result.push_back(s);
+	return result;
+}
+
+//============================================================
+int letter_to_axe(char letter)
+{
+	switch (letter)
+	{
+		case 'x': case 'X': return 0;
+		case 'y': case 'Y': return 1;
+		case 'z': case 'Z': return 2;
+		case 'a': case 'A': return 3;
+		case 'b': case 'B': return 4;
+		default:  return -1;
+	}
+};
+
+//============================================================
+bool read_double(const std::string &str, int &pos, double &value)
+{
+	std::string val;
+	while (pos < str.size() && (str[pos] >= '0' && str[pos] <= '9' || str[pos] == ',' || str[pos] == '.'))
+		val.push_back(str[pos++]);
+	try
+	{
+		value = std::stod(val);
+		return true;
+	}
+	catch(...)
+	{
+		return false;
+	}
+}
+
+//============================================================
+void CRemoteDevice::homing()
+{
+    //строка формата [[координата сдвиг ...], ...]
+	std::vector<std::string> moves = split(homingScript, ',');
+	double feed = 600; //по умолчанию сантиметр в секунду
+	auto lastMode = moveMode;
+	set_move_mode(MoveMode_HOME);
+	for (auto str = moves.begin(); str != moves.end(); ++str)
+	{
+		Coords pos; //по умолчанию везде смещения нулевые
+		for (int i = 0; i < str->length(); )
+		{
+			char symbol = (*str)[i++];
+			if (symbol == ' ')
+				continue;
+
+			int coordNum = letter_to_axe(symbol);
+			if (coordNum != -1)
+				if (!read_double(*str, i, pos.r[coordNum])) //координаты задаются инкрементально
+				{
+					log_warning("invalid homing string");
+					return;
+				}
+
+			if (symbol == 'f' || symbol == 'F')
+				if (!read_double(*str, i, feed) || feed < 0) //мм/мин
+				{
+					log_warning("invalid homing string");
+					return;
+				}
+		}
+
+		set_position(pos);
+	}
+	set_move_mode(lastMode);
+	set_coord(coordHome, usedAxes);
+}
+
+//============================================================
 void CRemoteDevice::init()
 {
     packetNumber = -1;
@@ -428,19 +509,6 @@ void CRemoteDevice::init()
             throw(std::string("key not found in config: ") + key);
         return value;
     };
-
-	auto letter_to_axe = [](char letter) -> int
-	{
-		switch (letter)
-		{
-			case 'x': case 'X': return 0;
-			case 'y': case 'Y': return 1;
-			case 'z': case 'Z': return 2;
-			case 'a': case 'A': return 3;
-			case 'b': case 'B': return 4;
-			default:  return -1;
-		}
-	};
 
 	std::string coordList = try_get_string(CFG_USED_COORDS); //читаем используемые интерпретатором координаты
 
@@ -595,7 +663,7 @@ void CRemoteDevice::init()
 		key = std::string(CFG_COORD_HOME) + AXE_LIST[i];
 		if (!g_config->get_float(key.c_str(), dValue))
 			dValue = 0;
-		coordHome[i] = dValue;
+		coordHome.r[i] = dValue;
 	}
 
 	switchPolarity = 0;
@@ -610,6 +678,8 @@ void CRemoteDevice::init()
 					switchPolarity |= (1 << i);
 	}
 	
+	g_config->get_string(CFG_HOMING, homingScript);
+
 	set_switches(SwitchGroup_MIN, switchMin);
 	set_switches(SwitchGroup_MAX, switchMax);
 	set_switches(SwitchGroup_HOME, switchHome);

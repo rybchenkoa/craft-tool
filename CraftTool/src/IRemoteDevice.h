@@ -193,6 +193,7 @@ public:
     virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
     virtual void set_step_size(double stepSize[MAX_AXES])=0; //длина одного шага
     virtual void pause_moving(bool needStop)=0; //временная остановка движения
+	virtual void homing()=0; //отъехать к концевикам и задать машинные координаты
 
     virtual int  queue_size() = 0; //длина очереди команд
 
@@ -220,6 +221,7 @@ public:
     void set_feed_multiplier(double multiplier) override;
     void set_step_size(double stepSize[MAX_AXES]) override;
     void pause_moving(bool needStop) override;
+	void homing() override;
 
     void set_fract();
 
@@ -260,7 +262,8 @@ public:
 	int  switchMax[MAX_AXES];          //концевик на максимум
 	int  switchHome[MAX_AXES];         //концевик для дома
 	double backHome[MAX_AXES];         //на сколько отъехать от дома
-	double coordHome[MAX_AXES];        //какие задать координаты дому
+	Coords coordHome;                  //какие задать координаты дому
+	std::string homingScript;          //как ехать к дому
 
     //состояние удалённого устройства
     Coords currentCoords;              //текущие координаты
