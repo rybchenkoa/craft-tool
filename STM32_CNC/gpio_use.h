@@ -53,7 +53,7 @@ inline void gpio_port_crh(GPIO_TypeDef *port, unsigned int mask, unsigned int va
 
 #define MANUAL_OUT 1
 #define AF_OUT     9
-#define PULL_UP_IN 12
+#define PULL_UP_IN 8
 //--------------------------------------------------
 void configure_gpio()
 {
@@ -84,17 +84,19 @@ void configure_gpio()
 	
 	//PWM B: 14, 15
 	//                     54321098
-	gpio_port_crh(GPIOA, 0x11000000, AF_OUT);
+	gpio_port_crh(GPIOB, 0x11000000, AF_OUT);
 	
 	//входы a12, a15
 	//                     54321098
 	gpio_port_crh(GPIOA, 0x10010000, PULL_UP_IN);
+	GPIOA->BSRR = (1<<12)|(1<<15);
 	
 	//входы b2, b10, b11, b12, b3, b4, b5
 	//                     76543210
 	gpio_port_crl(GPIOB, 0x00111100, PULL_UP_IN);
 	//                     54321098
 	gpio_port_crh(GPIOB, 0x00011100, PULL_UP_IN);
+	GPIOB->BSRR = (1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<10)|(1<<11)|(1<<12);
 }
 
 
