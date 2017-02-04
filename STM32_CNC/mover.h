@@ -305,7 +305,10 @@ bool canLog;
 		{
 			for (int i = 0; i < activeSwitchCount; ++i)
 				if (activeSwitch[i] != -1 && get_pin(activeSwitch[i]))
+				{
+					log_console("switch %d, %d reached", i, activeSwitch[i]);
 					return true;
+				}
 		}
 		//при поиске дома датчик дома может быть и хард лимитом
 		else if (interpolation == MoveMode_HOME)
@@ -323,7 +326,7 @@ bool canLog;
 	//наезд на дом
 	bool home_reached()
 	{
-		return interpolation == MoveMode_HOME && homeReached;
+		return (interpolation == MoveMode_HOME) && homeReached;
 	}
 	
 	//=====================================================================================================
@@ -513,7 +516,10 @@ bool canLog;
 		for(int i = 0; i < MAX_AXES; ++i) //для алгоритма рисования
 		{
 			from[i] = to[i];       //куда должны были доехать
-			to[i] = dest[i];       //куда двигаемся
+			if (interpolation != MoveMode_HOME)
+				to[i] = dest[i];       //куда двигаемся
+			else
+				to[i] += dest[i]; //инкрементальный режим для хоминга, так как текущие координаты на компьютере могут быть сбиты
 			if(to[i] > from[i])
 			{
 				linearData.size[i] = to[i] - from[i]; //увеличение ошибки
