@@ -25,6 +25,7 @@ CRemoteDevice::CRemoteDevice()
     pushLine = -1;
     workLine = -1;
     lastQueue = -1;
+	inited = false;
 
     for(int i = 0; i < MAX_AXES; ++i)
     {
@@ -198,7 +199,10 @@ void CRemoteDevice::set_position(Coords posIn)
 		if (!usedAxes[i])
 			continue;
 
-        delta.r[i] = pos.r[i] - lastPosition.r[i];
+		if (moveMode != MoveMode_HOME)
+			delta.r[i] = pos.r[i] - lastPosition.r[i];
+		else
+			delta.r[i] = pos.r[i];
 
         int steps = abs(int(delta.r[i] * scale[i]));
         if(steps > referenceLen)
@@ -325,7 +329,10 @@ void CRemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 	{
 		int index = toDeviceIndex[i];
 		if (usedAxes[i])
+		{
 			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
+			lastPosition.r[i] = pos.r[i];
+		}
 		else
 			packet->coord[index] = 0;
 
@@ -688,6 +695,8 @@ void CRemoteDevice::init()
     set_feed(feed);
     set_step_size(stepSize);
     set_fract();
+
+	inited = true;
 }
 
 //============================================================
@@ -739,6 +748,7 @@ bool CRemoteDevice::process_packet(char *data, int size)
     {
     case DeviceCommand_SERVICE_COORDS:
     {
+		if (!inited) return true;
         PacketServiceCoords *packet = (PacketServiceCoords*) data;
         for(int i = 0; i < MAX_AXES; ++i)
             currentCoords.r[i] = packet->coords[fromDeviceIndex[i]] / scale[i] * (invertAxe[i] ? -1 : 1);

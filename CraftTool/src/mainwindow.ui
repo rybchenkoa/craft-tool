@@ -229,7 +229,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="c_setHomeButton">
+                <widget class="QPushButton" name="c_refHomeButton">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -248,7 +248,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="c_toHomeButton">
+                <widget class="QPushButton" name="c_toZeroButton">
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>

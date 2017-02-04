@@ -35,11 +35,12 @@ void MainWindow::menu_open_program()
     load_file(str.toLocal8Bit().data());
 }
 
-void MainWindow::on_c_setHomeButton_clicked()
+void MainWindow::on_c_refHomeButton_clicked()
 {
-    g_inter->runner.csd[0].pos0.x = g_device->currentCoords.r[0];
-    g_inter->runner.csd[0].pos0.y = g_device->currentCoords.r[1];
-    g_inter->runner.csd[0].pos0.z = g_device->currentCoords.r[2];
+    //g_inter->runner.csd[0].pos0.x = g_device->currentCoords.r[0];
+    //g_inter->runner.csd[0].pos0.y = g_device->currentCoords.r[1];
+    //g_inter->runner.csd[0].pos0.z = g_device->currentCoords.r[2];
+	g_device->homing();
 }
 
 void MainWindow::on_c_setX0Button_clicked()
@@ -57,7 +58,7 @@ void MainWindow::on_c_setZ0Button_clicked()
     g_inter->runner.csd[0].pos0.z = g_device->currentCoords.r[2];
 }
 
-void MainWindow::on_c_toHomeButton_clicked()
+void MainWindow::on_c_toZeroButton_clicked()
 {
     g_inter->runner.position = g_inter->runner.csd[0].pos0;
     g_device->set_position(g_inter->runner.position);

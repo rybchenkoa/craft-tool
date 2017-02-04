@@ -30,8 +30,8 @@ public:
 public slots:
     void menu_open_program();
     void update_state();
-    void on_c_setHomeButton_clicked();
-    void on_c_toHomeButton_clicked();
+    void on_c_refHomeButton_clicked();
+    void on_c_toZeroButton_clicked();
     void on_c_setX0Button_clicked();
     void on_c_setY0Button_clicked();
     void on_c_setZ0Button_clicked();

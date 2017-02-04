@@ -235,6 +235,7 @@ public:
     bool on_packet_received(char *data, int size);
     bool process_packet(char *data, int size);
 
+	bool inited;                       //порт нужен для инициализации, но до инициализации нельзя принимать с него лишних данных
     ComPortConnect *comPort;           //подключение к удалённому устройству
     int missedSends;                   //пакет послан, ответ не получен
     int missedReceives;                //принят битый пакет
