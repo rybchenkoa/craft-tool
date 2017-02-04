@@ -171,6 +171,7 @@ struct VirtualMotor
 {
 	int _position;
 	int _period;
+	int _newPeriod; //таймера не умеют на лету менять значение и на старте есть задержка (имитируем их работу)
 	int _lastTime;
 	
 	VirtualMotor() { _position = 0; }
@@ -180,9 +181,12 @@ struct VirtualMotor
 	{
 		if (_period == MAX_STEP_TIME)
 			return;
+
 		int delta = (time - _lastTime) / _period;
 		_position -= delta;
 		_lastTime += delta * _period;
+		if (delta > 0)
+			_period = _newPeriod;
 	}
 	
 	//===============================================================
@@ -190,14 +194,22 @@ struct VirtualMotor
 	{
 		int curTime = timer.get();
 		if (_period == MAX_STEP_TIME)
-			_lastTime = curTime;
-		else
 		{
+			_lastTime = curTime;
+			_period = period;
+		}
+		else if (_period >= MAX_PERIOD)
+		{
+			_period = _newPeriod;
 			int timeLeft = _lastTime + _period - curTime;
 			timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
 			_lastTime = curTime - period + timeLeft;
+			_period = period;
 		}
-		_period = period;
+		else
+		{
+			_newPeriod = period;
+		}
 	}
 	
 	//===============================================================
@@ -205,6 +217,7 @@ struct VirtualMotor
 	{
 		_lastTime = timer.get();
 		_period = period;
+		_newPeriod = _period;
 	}
 };
 
