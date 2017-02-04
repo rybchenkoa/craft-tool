@@ -1,0 +1,12 @@
+F3000
+G21 (All units in mm)
+G0 X0Y0Z0
+G91
+G2 X90 R50
+X50 R-50
+
+G3 Y-90 R50
+Y-50 R-50
+
+G90
+G0 X0Y0Z0
