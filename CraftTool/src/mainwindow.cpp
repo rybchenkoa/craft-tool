@@ -75,6 +75,9 @@ void MainWindow::update_state()
         ui->c_commandList->setCurrentRow(currentLine);
 
     Coords coords = g_device->currentCoords;
+	if (!ui->c_machineCoordsButton->isChecked())
+		for (int i = 0; i < MAX_AXES; ++i)
+			coords.r[i] -= g_inter->runner.csd[0].pos0.r[i];
     ui->c_lineEditX->setText(QString::number(coords.x));
     ui->c_lineEditY->setText(QString::number(coords.y));
     ui->c_lineEditZ->setText(QString::number(coords.z));
