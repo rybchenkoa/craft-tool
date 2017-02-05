@@ -489,6 +489,7 @@ void CRemoteDevice::homing()
 				}
 		}
 
+		set_feed(feed);
 		set_position(pos);
 	}
 	set_move_mode(lastMode);
