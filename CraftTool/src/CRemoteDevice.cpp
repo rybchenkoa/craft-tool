@@ -443,7 +443,9 @@ int letter_to_axe(char letter)
 bool read_double(const std::string &str, int &pos, double &value)
 {
 	std::string val;
-	while (pos < str.size() && (str[pos] >= '0' && str[pos] <= '9' || str[pos] == ',' || str[pos] == '.'))
+	while (pos < str.size() && (str[pos] >= '0' && str[pos] <= '9' 
+		|| str[pos] == ',' || str[pos] == '.' 
+		|| str[pos] == '-' || str[pos] == '+'))
 		val.push_back(str[pos++]);
 	try
 	{
