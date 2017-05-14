@@ -596,12 +596,12 @@ bool canLog;
 			linearData.lastTime = timer.get();
 		}
 
-		if (lastState == -2)
+		if (linearData.state == -2)
 		{
 			//v = sqrt(2*g*h)
 			linearData.velocity = sqrt(linearData.acceleration * length << 1);
 		}
-		else if (lastState == -1)
+		else if (linearData.state == -1)
 		{
 			int currentTime = timer.get();
 			int delta = currentTime - linearData.lastTime;
@@ -617,7 +617,7 @@ bool canLog;
 				linearData.velocity.exponent = 0;
 			}
 		}
-		else if (lastState == 1)
+		else if (linearData.state == 1)
 		{
 			int currentTime = timer.get();
 			int delta = currentTime - linearData.lastTime;
@@ -634,7 +634,10 @@ bool canLog;
 		if (!brez_step())
 		{
 			if (current_track_length() == 0)
+			{
 				stop_motors();
+				linearData.state = 0;
+			}
 			return END;
 		}
 
