@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QDir>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "log.h"
@@ -11,6 +12,7 @@ MainWindow *g_mainWindow = 0;
 Interpreter::GCodeInterpreter *g_inter = 0;
 Config *g_config = 0;
 CRemoteDevice *g_device = 0;
+std::string appDir;
 
 
 static DWORD WINAPI execute( LPVOID lpParam )
@@ -61,6 +63,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
 
 int main(int argc, char* argv[])
 {
+    appDir = QDir::current().absolutePath().toStdString();
     g_application = new QApplication(argc, argv);
     g_config = new Config();
     if (!g_config->read_from_file(CFG_CONFIG_NAME))

@@ -11,7 +11,7 @@ void Logger::log_console_string(QColor color, const char *value)
 {
     emit send_string(color, value);
     std::ofstream f;
-    f.open("message.log", std::ios::app);
+    f.open(appDir +  "/message.log", std::ios::app);
     f << value;
 }
 
