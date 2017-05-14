@@ -122,6 +122,11 @@ void MainWindow::on_c_startButton_clicked()
     g_inter->execute_file(nullptr);//запускаем интерпретацию
 }
 
+void MainWindow::on_c_runLineButton_clicked()
+{
+    g_inter->execute_line(ui->c_lineEditCommand->text().toStdString());//запускаем интерпретацию
+}
+
 void MainWindow::on_c_refreshTrajectory_clicked()
 {
     Interpreter::Trajectory trajectory;

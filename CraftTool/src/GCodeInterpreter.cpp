@@ -1050,6 +1050,17 @@ void GCodeInterpreter::execute_file(Trajectory *trajectory)
 }
 
 //====================================================================================================
+//читает строки в список
+void GCodeInterpreter::execute_line(std::string line)
+{
+	this->trajectory = nullptr;
+    remoteDevice->set_current_line(0);
+    auto result = execute_frame(line.c_str());
+    if(result != InterError_ALL_OK)
+        log_warning("execute_frame error %d\n", result);
+}
+
+//====================================================================================================
 void GCodeInterpreter::init()
 {
     //reader.position = {0.0f, 0.0f, 0.0f};

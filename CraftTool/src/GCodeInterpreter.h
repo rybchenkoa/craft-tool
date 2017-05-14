@@ -275,6 +275,7 @@ public:
     void init();                            //инициализация для нового файла
     bool read_file(const char *name);             //запоминает строки текстового файла
     void execute_file(Trajectory *trajectory);                    //исполняет файл
+	void execute_line(std::string line);    //исполняет одну строку
     InterError execute_frame(const char *frame);    //выполнение строки
     InterError make_new_state();            //чтение команд из строки
     InterError run_modal_groups();          //запуск команд
