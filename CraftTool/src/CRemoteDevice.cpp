@@ -177,6 +177,10 @@ void CRemoteDevice::set_position(Coords posIn)
 		if (slaveAxes[i] >= 0)
 			pos.r[slaveAxes[i]] = pos.r[i];
 
+	for (int i = 0; i < MAX_AXES; ++i) //инвертируем, если нужно
+		if (invertAxe[i])
+			pos.r[i] *= -1;
+
 	//сначала задаем используемые координаты
     for (int i = 0; i < MAX_AXES; ++i)
 	{
@@ -185,9 +189,6 @@ void CRemoteDevice::set_position(Coords posIn)
 			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
 		else
 			packet->coord[index] = 0;
-
-		if (invertAxe[i])
-			packet->coord[index] *= -1;
 	}
 
     Coords delta;
@@ -606,10 +607,10 @@ void CRemoteDevice::init()
 			int numAxe = letter_to_axe(token[0]);
 			int numPin = token[1] - '0';
 			if (numAxe >= 0 && numPin >= 0 && numPin < MAX_AXES && 
-				std::find(toDeviceIndex.begin(), toDeviceIndex.end(), numAxe) == toDeviceIndex.end())
+				std::find(fromDeviceIndex.begin(), fromDeviceIndex.end(), numAxe) == fromDeviceIndex.end())
 			{
 				processed = true;
-				toDeviceIndex.push_back(numAxe);
+				fromDeviceIndex.push_back(numAxe);
 			}
 		}
 		if (!processed)
@@ -617,13 +618,13 @@ void CRemoteDevice::init()
 	}
 
 	for (int i = 0; i < MAX_AXES; ++i)
-		if (std::find(toDeviceIndex.begin(), toDeviceIndex.end(), i) == toDeviceIndex.end())
-			toDeviceIndex.push_back(i);
+		if (std::find(fromDeviceIndex.begin(), fromDeviceIndex.end(), i) == fromDeviceIndex.end())
+			fromDeviceIndex.push_back(i);
 
 	// строим обратный индекс
-	fromDeviceIndex.resize(MAX_AXES);
+	toDeviceIndex.resize(MAX_AXES);
 	for (int i = 0; i < MAX_AXES; ++i)
-		fromDeviceIndex[toDeviceIndex[i]] = i;
+		toDeviceIndex[fromDeviceIndex[i]] = i;
 
 	//какие оси надо инвертировать
 	std::string inverted;
@@ -754,7 +755,7 @@ bool CRemoteDevice::process_packet(char *data, int size)
 		if (!inited) return true;
         PacketServiceCoords *packet = (PacketServiceCoords*) data;
         for(int i = 0; i < MAX_AXES; ++i)
-            currentCoords.r[i] = packet->coords[fromDeviceIndex[i]] / scale[i] * (invertAxe[i] ? -1 : 1);
+            currentCoords.r[i] = packet->coords[toDeviceIndex[i]] / scale[i] * (invertAxe[i] ? -1 : 1);
         emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]); //TODO: переделать на правильные координаты?
         //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
         return true;
