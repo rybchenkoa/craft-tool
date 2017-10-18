@@ -247,7 +247,7 @@ void CRemoteDevice::set_position(Coords posIn)
         }
         double cosA = scalar / sqrt(scalar1 * scalar2);
 
-        if(cosA < 1 - 0.01) //если направление движения сильно изменилось
+        if(cosA < 1 - 0.2) //если направление движения сильно изменилось
             set_fract();
     }
 
@@ -281,7 +281,7 @@ void CRemoteDevice::set_position(Coords posIn)
     double accValue = length / timeMove; //максимальное ускорение в заданном направлении
     packet->acceleration = float(accValue / (secToTick * secToTick));
 
-    //log_message("   GO TO %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2]);
+    //log_message("   GO TO %d, %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2], packet->coord[3]);
     push_packet_common(packet);
 
     fractSended = false;
