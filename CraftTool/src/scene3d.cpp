@@ -449,7 +449,20 @@ void Scene3d::update_tool_coords(float x, float y, float z)
     tool.position = glm::vec3(x,y,z);
     if (realTrack.empty() || realTrack.back() != tool.position)
     {
-        realTrack.push_back(tool.position);
+        int size = realTrack.size();
+        if (size > 1)
+        {
+            auto prevDirect = realTrack[size-1] - realTrack[size - 2];
+            auto direct = tool.position - realTrack[size - 1];
+            auto cosA = glm::dot(direct, prevDirect) / sqrt(glm::dot(direct, direct)*glm::dot(prevDirect, prevDirect));
+            if (cosA < 1 - 0.01)
+              realTrack.push_back(tool.position);
+            else
+              realTrack.back() = tool.position;
+        }
+        else
+          realTrack.push_back(tool.position);
+
         int maximum = 10000;
         int tail = 1000;
         if (realTrack.size() > maximum + tail)
