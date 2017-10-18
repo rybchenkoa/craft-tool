@@ -190,25 +190,26 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
     if (object == ui->c_3dView && event->type() == QEvent::KeyPress) {
         QKeyEvent *ke = static_cast<QKeyEvent *>(event);
         //log_warning("key %d, v %d, s %d\n", ke->key(), ke->nativeVirtualKey(), ke->nativeScanCode());
+		coord step = 0.1;
         switch(ke->nativeVirtualKey())
         {
         case VK_RIGHT:
-            g_inter->move(0, 1);
+            g_inter->move(0, step);
             return true;
         case VK_LEFT:
-            g_inter->move(0, -1);
+            g_inter->move(0, -step);
             return true;
         case VK_UP:
-            g_inter->move(1, 1);
+            g_inter->move(1, step);
             return true;
         case VK_DOWN:
-            g_inter->move(1, -1);
+            g_inter->move(1, -step);
             return true;
         case Qt::Key_W:
-            g_inter->move(2, 1);
+            g_inter->move(2, step);
             return true;
         case Qt::Key_S:
-            g_inter->move(2, -1);
+            g_inter->move(2, -step);
             return true;
         }
     }
