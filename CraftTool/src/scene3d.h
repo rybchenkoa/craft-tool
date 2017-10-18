@@ -1,5 +1,6 @@
 #include <QtOpenGL/QGLWidget>
 #include <QPoint>
+#include <QTimer>
 #include "StdAfx.h"
 
 namespace Ui
@@ -83,6 +84,7 @@ protected:
     void draw_track();
     void draw_real_track();
     void draw_border();
+    void draw_fps();
 
 public:
     int    m_windowWidth;  //размеры окна
@@ -103,6 +105,10 @@ public:
 
     std::vector<TrackPoint> track; //траектория фрезы
     std::vector<glm::vec3> realTrack; //пройденная фрезой траектория
+
+    int _drawCalls; //вызовов отрисовки за последнюю секунду
+    int _fps;
+    QTimer updateTimer;
 
 public slots:
     void update_tool_coords(float x, float y, float z);

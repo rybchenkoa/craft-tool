@@ -2,9 +2,11 @@
 #include <QWheelEvent>
 #include <QCursor>
 #include <QApplication>
+#include <QTime>
 #include "log.h"
 //#include "ui_mainwindow.h"
 
+QTime time;
 //--------------------------------------------------------------------
 Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
 {
@@ -27,6 +29,19 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
     m_windowHeight = 0;
 
     make_tool_simple(tool); //делаем квадратное сверло )
+    for(int i = 0; i < 90000;++i)
+    {
+      glm::vec3 val(5,5,5);
+      realTrack.push_back(val);
+    }
+
+    time.start();
+    _drawCalls = 0;
+    _fps = 0;
+
+    //периодическа€ перерисовка дл€ обновлени€ траектории фрезы.
+    connect(&updateTimer, SIGNAL(timeout()), this, SLOT(update()));
+    updateTimer.start(100); //10 fps
 }
 
 //--------------------------------------------------------------------
@@ -172,11 +187,27 @@ void Scene3d::paintGL()
 
 	if (m_showGrid)
 		draw_grid();
-
-    glFlush();
+    draw_fps();
+    //glFlush();
 
     if(hasFocus())
         draw_border();
+}
+
+//--------------------------------------------------------------------
+void Scene3d::draw_fps()
+{
+    ++_drawCalls;
+    if (time.elapsed() > 1000)
+    {
+        _fps = _drawCalls;
+        _drawCalls = 0;
+        time.restart();
+    }
+
+    QString text = QString::number(_fps);
+    QFont font("Arial", 15, QFont::Bold);
+	renderText(5, 20, text, font);
 }
 
 //--------------------------------------------------------------------
@@ -417,8 +448,16 @@ void Scene3d::update_tool_coords(float x, float y, float z)
 {
     tool.position = glm::vec3(x,y,z);
     if (realTrack.empty() || realTrack.back() != tool.position)
+    {
         realTrack.push_back(tool.position);
-    update();
+        int maximum = 10000;
+        int tail = 1000;
+        if (realTrack.size() > maximum + tail)
+        {
+          realTrack.erase(realTrack.begin(), realTrack.begin() + tail);
+        }
+    }
+    //update();
 }
 
 //--------------------------------------------------------------------
