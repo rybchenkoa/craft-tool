@@ -189,6 +189,8 @@ public:
     virtual void set_position(Coords position)=0; //перемещаем фрезу
     virtual void wait(double time)=0; //задержка
     virtual void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])=0; //задать скорость и ускорение
+    virtual double get_max_velocity(int coord)=0;
+    virtual double get_max_acceleration(int coord)=0;
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
     virtual void set_step_size(double stepSize[MAX_AXES])=0; //длина одного шага
@@ -217,6 +219,8 @@ public:
     void set_position(Coords position) override;
     void wait(double time) override;
     void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES]) override;
+    double get_max_velocity(int coord) override;
+    double get_max_acceleration(int coord) override;
     void set_feed(double feed) override;
     void set_feed_multiplier(double multiplier) override;
     void set_step_size(double stepSize[MAX_AXES]) override;
@@ -240,6 +244,7 @@ public:
     int missedSends;                   //пакет послан, ответ не получен
     int missedReceives;                //принят битый пакет
     int missedHalfSend;                //принято сообщение о битом пакете
+    int packSends;                     //послано пакетов
 
     //текущее состояние
     double scale[MAX_AXES];            //шагов на миллиметр

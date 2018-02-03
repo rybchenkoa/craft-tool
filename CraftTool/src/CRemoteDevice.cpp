@@ -22,6 +22,7 @@ CRemoteDevice::CRemoteDevice()
     missedSends = 0;
     missedReceives = 0;
     missedHalfSend = 0;
+    packSends = 0;
     pushLine = -1;
     workLine = -1;
     lastQueue = -1;
@@ -416,6 +417,18 @@ void CRemoteDevice::reset_packet_queue()
 }
 
 //============================================================
+double CRemoteDevice::get_max_velocity(int coord)
+{
+	return velocity[coord];
+}
+
+//============================================================
+double CRemoteDevice::get_max_acceleration(int coord)
+{
+	return acceleration[coord];
+}
+
+//============================================================
 std::vector<std::string> split(std::string str, char delim)
 {
 	std::vector<std::string> result;
@@ -794,8 +807,8 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     unsigned receivedCrc = *(unsigned*)(data+size-4);
     if(crc != receivedCrc)
     {
-        for(int i=0; i<size; i++)
-            log_warning("%c", data[i]);
+        //for(int i=0; i<size; i++)
+        //    log_warning("%c", data[i]);
         missedReceives++;
         return false;
     }
@@ -945,6 +958,7 @@ DWORD WINAPI CRemoteDevice::send_thread(void *__this)
                 }
                 _this->lastQueue = queue;
                 _this->comPort->send_data(&packet->size + 1, packet->size - 1);
+                ++_this->packSends;
                 //log_message("send%d number %d\n", queue, packet->packetNumber);
                 LeaveCriticalSection(&_this->queueCS);
 

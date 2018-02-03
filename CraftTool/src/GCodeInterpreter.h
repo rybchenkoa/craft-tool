@@ -295,7 +295,7 @@ public:
     bool get_readed_coord(char letter, coord &value); //сразу переводит единицы измерения
     bool get_new_position(Coords &pos);  //чтение новых координат с учётом модальных кодов
 
-    void move(int coordNumber, coord add); //ручное перемещение
+    void move(int coordNumber, coord add, bool fast); //ручное перемещение
 
 
     //функции чтения и исполнения команд с параметрами

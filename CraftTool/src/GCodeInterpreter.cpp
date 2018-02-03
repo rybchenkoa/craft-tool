@@ -859,7 +859,17 @@ Coords GCodeInterpreter::to_mm(Coords value)
 }
 
 //====================================================================================================
-void GCodeInterpreter::move(int coordNumber, coord add)
+double move_length(double t, double v, double a)
+{
+    double t1 = v/a;
+    if (t1 > t)
+        return a*t*t*0.5;
+    else
+        return a*t1*t1*0.5 + v*(t-t1);
+}
+
+//====================================================================================================
+void GCodeInterpreter::move(int coordNumber, coord add, bool fast)
 {
     //во время исполнения ничего не двигаем
     if(remoteDevice->queue_size() > 0)
@@ -875,10 +885,30 @@ void GCodeInterpreter::move(int coordNumber, coord add)
         coordsInited = true;
     }
 
-    if(abs(runner.position.r[coordNumber] - remoteDevice->get_current_coords()->r[coordNumber]) > abs(add)*20)
+    double delta = abs(runner.position.r[coordNumber] - remoteDevice->get_current_coords()->r[coordNumber]);
+
+    if(delta > 10) //защита от багов
         return;
 
-    runner.position.r[coordNumber] += add;
+    if (!fast)
+      runner.position.r[coordNumber] += add;
+    else
+    {
+      const double LATENCY = 0.2; //0.2 секунд на остановку после отпускания кнопки
+      double vel = remoteDevice->get_max_velocity(coordNumber);
+      double acc = remoteDevice->get_max_acceleration(coordNumber);
+      double maxLen = move_length(LATENCY, vel, acc);
+
+      if (maxLen > 10) //защита от багов
+        maxLen = 10;
+
+      double accWall = std::max(delta, abs(add)) * 5;
+      if (maxLen > accWall) //защита от слишком быстрого разгона
+        maxLen = accWall;
+
+      int intDelta = abs((maxLen - delta) / add);
+      runner.position.r[coordNumber] += add * intDelta;
+    }
     remoteDevice->set_position(runner.position);
 }
 

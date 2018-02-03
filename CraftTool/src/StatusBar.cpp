@@ -25,17 +25,14 @@ void StatusBar::timerEvent(QTimerEvent *event)
         int elapsedHour = elapsedMin / 60;
         elapsedMin = elapsedMin % 60;
 
-        sprintf(text, "send err: %d, missed: %d, recv err: %d, pack err: %d, read: %u, write: %u",
+        sprintf(text, "send err: %d, missed: %d, recv err: %d, pack err: %d, read: %u, write: %u, spack: %u",
                 device->missedHalfSend,
                 device->missedSends,
                 device->missedReceives,
                 port->errs,
                 port->receiveBPS,
-                port->transmitBPS);
-        sprintf(text + strlen(text), " x, y, z {%f, %f, %f}",
-                float(device->currentCoords.r[0]),
-                float(device->currentCoords.r[1]),
-                float(device->currentCoords.r[2]));
+                port->transmitBPS,
+                device->packSends);
         sprintf(text + strlen(text), " line %d",
                 device->get_current_line());
         sprintf(text + strlen(text), " time %d:%02d:%02d",
