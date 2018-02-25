@@ -206,7 +206,7 @@ public:
 };
 
 //класс передаёт команды по com-порту на микроконтроллер, а он уже дальше интерполирует
-class CRemoteDevice : public QObject, public IRemoteDevice, public IPortToDevice
+class CRemoteDevice : public QObject, public IRemoteDevice
 {
     Q_OBJECT
 public:

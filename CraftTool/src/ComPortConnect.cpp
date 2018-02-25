@@ -159,7 +159,7 @@ void ComPortConnect::process_bytes(char *buffer, int count)
                         break;
                     case OP_STOP:
                         receiveState = S_END;
-                        remoteDevice->on_packet_received(receiveBuffer, receivedSize); //вот пакет наконец принят
+                        on_packet_received(receiveBuffer, receivedSize); //вот пакет наконец принят
                         receiveState = S_READY;
                         break;
                     default:
@@ -268,7 +268,7 @@ ComPortConnect::ComPortConnect(void)
     memset(&ovWrite,0,sizeof(ovWrite));
     receiveState = S_READY;
     receivedSize = 0;
-    remoteDevice = nullptr;
+    on_packet_received = nullptr;
 }
 
 

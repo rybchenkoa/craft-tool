@@ -5,8 +5,6 @@
 #include <assert.h>
 #include <fstream>
 
-#include "IPortToDevice.h"
-
 class ComPortConnect
 {
 public:
@@ -30,7 +28,7 @@ public:
     char receiveBuffer[RECEIVE_SIZE]; //текущий принимаемый пакет
     int receivedSize;                 //принято байт текущего пакета
 
-    IPortToDevice *remoteDevice;      //устройство, принимающее пакеты
+    std::function<bool(char *data, int size)> on_packet_received;      //устройство, принимающее пакеты
 
 private:
     enum States

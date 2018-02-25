@@ -11,3 +11,4 @@
 #include <vector>
 #include <deque>
 #include <sstream>
+#include <functional>

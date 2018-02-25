@@ -27,7 +27,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
     ComPortConnect *comPort = new ComPortConnect;    //устройство доводит данные до реального устройтва через порт
 
     remoteDevice->comPort = comPort; //говорим устройству, через что слать
-    comPort->remoteDevice = remoteDevice; //порту говорим, кто принимает
+    comPort->on_packet_received = std::bind(&CRemoteDevice::on_packet_received, remoteDevice, std::placeholders::_1, std::placeholders::_2); //порту говорим, кто принимает
 
     g_device = remoteDevice;
 
