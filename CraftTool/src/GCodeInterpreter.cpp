@@ -247,6 +247,9 @@ InterError GCodeInterpreter::make_new_state()
                 readedFrame.set_value(iter->letter, iter->value);
                 break;
 
+            case 'N':
+                break;
+
             default: return InterError_INVALID_STATEMENT;
         }
     }
