@@ -596,7 +596,7 @@ InterError GCodeInterpreter::run_modal_groups()
             planeCenter.r[iz] = runner.position.r[iz];
             double radius = length(runner.position, planeCenter);
 
-            if(fabs(radius - length(pos, centerPos)) > 0.001)//растяжение пока не поддерживается
+            if(fabs(radius - length(pos, centerPos)) > remoteDevice->get_min_step()*2)//растяжение пока не поддерживается
                 return InterError_WRONG_VALUE;
 
             double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
@@ -614,7 +614,7 @@ InterError GCodeInterpreter::run_modal_groups()
 
                 draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
 
-                if(length(runner.position, pos) > remoteDevice->get_min_step())
+                if(length(runner.position, pos) > remoteDevice->get_min_step()*2)
                     return InterError_WRONG_VALUE;
 
                 runner.position = pos;
@@ -637,7 +637,7 @@ InterError GCodeInterpreter::run_modal_groups()
 
                 draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, 0, ix, iy, iz);
 
-                if(length(runner.position, pos) > remoteDevice->get_min_step())
+                if(length(runner.position, pos) > remoteDevice->get_min_step()*2)
                     return InterError_WRONG_VALUE;
 
                 runner.position = pos;
