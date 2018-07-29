@@ -142,7 +142,7 @@ void Scene3d::wheelEvent(QWheelEvent* pe)
 
     //recalc_matrices();
     update();
-    log_message("%f\n", camera.scale);
+    //log_message("%f\n", camera.scale);
 }
 
 //--------------------------------------------------------------------
