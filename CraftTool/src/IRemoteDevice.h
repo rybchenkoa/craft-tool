@@ -256,6 +256,7 @@ public:
     MoveMode moveMode;                 //режим перемещения
     double velocity[MAX_AXES];         //максимальная скорость по каждой оси
     double acceleration[MAX_AXES];     //максимальное ускорение по каждой оси
+    double fractValue;                 //насколько должна измениться траектория, чтобы считать её новой линией
     bool fractSended;                  //послан ли уже излом траектории
 	bool usedCoords[MAX_AXES];         //используемые интерпретатором координаты
 	bool usedAxes[MAX_AXES];           //используемые станком оси

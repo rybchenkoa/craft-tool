@@ -248,7 +248,7 @@ void CRemoteDevice::set_position(Coords posIn)
         }
         double cosA = scalar / sqrt(scalar1 * scalar2);
 
-        if(cosA < 1 - 0.2) //если направление движения сильно изменилось
+        if(cosA < 1 - fractValue) //если направление движения сильно изменилось
             set_fract();
     }
 
@@ -584,6 +584,7 @@ void CRemoteDevice::init()
 			stepSize[i] = 0;
 		}
 
+	fractValue = try_get_float(CFG_FRACT_VALUE);
 	//читаем скорости и ускорения
 	for (int i = 0; i < MAX_AXES; ++i)
 		if (usedCoords[i]) //ограничение скорости надо только для ведущих осей

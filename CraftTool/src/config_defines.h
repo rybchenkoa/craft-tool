@@ -18,3 +18,4 @@ extern Config *g_config;
 #define CFG_BACK_HOME          "backHome"
 #define CFG_COORD_HOME         "coordHome"
 #define CFG_HOMING             "homing"
+#define CFG_FRACT_VALUE        "fractValue"
