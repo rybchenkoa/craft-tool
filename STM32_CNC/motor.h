@@ -200,11 +200,15 @@ struct VirtualMotor
 		}
 		else if (_period >= MAX_PERIOD)
 		{
-			_period = _newPeriod;
-			int timeLeft = _lastTime + _period - curTime;
-			timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
-			_lastTime = curTime - period + timeLeft;
+			if (_newPeriod != MAX_STEP_TIME)
+			{
+				_period = _newPeriod;
+				int timeLeft = _lastTime + _period - curTime;
+				timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
+				_lastTime = curTime - period + timeLeft;
+			}
 			_period = period;
+			_newPeriod = period;
 		}
 		else
 		{
