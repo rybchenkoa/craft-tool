@@ -550,6 +550,26 @@ bool canLog;
 	}
 
 	//=====================================================================================================
+	void start_acceleration()
+	{
+		linearData.lastVelocity = linearData.velocity;
+		linearData.lastTime = timer.get();
+	}
+
+	//=====================================================================================================
+	void accelerate(int multiplier)
+	{
+		int currentTime = timer.get();
+		int delta = (currentTime - linearData.lastTime) * multiplier;
+		linearData.velocity = linearData.lastVelocity + float16(delta) * linearData.acceleration;
+		if (delta > 100000)
+		{
+			linearData.lastVelocity = linearData.velocity;
+			linearData.lastTime = currentTime;
+		}
+	}
+	
+	//=====================================================================================================
 	OperateResult linear()
 	{
 		if (switch_reached())
@@ -577,59 +597,32 @@ bool canLog;
 		if (pow2(linearData.velocity) > (linearData.acceleration * length << 1))
 		{
 			linearData.state = -2;
+			//v = sqrt(2*g*h)
+			linearData.velocity = sqrt(linearData.acceleration * length << 1);
 		}
 		else if (needStop
 		|| (linearData.velocity > currentFeed))
 		{
 			linearData.state = -1;
+			if (lastState != linearData.state)
+				start_acceleration();
+			else
+				accelerate(-1);
+			if(linearData.velocity.mantis <= 0)
+				linearData.velocity = float16(0, 0);
 		}
 		else if (linearData.velocity < currentFeed)
 		{
 			linearData.state = 1;
-		}
-		else
-			linearData.state = 0;
-
-		if (lastState != linearData.state)
-		{
-			linearData.lastVelocity = linearData.velocity;
-			linearData.lastTime = timer.get();
-		}
-
-		if (linearData.state == -2)
-		{
-			//v = sqrt(2*g*h)
-			linearData.velocity = sqrt(linearData.acceleration * length << 1);
-		}
-		else if (linearData.state == -1)
-		{
-			int currentTime = timer.get();
-			int delta = currentTime - linearData.lastTime;
-			linearData.velocity = linearData.lastVelocity - float16(delta) * linearData.acceleration;
-			if (delta > 100000)
-			{
-				linearData.lastVelocity = linearData.velocity;
-				linearData.lastTime = currentTime;
-			}
-			if(linearData.velocity.mantis <= 0)
-			{
-				linearData.velocity.mantis = 0;
-				linearData.velocity.exponent = 0;
-			}
-		}
-		else if (linearData.state == 1)
-		{
-			int currentTime = timer.get();
-			int delta = currentTime - linearData.lastTime;
-			linearData.velocity = linearData.lastVelocity + float16(delta) * linearData.acceleration;
-			if (delta > 100000)
-			{
-				linearData.lastVelocity = linearData.velocity;
-				linearData.lastTime = currentTime;
-			}
+			if (lastState != linearData.state)
+				start_acceleration();
+			else
+				accelerate(1);
 			if(linearData.velocity > currentFeed)
 				linearData.velocity = currentFeed;
 		}
+		else
+			linearData.state = 0;
 
 		if (!brez_step())
 		{
