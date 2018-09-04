@@ -560,8 +560,8 @@ bool canLog;
 	void accelerate(int multiplier)
 	{
 		int currentTime = timer.get();
-		int delta = (currentTime - linearData.lastTime) * multiplier;
-		linearData.velocity = linearData.lastVelocity + float16(delta) * linearData.acceleration;
+		int delta = currentTime - linearData.lastTime;
+		linearData.velocity = linearData.lastVelocity + float16(delta * multiplier) * linearData.acceleration;
 		if (delta > 100000)
 		{
 			linearData.lastVelocity = linearData.velocity;
