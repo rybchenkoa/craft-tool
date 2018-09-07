@@ -603,20 +603,20 @@ InterError GCodeInterpreter::run_modal_groups()
                 return InterError_WRONG_VALUE;
 
             double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
+            coord height = pos.r[iz] - runner.position.r[iz]; //длина винта
 
-            if(is_screw(centerPos)) //винтовая интерполяция
+            if(is_screw(centerPos) && pitch != 0) //винтовая интерполяция
             {
-                coord height = pos.r[iz] - runner.position.r[iz]; //длина винта
-
-                if(pitch <= 0.0)
+                if(pitch < 0.0)
                     return InterError_WRONG_VALUE;
+                else
+                {
+                    double countTurns = height / pitch;
+                    double angleMax = fabs(countTurns * 2 * PI);
+                    double zScale = height / angleMax;
 
-                double countTurns = height / pitch;
-                double angleMax = fabs(countTurns * 2 * PI);
-                double zScale = height / angleMax;
-
-                draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
-
+                    draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
+                }
                 if(length(runner.position, pos) > remoteDevice->get_min_step()*2)
                     return InterError_WRONG_VALUE;
 
@@ -638,7 +638,9 @@ InterError GCodeInterpreter::run_modal_groups()
                         angleMax += 2 * PI;
                 }
 
-                draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, 0, ix, iy, iz);
+                double zScale = height / angleMax;
+
+                draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
 
                 if(length(runner.position, pos) > remoteDevice->get_min_step()*2)
                     return InterError_WRONG_VALUE;
@@ -993,8 +995,8 @@ bool Reader::parse_value(double &dst)
     double value = 0;
     int sign = 1;       // +-
     int numDigits = 0;  //сколько цифр прочитано
-    int maxDigits = 10; //сколько всего можно
-    int denominator = 1;//на сколько поделить прочитанное
+    int maxDigits = 20; //сколько всего можно
+    double denominator = 1;//на сколько поделить прочитанное
 
     if (*cursor == '-')
         sign = -1;
