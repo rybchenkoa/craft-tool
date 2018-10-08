@@ -33,7 +33,7 @@ class Usart
 	{
 		RCC->APB2ENR |= RCC_APB2ENR_AFIOEN | RCC_APB2ENR_USART1EN; // включаем тактирование usart
 		
-		USART1->BRR = 104;//48;// 24 000 000/115200 = 208, /500 000 = 48, /230400 = 104
+		USART1->BRR = 104;// 24 000 000/115200 = 208, /230400 = 104, /500 000 = 48
 		
 		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE | 	// usart on, rx on, tx on, 
 									USART_CR1_RXNEIE; 														//прерывание: байт принят
@@ -183,10 +183,12 @@ __enable_irq();
 	void process_send_data()
 	{
 		transmitBuffer.Pop(lastSendSize);
-		if (!transmitBuffer.IsEmpty())
+		if (transmitBuffer.Count()>0) //возможно, из-за многопоточности != здесь не работает
 		{
 			DMA1_Channel4->CCR &= ~DMA_CCR4_EN;
 			lastSendSize = transmitBuffer.ContinuousCount();
+			if (lastSendSize > 64) //если вдруг попадем на посылку от начала буфера до конца
+				lastSendSize = 64; // то чтобы не блокировать добавление элементов в начало, шлем по кускам
 			DMA1_Channel4->CMAR = (uint32_t)&transmitBuffer.Front();   // адрес памяти
 			DMA1_Channel4->CNDTR = lastSendSize;   // длина пересылки
 			DMA1_Channel4->CCR |= DMA_CCR4_EN;

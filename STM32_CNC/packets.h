@@ -108,6 +108,7 @@ struct PacketReceived //сообщение о том, что пакет прин
 {
 	DeviceCommand command;
 	PacketCount packetNumber; //номер принятого пакета
+	int8_t queue;
 	int crc;
 };
 struct PacketErrorCrc //сообщение о том, что пакет испортился при передаче
@@ -158,7 +159,7 @@ union PacketUnion
 struct MaxPacket
 {
 	PacketUnion packet;
-	int dummyCrc; //влияет на выравнивание и занимает правильный размер под црц
+	int fill; //влияет на выравнивание и занимает правильный размер под црц, хранит флаг, что элемент заполнен
 };
 //=========================================================================================
 uint32_t calc_crc(char *buffer, int size)

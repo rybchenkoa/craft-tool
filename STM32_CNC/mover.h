@@ -6,7 +6,12 @@
 #include "float16.h"
 
 void send_packet(char *packet, int size);
-void process_packet(char *packet, int size);
+void preprocess_command(PacketCommon *p);
+
+void send_packet_error_number(int number);
+void send_packet_queue_full(int number);
+void send_packet_repeat(int number, int queue);
+void send_packet_received(int number, int queue);
 
 struct Track
 {
@@ -17,15 +22,103 @@ struct Track
 class Receiver
 {
 public:
-	FIFOBuffer<MaxPacket, 5> queue; //28*32+8 = 904
-	FIFOBuffer<Track, 6> tracks;
-	PacketCount packetNumber;
+	FIFOBuffer<MaxPacket, 5> queue; //48*32+8 = 904
+	FIFOBuffer<Track, 5> tracks;
+	int tail; //первый ожидаемый элемент очереди (он не заполнен, а дальше могут быть заполненные)
+	PacketCount index; //номер его пакета
+	static const int BUFFER_LEN = 5;
+	PacketCount index2; //второе соединение, обработка на лету
 
 	void init()
 	{
 		queue.Clear();
 		tracks.Clear();
-		packetNumber = char(-1);
+		index = PacketCount(-1);
+		index2 = PacketCount(-1);
+		tail = queue.last;
+	}
+	
+	bool queue_empty()
+	{
+		return queue.IsEmpty() || !queue.Front().fill;
+	}
+	
+	void reinit()
+	{
+		//оставляем только непрерывный диапазон дошедших пакетов, отбросив все после первого не дошедшего
+		queue.last = tail;
+		index = PacketCount(0);
+		index2 = PacketCount(-1);
+	}
+
+	void save_received_packet(char * __restrict packet, int size, int pos)
+	{
+		int size4 = (size+3)/4; //копируем сразу по 4 байта
+		int *src = (int*)packet;
+		int *dst = (int*)&queue.Element(pos);
+		for(int i=0; i<size4; ++i)
+			dst[i] = src[i];
+		((MaxPacket*)dst)->fill = 1;
+	}
+
+	void packet_received(PacketCommon *p, int size)
+	{
+		int offset = PacketCount(p->packetNumber - index);
+		if (offset < 0)
+		{
+			send_packet_repeat(p->packetNumber, 0);
+			return;
+		}
+		if (offset > BUFFER_LEN)
+		{
+			send_packet_error_number(p->packetNumber);
+			return;
+		}
+		int target = tail + offset;
+		while(queue.last <= target) //добавляем в очередь пустые пакеты перед этим пакетом
+		{
+			if (queue.IsFull())
+			{
+				send_packet_queue_full(p->packetNumber);
+				return;
+			}
+			MaxPacket* element = &queue.End();
+			element->fill = 0;
+			queue.Push();
+		}
+		if (queue.Element(target).fill)
+		{
+			send_packet_repeat(p->packetNumber, 0);
+			return;
+		}
+		save_received_packet((char*)p, size, target);
+		send_packet_received(p->packetNumber, 0); //говорим, что приняли пакет
+		
+		//обрабатываем принятый сплошной список пакетов
+		while(queue.Element(tail).fill && (tail < queue.last))
+		{
+			preprocess_command((PacketCommon*)&queue.Element(tail));
+			++tail;
+			++index;
+		}
+	}
+
+	bool packet_received2(PacketCommon *p)
+	{
+		if (p->packetNumber == index2) //до хоста не дошёл ответ о принятом пакете
+		{
+			send_packet_repeat(p->packetNumber, 1);         //шлём ещё раз
+		}
+		else if(p->packetNumber != PacketCount(index2 + 1)) //принят следующий пакет
+		{
+			send_packet_error_number(index2);
+		}
+		else
+		{
+			send_packet_received(++index2, 1);
+			return true;
+		}
+		return false;
 	}
 };
 
@@ -43,22 +136,24 @@ void send_wrong_crc()
 
 
 //=========================================================================================
-void send_packet_received(int number)
+void send_packet_received(int number, int queue)
 {
 	PacketReceived packet;
 	packet.command = DeviceCommand_PACKET_RECEIVED;
 	packet.packetNumber = number;
+	packet.queue = queue;
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
 	send_packet((char*)&packet, sizeof(packet));
 }
 
 
 //=========================================================================================
-void send_packet_repeat(int number)
+void send_packet_repeat(int number, int queue)
 {
 	PacketReceived packet;
 	packet.command = DeviceCommand_PACKET_REPEAT;
 	packet.packetNumber = number;
+	packet.queue = queue;
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
 	send_packet((char*)&packet, sizeof(packet));
 }
@@ -87,18 +182,6 @@ void send_packet_error_number(int number)
 
 
 //=========================================================================================
-void push_received_packet(char * __restrict packet, int size)
-{
-	int size4 = (size+3)/4; //копируем сразу по 4 байта
-	int *src = (int*)packet;
-	int *dst = (int*)&receiver.queue.End();
-	for(int i=0; i<size4; ++i)
-		dst[i] = src[i];
-	receiver.queue.Push();
-}
-
-
-//=========================================================================================
 void send_packet_service_coords(int coords[MAX_AXES])
 {
 	PacketServiceCoords packet;
@@ -118,45 +201,6 @@ void send_packet_service_command(PacketCount number)
 	packet.packetNumber = number;
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
 	send_packet((char*)&packet, sizeof(packet));
-}
-
-
-//=========================================================================================
-void on_packet_received(char * __restrict packet, int size)
-{
-	//led.show();
-	int crc = calc_crc(packet, size-4);
-	int receivedCrc = *(int*)(packet+size-4);
-	if(crc != receivedCrc)
-	{
-		//log_console("\n0x%X, 0x%X\n", receivedCrc, crc);
-		send_wrong_crc();
-		return;
-	}
-	if(size > sizeof(MaxPacket))
-		log_console("ERR: rec pack %d, max %d\n", size, sizeof(MaxPacket));
-	if(*packet == DeviceCommand_RESET_PACKET_NUMBER)
-	{
-		receiver.packetNumber = PacketCount(-1);
-		send_packet_received(-1);
-	}
-	else
-	{
-		PacketCommon* common = (PacketCommon*)packet;
-		if (common->packetNumber == receiver.packetNumber) //до хоста не дошёл ответ о принятом пакете
-		{
-			send_packet_repeat(receiver.packetNumber);                       //шлём ещё раз
-		}
-		else if(common->packetNumber == PacketCount(receiver.packetNumber + 1)) //принят следующий пакет
-		{
-			process_packet(packet, size);
-		}
-		else
-		{
-			send_packet_error_number(receiver.packetNumber);
-			//log_console("\n%d %d\n", common->packetNumber, receiver.packetNumber);
-		}
-	}
 }
 
 
@@ -692,7 +736,7 @@ bool canLog;
 		else
 			led.hide();
 
-		if(receiver.queue.IsEmpty())
+		if(receiver.queue_empty())
 			return WAIT;
 		else
 			return END;
@@ -736,7 +780,7 @@ bool canLog;
 
 				//log_console("pos %7d, %7d, %5d, time %d init\n",
 				//       packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
-				send_packet_service_coords(coord);
+				//send_packet_service_coords(coord); //надо для отладки
 				int coord[MAX_AXES];
 				for (int i = 0; i < MAX_AXES; ++i)
 					coord[i] = packet->coord[i];
@@ -758,7 +802,7 @@ bool canLog;
 		OperateResult result = (this->*handler)();
 		if(result == END) //если у нас что-то шло и кончилось
 		{
-			if(receiver.queue.IsEmpty())
+			if(receiver.queue_empty())
 			{
 				init_empty();
 				empty();
@@ -843,6 +887,8 @@ bool canLog;
 						init_wait(packet->delay);
 						break;
 					}
+				case DeviceCommand_SET_FRACT:
+					break;
 
 				default:
 					log_console("ERR: undefined packet type %d, %d\n", common->command, common->packetNumber);
@@ -954,44 +1000,73 @@ Mover mover;
 
 
 //=====================================================================================================
-void process_packet(char *common, int size)
+void preprocess_command(PacketCommon *p)
 {
-	switch(((PacketCommon*)common)->command)
+	switch(p->command)
 	{
-	case DeviceCommand_SET_FEED_MULT:
+	case DeviceCommand_SET_FRACT:
 		{
-			PacketSetFeedMult *packet = (PacketSetFeedMult*)common;
-			mover.feedMult = packet->feedMult;
-			log_console("feedMult %d\n", int(mover.feedMult.exponent));
-			send_packet_received(++receiver.packetNumber);
+			mover.new_track();
 			break;
 		}
-	case DeviceCommand_PAUSE:
+	case DeviceCommand_MOVE:
 		{
-			PacketPause *packet = (PacketPause*)common;
-			mover.needStop = (packet->needStop != 0);
-			log_console("needStop %d\n", int(mover.needStop));
-			send_packet_received(++receiver.packetNumber);
-			break;
+				mover.add_to_track(((PacketMove*)p)->uLength);
+				break;
 		}
-	default:
-		{
-			if(!receiver.queue.IsFull())
-			{
-				++(receiver.packetNumber);
-				if(*common == DeviceCommand_SET_FRACT)
-					mover.new_track();
-				else if(*common == DeviceCommand_MOVE)
-					mover.add_to_track(((PacketMove*)common)->uLength);
+	}
+}
 
-				if(*common != DeviceCommand_SET_FRACT)
-				{
-					push_received_packet(common, size); //при использовании указателей можно было бы не копировать ещё раз
-					send_packet_received(receiver.packetNumber); //говорим, что приняли пакет
-				}
+
+//=========================================================================================
+void on_packet_received(char * __restrict packet, int size)
+{
+	//led.show();
+	int crc = calc_crc(packet, size-4);
+	int receivedCrc = *(int*)(packet+size-4);
+	if(crc != receivedCrc)
+	{
+		//log_console("\n0x%X, 0x%X\n", receivedCrc, crc);
+		send_wrong_crc();
+		return;
+	}
+	if(size > sizeof(MaxPacket))
+		log_console("ERR: rec pack %d, max %d\n", size, sizeof(MaxPacket));
+		
+	PacketCommon* common = (PacketCommon*)packet;
+	switch (common->command)
+	{
+		case DeviceCommand_RESET_PACKET_NUMBER:
+		{
+			receiver.reinit();
+			send_packet_received(-1, 0);
+			break;
+		}
+		//--------------------------
+		case DeviceCommand_SET_FEED_MULT:
+		{
+			if (receiver.packet_received2(common))
+			{
+				PacketSetFeedMult *packet = (PacketSetFeedMult*)common;
+				mover.feedMult = packet->feedMult;
+				log_console("feedMult %d\n", int(mover.feedMult.exponent));
 			}
-			else
-				send_packet_queue_full(((PacketCommon*)common)->packetNumber);
+			break;
+		}
+		case DeviceCommand_PAUSE:
+		{
+			if (receiver.packet_received2(common))
+			{
+				PacketPause *packet = (PacketPause*)common;
+				mover.needStop = (packet->needStop != 0);
+				log_console("needStop %d\n", int(mover.needStop));
+			}
+			break;
+		}
+		//--------------------------
+		default:
+		{
+			receiver.packet_received(common, size);
 		}
 	}
 }

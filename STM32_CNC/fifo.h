@@ -10,6 +10,7 @@ class FIFOBuffer
 	static const int size = 1 << bits;
 	item buffer[size];
 
+	/*
 	int Size()     { return size - 1; }
 	int Count()    { return (last - first) & mask; }
 	bool IsFull()  { return ((last + 1) & mask) == first; } //остался один элемент - массив заполнен,
@@ -24,16 +25,25 @@ class FIFOBuffer
 
 	item& End()    { return buffer[last];}
 	void Push()    { last = (last+1) & mask; }
+	item& Element(int pos) { return buffer[pos & mask]; }
+	*/
 //второй вариант
-/*
+
 	int Size()     { return size; }
 	int Count()    { return last - first; }
 	bool IsFull()  { return first + size == last; }
 	bool IsEmpty() { return last == first; }
 	void Clear()   { last = first = 0; }
-	void Push(item value) { buffer[(last++) & mask] = value;}
+	void Push(item value) { buffer[last & mask] = value; ++last; }
 	item Pop()     { return buffer[(first++) & mask]; }
-	item Front()   { return buffer[first & mask]; }
-*/
+	void Pop(int count) {first += count;}
+	item& Front()  { return buffer[first & mask]; }
+	item& Back()   { return buffer[(last - 1) & mask]; }
+	int ContinuousCount() {return ((last & mask) >= (first & mask)) ? (last - first) : (size - (first & mask));}
+
+	item& End()    { return buffer[last & mask];}
+	void Push()    { ++last; }
+	item& Element(int pos) { return buffer[pos & mask]; }
+
 	FIFOBuffer()   { Clear(); }
 };

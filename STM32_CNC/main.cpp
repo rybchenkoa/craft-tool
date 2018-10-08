@@ -42,7 +42,7 @@ int main()
 	led.show();
 
 	mover.init();
-	int timeToSend = timer.get_ms(500);
+	int timeToSend = timer.get_ms(500); //предварительная пауза на всякий случай
 	int stepTime; //время обработки одного шага
 	mover.canLog = true;
 	int numShow = 0;
@@ -75,8 +75,8 @@ int main()
 		if(!timer.check(timeToSend))
 		{
 			led.flip();
-			timeToSend = timer.get_ms(5);
-			numShow +=2; 
+			timeToSend = timer.get_ms(20);
+			numShow +=1; //возможность посылки короткими очередями, чтобы рассмотреть детали процесса
 		}
 		if (numShow > 0)
 		{
