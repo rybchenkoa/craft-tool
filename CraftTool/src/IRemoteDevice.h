@@ -1,6 +1,7 @@
 #pragma once
 #include <list>
 #include <queue>
+#include <memory>
 #include <QObject>
 #include "ComPortConnect.h"
 #include "float16.h"
@@ -152,6 +153,7 @@ struct PacketReceived //сообщение о том, что пакет принят
 {
     DeviceCommand command;
     PacketCount packetNumber; //номер принятого пакета
+    int8_t queue;
     int crc;
 };
 struct PacketErrorCrc //сообщение о том, что пакет принят
@@ -235,6 +237,7 @@ public:
     int  get_current_line() override;
     const Coords* get_current_coords() override;
     double get_min_step() override;
+    int send_lag_ms();
 
     bool on_packet_received(char *data, int size);
     bool process_packet(char *data, int size);
@@ -279,10 +282,6 @@ protected:
 	void set_switches(SwitchGroup group, int pins[MAX_AXES]);
 	void set_coord(Coords pos, bool used[MAX_AXES]);
 
-    void init_crc();
-    void make_crc(char *packet);
-    unsigned crc32_stm32(unsigned init_crc, unsigned *buf, int len);
-
     template<typename T>
     void push_packet_common(T *packet);
 
@@ -292,30 +291,14 @@ protected:
     static DWORD WINAPI send_thread(void* _this);
     HANDLE hThread;
 
-    struct PacketQueued
-    {
-        int line;
-        PacketCommon* data;
-    };
-
-    std::queue<PacketQueued> commandQueue;    //очередь команд программы
-    std::queue<PacketCommon*> commandQueueMod; //очередь управляющих команд
-    int lastQueue;                             //номер очереди, из которой уже попытались послать пакет
+    struct ConnectData;
+    std::unique_ptr<ConnectData> commands[2]; //очередь для g-кода и для сервисных команд
     CRITICAL_SECTION queueCS;     //защита очереди от порчи
     HANDLE eventQueueAdd;         //в очередь добавлен пакет
     HANDLE eventPacketReceived;   //сообщение о принятии пакета
-    PacketCount packetNumber;     //номер последнего добавленного пакета
 
     int pushLine;                 //строка, из которой читаются команды
     int workLine;                 //строка, команда которой сейчас выполняется
-    struct WorkPacket
-    {
-        PacketCount packet;
-        int line;
-    };
-    std::deque<WorkPacket> workQueue; //посланные устройству пакеты, которые ещё не исполнены
-
-    unsigned crc32Table[256];
 
 signals:
     void coords_changed(float x, float y, float z);

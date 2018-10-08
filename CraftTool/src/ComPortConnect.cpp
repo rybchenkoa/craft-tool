@@ -1,4 +1,5 @@
 #include "ComPortConnect.h"
+#include "log.h"
 //здесь описана связь по com порту пакетами
 
 int ComPortConnect::init_port(int portNumber)
@@ -21,7 +22,7 @@ int ComPortConnect::init_port(int portNumber)
     if (!GetCommState(hCom, &dcb))
         throw("cant read port params");
 
-    dcb.BaudRate = 230400;//460800;//115200;//500000;//
+    dcb.BaudRate = 230400; //115200 230400 460800 500000
     dcb.ByteSize = 8;
     dcb.Parity = NOPARITY;
     dcb.StopBits = ONESTOPBIT;
@@ -64,6 +65,7 @@ int ComPortConnect::init_port(int portNumber)
 
     DWORD   threadId;
     hThread = CreateThread(NULL, 0, receive_thread, this, 0, &threadId);
+    SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
 
     receiveBPS = 0;
     transmitBPS = 0;
@@ -102,7 +104,19 @@ void ComPortConnect::process_bytes(char *buffer, int count)
     for(int i=0;i<count;i++)
     {
         char data = buffer[i];
-        //printf("%c", int(data));
+        //log_message("%c", int(data));
+        /*
+        extern std::string appDir;
+        extern int get_timestamp();
+        std::ofstream f;
+        f.open(appDir +  "/message2.log", std::ios::app);
+        f << int(data) << " ";
+        if (data == OP_STOP)
+        {
+          int ts = get_timestamp();
+          f << "\n[" << ts << "] ";
+        }
+        */
         switch (receiveState)
         {
             case S_READY:

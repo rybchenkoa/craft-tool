@@ -3,10 +3,188 @@
 #endif
 #include <math.h>
 #include <float.h>
+#include <ctime>
 #include "IRemoteDevice.h"
 #include "log.h"
 #include "AutoLockCS.h"
 #include "config_defines.h"
+
+static const bool LOG_CONNECT = false;
+//====================================================================================================
+unsigned crc32Table[256];
+void init_crc();
+void make_crc(char *packet);
+unsigned crc32_stm32(unsigned init_crc, unsigned *buf, int len);
+
+//====================================================================================================
+namespace Queue { enum
+{
+    None = -1,
+    Default,
+    High,
+}; }
+
+//====================================================================================================
+int get_timestamp()
+{
+  return clock();
+}
+
+//====================================================================================================
+struct PacketQueued
+{
+    int line;
+    int timestamp;
+    int sendCount;// 0 - не послан
+    std::shared_ptr<PacketCommon> data;
+};
+
+//====================================================================================================
+// обработка пересылки пакетов
+struct CRemoteDevice::ConnectData
+{
+    int NUMBER;    //номер очереди команд
+    PacketCount packetNumber; //номер очередного добавляемого в очередь пакета
+    std::deque<PacketQueued> commands; //очередь команд
+
+    int BUFFER_LEN;  //длина буфера посылки в пакетах
+    int resendTime; //время ожидания прихода пакетов
+    int RESEND_TIME_MAX;
+    int RESEND_TIME_MIN;
+
+    //посланные устройству пакеты, которые ещё не исполнены
+    //соответствует концу очереди команд
+    bool keepSent; //запоминать ли принятые устройством пакеты
+    std::deque<PacketQueued> forwarded;
+    int missedSends; //потеряно пакетов по таймауту
+    bool connected;
+
+    ConnectData()
+    {
+      NUMBER = -1;
+      packetNumber = -1;
+      BUFFER_LEN = 3;
+      resendTime = 30;
+      RESEND_TIME_MAX = 100;
+      RESEND_TIME_MIN = 1;
+      keepSent = false;
+      missedSends = 0;
+      connected = false;
+    }
+
+    bool empty() { return commands.empty(); }
+
+    void send_packet(ComPortConnect *port, PacketQueued& p)
+    {
+        PacketCommon *packet = p.data.get();
+        make_crc((char*)packet);
+        port->send_data(&packet->size + 1, packet->size - 1);
+
+        if (LOG_CONNECT)
+        {
+            char *re = p.sendCount > 1? "re" : "";
+            log_message("[%d] connect: %ssend pack %d, time %d\n", get_timestamp(), re, packet->packetNumber, p.timestamp);
+        }
+    }
+
+    int send(ComPortConnect *port)
+    {
+        int baudRate = 230400/8;
+        float timeFactor = baudRate/1000;
+        int timeInc = 0;
+        int packSends = 0;
+        auto timestamp = get_timestamp();
+        for (int i = 0; i < BUFFER_LEN && i < commands.size(); ++i)
+        {
+            auto it = commands.begin() + i;
+            if ((timestamp - it->timestamp) > resendTime && it->sendCount != -1)
+            {
+                if (it->sendCount > 0)
+                    ++missedSends;
+                
+                it->timestamp = timestamp + timeInc;
+                ++it->sendCount;
+                send_packet(port, *it);
+                timeInc += it->data->size / timeFactor;
+                ++packSends;
+            }
+
+            if (!connected)
+                break;
+        }
+        return packSends;
+    }
+
+    bool packet_received(PacketReceived *p)
+    {//устройство приняло посланный пакет
+        if(commands.empty())
+            return false;
+        int offset = PacketCount(p->packetNumber - commands.front().data->packetNumber);
+        if (offset > BUFFER_LEN || commands.size() <= offset)
+        {
+            if (resendTime < RESEND_TIME_MAX)
+                ++resendTime;
+            if (LOG_CONNECT)
+                log_message("[%d] connect: inc time %d\n", get_timestamp(), resendTime);
+            return false;
+        }
+
+        auto it = commands.begin() + offset;
+        int delta = get_timestamp() - it->timestamp;
+        if (it->sendCount == 1)
+        {
+            if (resendTime < delta + 10)
+            {
+                resendTime = std::min(RESEND_TIME_MAX, delta + 10);
+                if (LOG_CONNECT)
+                    log_message("[%d] connect: + time %d\n", get_timestamp(), resendTime);
+            }
+            if (resendTime > RESEND_TIME_MIN)
+            {
+                --resendTime;
+                if (LOG_CONNECT)
+                    log_message("[%d] connect: dec time %d\n", get_timestamp(), resendTime);
+            }
+        }
+
+        it->sendCount = -1;
+        //log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
+        //выкидываем сплошной кусок отправленных пакетов
+        for (int i = 0; i < commands.size(); ++i)
+        {
+            auto it = commands.begin();
+            if (it->sendCount != -1)
+                break;
+            if (keepSent)
+                forwarded.push_back(commands.front());
+            if (LOG_CONNECT)
+                log_message("[%d] connect: pop pack %d\n", get_timestamp(), it->data->packetNumber);
+            commands.pop_front();
+            connected = true;
+        }
+        return true;
+    }
+
+    bool packet_executed(PacketCount index, int &line)
+    {
+        for (auto it = forwarded.begin(); it != forwarded.end(); ++it)
+            if (it->data->packetNumber == index)
+            {
+                line = it->line;
+                forwarded.erase(forwarded.begin(), it);
+                return true;
+            }
+        for (int i = 0; i < BUFFER_LEN && i < commands.size(); ++i)
+        {
+            auto it = commands.begin() + i;
+            if (it->sendCount == 0)
+                continue;
+            line = it->line;
+            return true;
+        }
+        return false;
+    }
+};
 
 //====================================================================================================
 inline double pow2(double x)
@@ -18,14 +196,12 @@ inline double pow2(double x)
 CRemoteDevice::CRemoteDevice()
 {
     init_crc();
-    packetNumber = -1;
     missedSends = 0;
     missedReceives = 0;
     missedHalfSend = 0;
     packSends = 0;
     pushLine = -1;
     workLine = -1;
-    lastQueue = -1;
 	inited = false;
 
     for(int i = 0; i < MAX_AXES; ++i)
@@ -43,11 +219,12 @@ CRemoteDevice::CRemoteDevice()
     moveMode = MoveMode_LINEAR;
     fractSended = false;
 
-    InitializeCriticalSectionAndSpinCount(&queueCS, 1000);
+    InitializeCriticalSectionAndSpinCount(&queueCS, 5000);
     eventQueueAdd = CreateEvent(nullptr, false, false, nullptr);
     eventPacketReceived = CreateEvent(nullptr, false, false, nullptr);
     DWORD   threadId;
     hThread = CreateThread(NULL, 0, send_thread, this, 0, &threadId);
+    SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
     comPort = nullptr;
 }
 
@@ -62,7 +239,7 @@ CRemoteDevice::~CRemoteDevice()
 
 //============================================================
 #define CRC32_POLY 0x04C11DB7
-void CRemoteDevice::init_crc()
+void init_crc()
 {
     unsigned crc;
     for (int i = 0; i < 256; ++i)
@@ -75,7 +252,7 @@ void CRemoteDevice::init_crc()
 }
 
 //============================================================
-unsigned CRemoteDevice::crc32_stm32(unsigned init_crc, unsigned *buf, int len)
+unsigned crc32_stm32(unsigned init_crc, unsigned *buf, int len)
 {
     unsigned v;
     unsigned crc;
@@ -102,17 +279,28 @@ unsigned CRemoteDevice::crc32_stm32(unsigned init_crc, unsigned *buf, int len)
     return crc;
 }
 
+
+//============================================================
+int CRemoteDevice::send_lag_ms()
+{
+    return commands[0]->resendTime;
+}
+
+
 //============================================================
 template<typename T>
 void CRemoteDevice::push_packet_common(T *packet)
 {
-    AutoLockCS lock(queueCS);
-
     packet->size = sizeof(*packet);
     PacketQueued element;
     element.line = pushLine;
-    element.data = packet;
-    commandQueue.push(element);
+    element.timestamp = 0;
+    element.sendCount = 0;
+    element.data.reset(packet);
+
+    AutoLockCS lock(queueCS);
+    packet->packetNumber = commands[0]->packetNumber++;
+    commands[0]->commands.push_back(element);
 
     SetEvent(eventQueueAdd);
 }
@@ -121,10 +309,16 @@ void CRemoteDevice::push_packet_common(T *packet)
 template<typename T>
 void CRemoteDevice::push_packet_modal(T *packet)
 {
-    AutoLockCS lock(queueCS);
-
     packet->size = sizeof(*packet);
-    commandQueueMod.push((PacketCommon*)packet);
+    PacketQueued element;
+    element.line = -1;
+    element.timestamp = 0;
+    element.sendCount = 0;
+    element.data.reset(packet);
+
+    AutoLockCS lock(queueCS);
+    packet->packetNumber = commands[1]->packetNumber++;
+    commands[1]->commands.push_back(element);
 
     SetEvent(eventQueueAdd);
 }
@@ -413,7 +607,7 @@ void CRemoteDevice::reset_packet_queue()
 {
     auto packet = new PacketResetPacketNumber;
     packet->command = DeviceCommand_RESET_PACKET_NUMBER;
-    push_packet_modal(packet);
+    push_packet_common(packet);
 }
 
 //============================================================
@@ -515,7 +709,12 @@ void CRemoteDevice::homing()
 //============================================================
 void CRemoteDevice::init()
 {
-    packetNumber = -1;
+    commands[0].reset(new ConnectData());
+    commands[0]->NUMBER = 0;
+    commands[0]->keepSent = true;
+    commands[1].reset(new ConnectData());
+    commands[1]->NUMBER = 1;
+
     reset_packet_queue();
 
     auto try_get_float = [](const char *key) -> float
@@ -718,7 +917,7 @@ void CRemoteDevice::init()
 }
 
 //============================================================
-void CRemoteDevice::make_crc(char *packet)
+void make_crc(char *packet)
 {
     int size = *packet-1;
     char *buffer = packet+1;
@@ -754,7 +953,7 @@ double CRemoteDevice::get_min_step()
 int CRemoteDevice::queue_size()
 {
     AutoLockCS lock(queueCS);
-    return commandQueue.size();
+    return commands[0]->commands.size();
 }
 
 
@@ -778,15 +977,8 @@ bool CRemoteDevice::process_packet(char *data, int size)
     {
         PacketServiceCommand *packet = (PacketServiceCommand*) data; //находим строку, которая сейчас исполняется
         AutoLockCS lock(queueCS);
-        while(!workQueue.empty() && workQueue.front().packet != packet->packetNumber) // это на случай неприхода предыдущего пакета
-            workQueue.pop_front();
-        if(!workQueue.empty())
-        {
-            workLine = workQueue.front().line;
-            workQueue.pop_front();
-        }
-        else
-            log_warning("current line queue is empty\n", data);
+        if (!commands[0]->packet_executed(packet->packetNumber, workLine))
+            log_warning("executed undefined packet %d\n", packet->packetNumber);
         return true;
     }
     case DeviceCommand_TEXT_MESSAGE:
@@ -817,92 +1009,45 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
     switch(*data)
     {
     case DeviceCommand_PACKET_RECEIVED:
-    {
-        //log_message("packet received %d\n", ((PacketReceived*)data)->packetNumber);
-        AutoLockCS lock(queueCS);
-        if(lastQueue == 0 &&
-           !commandQueue.empty() &&
-           commandQueue.front().data->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
-        {
-            //log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
-            delete commandQueue.front().data;
-            commandQueue.pop();
-            lastQueue = -1;
-            ++packetNumber;
-            SetEvent(eventPacketReceived);
-            return true;
-        }
-        else if(lastQueue == 1 &&
-                !commandQueueMod.empty() &&
-                commandQueueMod.front()->packetNumber == ((PacketReceived*)data)->packetNumber)
-        {
-            //log_message("suc receive number2 %d\n", ((PacketReceived*)data)->packetNumber);
-            delete commandQueueMod.front();
-            commandQueueMod.pop();
-            lastQueue = -1;
-            ++packetNumber;
-            SetEvent(eventPacketReceived);
-            return true;
-        }
-        else //устройство приняло какой-то непонятный пакет
-        {
-            log_warning("err receive number %d\n", ((PacketReceived*)data)->packetNumber);
-            SetEvent(eventPacketReceived);
-            return false;
-        }
-    }
     case DeviceCommand_PACKET_REPEAT:
     {
-        //log_warning("packet repeat %d\n", ((PacketReceived*)data)->packetNumber);
+        //log_message("packet received %d\n", ((PacketReceived*)data)->packetNumber);
+        auto p = (PacketReceived*)data;
+        if (LOG_CONNECT)
+            if (*data == DeviceCommand_PACKET_RECEIVED)
+                log_message("[%d] connect: received pack %d\n", get_timestamp(), p->packetNumber);
+            else
+                log_message("[%d] connect: repeat pack %d\n", get_timestamp(), p->packetNumber);
+        
         AutoLockCS lock(queueCS);
-        if(lastQueue == 0 &&
-           !commandQueue.empty() &&
-           commandQueue.front().data->packetNumber == ((PacketReceived*)data)->packetNumber) //устройство приняло посланный пакет
+        if ((size_t)p->queue < 2 && commands[p->queue]->packet_received(p))
         {
-            //log_warning("suc repeat number %d\n", ((PacketReceived*)data)->packetNumber);
-            delete commandQueue.front().data;
-            commandQueue.pop();
-            lastQueue = -1;
-            ++packetNumber;
             SetEvent(eventPacketReceived);
             return true;
         }
-        else if(lastQueue == 1 &&
-                !commandQueueMod.empty() &&
-                commandQueueMod.front()->packetNumber == ((PacketReceived*)data)->packetNumber)
-        {
-            //log_warning("suc repeat number2 %d\n", ((PacketReceived*)data)->packetNumber);
-            delete commandQueueMod.front();
-            commandQueueMod.pop();
-            lastQueue = -1;
-            ++packetNumber;
-            SetEvent(eventPacketReceived);
-            return true;
-        }
-        else //устройство приняло какой-то непонятный пакет
-        {
-            //log_warning("err repeat number %d\n", ((PacketReceived*)data)->packetNumber);
-            SetEvent(eventPacketReceived);
-            return false;
-        }
+        if (LOG_CONNECT)
+            log_message("[%d] connect: err pack %d\n", get_timestamp(), p->packetNumber);
+        SetEvent(eventPacketReceived);
+        return false;
     }
+
     case DeviceCommand_QUEUE_FULL:
     {
-        AutoLockCS lock(queueCS);
-        if(lastQueue == 0)
-            workQueue.pop_back();
-        lastQueue = -1;
+        if (LOG_CONNECT)
+            log_message("[%d] connect: queue full\n", get_timestamp());
+        return false;
     }
     case DeviceCommand_PACKET_ERROR_CRC:
         missedHalfSend++;
+        if (LOG_CONNECT)
+            log_message("[%d] connect: error crc\n", get_timestamp());
         SetEvent(eventPacketReceived);
         return true;
 
     case DeviceCommand_ERROR_PACKET_NUMBER:
     {
-        AutoLockCS lock(queueCS);
-        log_warning("kosoi nomer %d\n", ((PacketErrorPacketNumber*)data)->packetNumber);
-        log_warning("nado %d\n", packetNumber);
+        if (LOG_CONNECT)
+            log_message("[%d] connect: wrong pack number %d\n", get_timestamp(), ((PacketErrorPacketNumber*)data)->packetNumber);
         return false;
     }
 
@@ -923,51 +1068,23 @@ DWORD WINAPI CRemoteDevice::send_thread(void *__this)
         WaitForSingleObject(_this->eventQueueAdd, INFINITE);
         while(true)
         {
-            EnterCriticalSection(&_this->queueCS);
-            int queue = -1;
-            if(_this->lastQueue == 0 && !_this->commandQueue.empty())
-                queue = 0;
-            else if(_this->lastQueue == 1 && !_this->commandQueueMod.empty())
-                queue = 1;
-            else if(!_this->commandQueueMod.empty())
-                    queue = 1;
-            else if(!_this->commandQueue.empty())
-                    queue = 0;
-
-            if(queue == -1)
             {
-                LeaveCriticalSection(&_this->queueCS);
-                break;
-            }
-            else
-            {
-                PacketCommon *packet;
-                if(queue == 0)
-                    packet = _this->commandQueue.front().data;
-                else if(queue == 1)
-                    packet = _this->commandQueueMod.front();
-
-                packet->packetNumber = _this->packetNumber;
-                _this->make_crc((char*)packet);
-
-                if(queue == 0)
+                AutoLockCS lock(_this->queueCS);
+                bool empty = true;
+                _this->missedSends = 0;
+                for (int i = 1 ; i >= 0; --i)
                 {
-                    WorkPacket work;
-                    work.line = _this->commandQueue.front().line;
-                    work.packet = packet->packetNumber;
-                    _this->workQueue.push_back(work);
+                    _this->packSends += _this->commands[i]->send(_this->comPort);
+                    _this->missedSends += _this->commands[i]->missedSends;
+                    empty = empty && _this->commands[i]->empty();
                 }
-                _this->lastQueue = queue;
-                _this->comPort->send_data(&packet->size + 1, packet->size - 1);
-                ++_this->packSends;
-                //log_message("send%d number %d\n", queue, packet->packetNumber);
-                LeaveCriticalSection(&_this->queueCS);
-
+                if (empty)
+                    break;
             }
+
             DWORD result = WaitForSingleObject(_this->eventPacketReceived, 100);
             if(result == WAIT_TIMEOUT)
             {
-                ++_this->missedSends;
 				//log_message("send timeout\n");
                 ResetEvent(_this->eventPacketReceived);
             }

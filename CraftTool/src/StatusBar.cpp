@@ -1,3 +1,5 @@
+#include <sstream>
+#include <iomanip>
 #include <QTimerEvent>
 #include "StatusBar.h"
 #include "main.h"
@@ -11,7 +13,6 @@ void StatusBar::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == timer.timerId())
     {
-        char text[500];
         CRemoteDevice *device = (CRemoteDevice*)g_inter->remoteDevice;
         if(device == 0)
             return;
@@ -25,21 +26,18 @@ void StatusBar::timerEvent(QTimerEvent *event)
         int elapsedHour = elapsedMin / 60;
         elapsedMin = elapsedMin % 60;
 
-        sprintf(text, "send err: %d, missed: %d, recv err: %d, pack err: %d, read: %u, write: %u, spack: %u",
-                device->missedHalfSend,
-                device->missedSends,
-                device->missedReceives,
-                port->errs,
-                port->receiveBPS,
-                port->transmitBPS,
-                device->packSends);
-        sprintf(text + strlen(text), " line %d",
-                device->get_current_line());
-        sprintf(text + strlen(text), " time %d:%02d:%02d",
-                elapsedHour,
-                elapsedMin,
-                elapsedSec);
-        showMessage(text);
+        std::stringstream ss;
+        ss << "send crc err: " << device->missedHalfSend
+          << ", recv crc err: " << device->missedReceives
+          << ", T: " << device->send_lag_ms()
+          << ", missed: " << device->missedSends
+          << ", pack err: " << port->errs
+          << ", read: " << port->receiveBPS
+          << ", write: " << port->transmitBPS
+          << ", spack: " << device->packSends
+          << ", line " << device->get_current_line()
+          << " time " << elapsedHour << ":" << std::setw(2) << std::setfill('0') << elapsedMin << ":" << std::setw(2) << elapsedSec;
+        showMessage(ss.str().c_str());
     }
     else
     {
