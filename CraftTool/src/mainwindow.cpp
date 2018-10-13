@@ -112,6 +112,13 @@ bool MainWindow::connect_to_device()
     return true;
 }
 
+void MainWindow::on_c_breakButton_clicked()
+{
+    g_device->break_queue();
+    g_inter->coordsInited = false;
+    ui->c_pauseButton->setChecked(false);
+}
+
 void MainWindow::on_c_pauseButton_clicked()
 {
     g_device->pause_moving(ui->c_pauseButton->isChecked());

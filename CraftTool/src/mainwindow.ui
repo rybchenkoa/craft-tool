@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>773</width>
-    <height>615</height>
+    <height>649</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -198,6 +198,9 @@
                    <height>40</height>
                   </size>
                  </property>
+                 <property name="toolTip">
+                  <string>Запустить обработку файла. Повторное нажатие приведет к повторной обработке.</string>
+                 </property>
                  <property name="text">
                   <string>|&gt;</string>
                  </property>
@@ -219,6 +222,9 @@
                    <width>40</width>
                    <height>40</height>
                   </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Пауза (обнулить скорость)</string>
                  </property>
                  <property name="text">
                   <string>||</string>
@@ -242,8 +248,21 @@
                    <height>40</height>
                   </size>
                  </property>
+                 <property name="toolTip">
+                  <string>Базироваться по датчикам дома</string>
+                 </property>
                  <property name="text">
-                  <string>REF ALL HOME</string>
+                  <string/>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../resources/qt_res.qrc">
+                   <normaloff>:/btn_icons/home.png</normaloff>:/btn_icons/home.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>32</width>
+                   <height>32</height>
+                  </size>
                  </property>
                 </widget>
                </item>
@@ -251,12 +270,15 @@
                 <widget class="QPushButton" name="c_toZeroButton">
                  <property name="maximumSize">
                   <size>
-                   <width>16777215</width>
+                   <width>40</width>
                    <height>40</height>
                   </size>
                  </property>
+                 <property name="toolTip">
+                  <string>G1 X0 Y0 Z0</string>
+                 </property>
                  <property name="text">
-                  <string>GO TO ZERO</string>
+                  <string>-&gt; 0</string>
                  </property>
                 </widget>
                </item>
@@ -264,12 +286,15 @@
                 <widget class="QPushButton" name="c_machineCoordsButton">
                  <property name="maximumSize">
                   <size>
-                   <width>16777215</width>
+                   <width>40</width>
                    <height>40</height>
                   </size>
                  </property>
+                 <property name="toolTip">
+                  <string>Переключить отображение виртуальных/машинных координат</string>
+                 </property>
                  <property name="text">
-                  <string>MACHINE</string>
+                  <string>M</string>
                  </property>
                  <property name="checkable">
                   <bool>true</bool>
@@ -288,6 +313,38 @@
                   </size>
                  </property>
                 </spacer>
+               </item>
+               <item>
+                <widget class="QPushButton" name="c_breakButton">
+                 <property name="minimumSize">
+                  <size>
+                   <width>70</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Прерывает выполнение программы. Продолжить будет нельзя.</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../resources/qt_res.qrc">
+                   <normaloff>:/btn_icons/stop.png</normaloff>:/btn_icons/stop.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>32</width>
+                   <height>32</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -663,7 +720,11 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>C|</string>
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="../resources/qt_res.qrc">
+                  <normaloff>:/btn_icons/refresh.png</normaloff>:/btn_icons/refresh.png</iconset>
                 </property>
                </widget>
               </item>
@@ -690,7 +751,7 @@
      <x>0</x>
      <y>0</y>
      <width>773</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -748,6 +809,8 @@
    <header>StatusBar.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../resources/qt_res.qrc"/>
+ </resources>
  <connections/>
 </ui>

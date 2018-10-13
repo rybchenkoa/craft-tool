@@ -58,6 +58,7 @@ struct CRemoteDevice::ConnectData
     std::deque<PacketQueued> forwarded;
     int missedSends; //потеряно пакетов по таймауту
     bool connected;
+    CRemoteDevice *parent;
 
     ConnectData()
     {
@@ -73,6 +74,13 @@ struct CRemoteDevice::ConnectData
     }
 
     bool empty() { return commands.empty(); }
+
+    void reset()
+    {
+        packetNumber = -1;
+        commands.clear();
+        forwarded.clear();
+    }
 
     void send_packet(ComPortConnect *port, PacketQueued& p)
     {
@@ -159,7 +167,20 @@ struct CRemoteDevice::ConnectData
                 forwarded.push_back(commands.front());
             if (LOG_CONNECT)
                 log_message("[%d] connect: pop pack %d\n", get_timestamp(), it->data->packetNumber);
-            commands.pop_front();
+
+            if (it->data->command == DeviceCommand::DeviceCommand_BREAK)
+            {
+                for(int i = 0; i < MAX_AXES; ++i)
+                {
+                    parent->lastPosition.r[i]   = HUGE_VAL;
+                    parent->currentCoords.r[i]  = HUGE_VAL;
+                    parent->lastDelta.r[i]      = HUGE_VAL;
+                }
+                parent->fractSended = false;
+                reset();
+            }
+            else
+                commands.pop_front();
             connected = true;
         }
         return true;
@@ -603,6 +624,17 @@ void CRemoteDevice::pause_moving(bool needStop)
 }
 
 //============================================================
+void CRemoteDevice::break_queue()
+{
+    AutoLockCS lock(queueCS);
+    commands[0]->reset();
+
+    auto packet = new PacketBreak;
+    packet->command = DeviceCommand_BREAK;
+    push_packet_modal(packet);
+}
+
+//============================================================
 void CRemoteDevice::reset_packet_queue()
 {
     auto packet = new PacketResetPacketNumber;
@@ -711,9 +743,12 @@ void CRemoteDevice::init()
 {
     commands[0].reset(new ConnectData());
     commands[0]->NUMBER = 0;
+    commands[0]->parent = this;
     commands[0]->keepSent = true;
+
     commands[1].reset(new ConnectData());
     commands[1]->NUMBER = 1;
+    commands[1]->parent = this;
 
     reset_packet_queue();
 

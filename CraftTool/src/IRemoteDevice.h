@@ -53,6 +53,7 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_SERVICE_COMMAND,
     DeviceCommand_SET_FRACT,
     DeviceCommand_PAUSE,
+    DeviceCommand_BREAK,
 };
 enum MoveMode:char //режим движения/интерполяции
 {
@@ -134,6 +135,10 @@ struct PacketPause : public PacketCommon
     char needStop;
     int crc;
 };
+struct PacketBreak : public PacketCommon
+{
+    int crc;
+};
 struct PacketSetSwitches : public PacketCommon
 {
 	char group;
@@ -197,6 +202,7 @@ public:
     virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
     virtual void set_step_size(double stepSize[MAX_AXES])=0; //длина одного шага
     virtual void pause_moving(bool needStop)=0; //временная остановка движения
+    virtual void break_queue()=0; //полная остановка с прерыванием программы
 	virtual void homing()=0; //отъехать к концевикам и задать машинные координаты
 
     virtual int  queue_size() = 0; //длина очереди команд
@@ -227,6 +233,7 @@ public:
     void set_feed_multiplier(double multiplier) override;
     void set_step_size(double stepSize[MAX_AXES]) override;
     void pause_moving(bool needStop) override;
+    void break_queue() override;
 	void homing() override;
 
     void set_fract();

@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="btn_icons">
+    <file>stop.png</file>
+    <file>refresh.png</file>
+    <file>home.png</file>
+  </qresource>
+</RCC>
