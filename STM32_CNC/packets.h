@@ -25,6 +25,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SERVICE_COMMAND,  //out
 	DeviceCommand_SET_FRACT,        //in
 	DeviceCommand_PAUSE,            //in
+	DeviceCommand_BREAK,            //in
 };
 enum MoveMode //:char режим движения/интерполяции
 {
@@ -89,7 +90,7 @@ struct PacketFract : public PacketCommon
 };
 struct PacketPause : public PacketCommon
 {
-	char needStop;
+	char needPause;
 };
 struct PacketSetSwitches : public PacketCommon
 {

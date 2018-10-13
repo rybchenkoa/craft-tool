@@ -105,11 +105,11 @@ public:
 
 	bool packet_received2(PacketCommon *p)
 	{
-		if (p->packetNumber == index2) //до хоста не дошёл ответ о принятом пакете
+		if (p->packetNumber == PacketCount(index2 - 1)) //до хоста не дошёл ответ о принятом пакете
 		{
 			send_packet_repeat(p->packetNumber, 1);         //шлём ещё раз
 		}
-		else if(p->packetNumber != PacketCount(index2 + 1)) //принят следующий пакет
+		else if(p->packetNumber != index2) //принят следующий пакет
 		{
 			send_packet_error_number(index2);
 		}
@@ -270,7 +270,8 @@ public:
 	int to[MAX_AXES];       //куда двигаемся
 
 	MoveMode interpolation;
-	bool needStop;            //принудительная остановка
+	bool needPause;           //сбросить скорость до 0
+	char breakState;          //сбросить очередь команд
 	float16 feedMult;         //заданная из интерфейса скорость движения
 
 	//данные, отвечающие за раздельное движение по осям (концевики и ручное управление)
@@ -644,7 +645,7 @@ bool canLog;
 			//v = sqrt(2*g*h)
 			linearData.velocity = sqrt(linearData.acceleration * length << 1);
 		}
-		else if (needStop
+		else if (needPause
 		|| (linearData.velocity > currentFeed))
 		{
 			linearData.state = -1;
@@ -675,6 +676,18 @@ bool canLog;
 				stop_motors();
 				linearData.state = 0;
 			}
+			return END;
+		}
+		
+		//прерывание обработки
+		if (linearData.velocity.mantis == 0 && breakState == 1)
+		{
+			stop_motors();
+			linearData.state = 0;
+			for(int i = 0; i < MAX_AXES; ++i)
+				to[i] = coord[i];
+			receiver.init();
+			breakState = 2;
 			return END;
 		}
 
@@ -736,6 +749,12 @@ bool canLog;
 		else
 			led.hide();
 
+		if (breakState == 1)
+		{
+			receiver.init();
+			breakState = 2;
+		}
+	
 		if(receiver.queue_empty())
 			return WAIT;
 		else
@@ -753,6 +772,13 @@ bool canLog;
 	//=====================================================================================================
 	OperateResult wait()
 	{
+		if (breakState == 1)
+		{
+			receiver.init();
+			breakState = 2;
+			return END;
+		}
+		
 		if(timer.check(stopTime))
 			return WAIT;
 		else
@@ -914,7 +940,8 @@ bool canLog;
 			homeSwitch[i] = -1;
 		}
 
-		needStop = false;
+		needPause = false;
+		breakState = 0;
 		stopTime = 0;
 		handler = &Mover::empty;
 
@@ -1058,8 +1085,25 @@ void on_packet_received(char * __restrict packet, int size)
 			if (receiver.packet_received2(common))
 			{
 				PacketPause *packet = (PacketPause*)common;
-				mover.needStop = (packet->needStop != 0);
-				log_console("needStop %d\n", int(mover.needStop));
+				mover.needPause = (packet->needPause != 0);
+				log_console("pause %d\n", int(mover.needPause));
+			}
+			break;
+		}
+		case DeviceCommand_BREAK:
+		{
+			if (mover.breakState == 2)
+			{
+				send_packet_received(common->packetNumber, 1);
+				mover.breakState = 0;
+				mover.needPause = 0;
+			}
+			else if (mover.breakState == 0)
+			{
+				mover.breakState = 1;
+				receiver.reinit();
+				mover.needPause = 1;
+				log_console("break %d\n", common->packetNumber);
 			}
 			break;
 		}
