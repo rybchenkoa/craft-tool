@@ -158,7 +158,7 @@ struct CRemoteDevice::ConnectData
         it->sendCount = -1;
         //log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
         //выкидываем сплошной кусок отправленных пакетов
-        for (int i = 0; i < commands.size(); ++i)
+        while(!commands.empty())
         {
             auto it = commands.begin();
             if (it->sendCount != -1)
