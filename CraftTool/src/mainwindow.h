@@ -18,7 +18,7 @@ public:
     ~MainWindow();
 
     bool connect_to_device();
-    void load_file(char *fileName);
+    void load_file(QString fileName);
 
     bool eventFilter(QObject *object, QEvent *event);
 

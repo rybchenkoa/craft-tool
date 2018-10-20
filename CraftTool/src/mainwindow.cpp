@@ -32,7 +32,7 @@ MainWindow::~MainWindow()
 void MainWindow::menu_open_program()
 {
     QString str = QFileDialog::getOpenFileName(0, "Open Dialog", "", "*.*");
-    load_file(str.toLocal8Bit().data());
+    load_file(str);
 }
 
 void MainWindow::on_c_refHomeButton_clicked()
@@ -180,16 +180,16 @@ void MainWindow::on_c_rightViewButton_clicked()
 	ui->c_3dView->set_view(View::RIGHT);
 }
 
-void MainWindow::load_file(char *fileName)
+void MainWindow::load_file(QString fileName)
 {
-    g_inter->read_file(fileName); //читаем данные из файла
+    g_inter->read_file(fileName.toLocal8Bit().data()); //читаем данные из файла
 
     ui->c_commandList->clear();
     for(auto i = g_inter->inputFile.begin(); i != g_inter->inputFile.end(); ++i)
         ui->c_commandList->addItem(i->c_str());
 
     on_c_refreshTrajectory_clicked();
-    setWindowTitle(QString(fileName));
+    setWindowTitle(fileName);
 }
 
 bool MainWindow::eventFilter(QObject *object, QEvent *event)
