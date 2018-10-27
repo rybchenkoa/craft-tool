@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Project version="2G - 1.7.8" name="cnc_device">
+  <Target name="cnc_device" isCurrent="1">
+    <Device manufacturerId="9" manufacturerName="ST" chipId="345" chipName="STM32F407ZG" boardId="" boardName=""/>
+    <BuildOption>
+      <Compile>
+        <Option name="OptimizationLevel" value="4"/>
+        <Option name="UseFPU" value="0"/>
+        <Option name="UserEditCompiler" value=""/>
+        <Option name="SupportCPlusplus" value="0"/>
+        <Option name="FPU" value="2"/>
+        <Includepaths>
+          <Includepath path="."/>
+        </Includepaths>
+        <DefinedSymbols>
+          <Define name="STM32F407ZG"/>
+          <Define name="STM32F4XX"/>
+          <Define name="STM32F407xx"/>
+        </DefinedSymbols>
+      </Compile>
+      <Link useDefault="0">
+        <Option name="DiscardUnusedSection" value="0"/>
+        <Option name="UserEditLinkder" value=""/>
+        <Option name="UseMemoryLayout" value="0"/>
+        <Option name="nostartfiles" value="1"/>
+        <Option name="LTO" value="1"/>
+        <Option name="IsNewStartupCode" value="1"/>
+        <Option name="Library" value="Not use C Library"/>
+        <Option name="DiscardUnusedSections" value="1"/>
+        <Option name="UserEditLinker" value="--entry=main; "/>
+        <LinkedLibraries/>
+        <MemoryAreas debugInFlashNotRAM="1">
+          <Memory name="IROM1" type="ReadOnly" size="0x00100000" startValue="0x08000000"/>
+          <Memory name="IRAM1" type="ReadWrite" size="0x00020000" startValue="0x20000000"/>
+          <Memory name="IROM2" type="ReadOnly" size="" startValue=""/>
+          <Memory name="IRAM2" type="ReadWrite" size="0x00010000" startValue="0x10000000"/>
+        </MemoryAreas>
+        <LocateLinkFile path="./stm32f407zgtx_flash.ld" type="0"/>
+      </Link>
+      <Output>
+        <Option name="OutputFileType" value="0"/>
+        <Option name="Path" value="./"/>
+        <Option name="Name" value="cnc_device"/>
+        <Option name="HEX" value="1"/>
+        <Option name="BIN" value="1"/>
+      </Output>
+      <User>
+        <UserRun name="Run#1" type="Before" checked="0" value=""/>
+        <UserRun name="Run#1" type="After" checked="0" value=""/>
+      </User>
+    </BuildOption>
+    <DebugOption>
+      <Option name="org.coocox.codebugger.gdbjtag.core.adapter" value="ST-Link"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.debugMode" value="SWD"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.clockDiv" value="2M"/>
+      <Option name="org.coocox.codebugger.gdbjtag.corerunToMain" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.jlinkgdbserver" value=""/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.userDefineGDBScript" value=""/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.targetEndianess" value="0"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.jlinkResetMode" value="Type 0: Normal"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.resetMode" value="SYSRESETREQ"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ifSemihost" value="0"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ifCacheRom" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.ipAddress" value="127.0.0.1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.portNumber" value="2009"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.autoDownload" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.verify" value="1"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.downloadFuction" value="Erase Effected"/>
+      <Option name="org.coocox.codebugger.gdbjtag.core.defaultAlgorithm" value="STM32F4xx_1024.elf"/>
+      <Option name="org.coocox.codebugger.gdbjtag.coredebugInRamInitCommands" value="cd E:/my_programs/CNC/STM32_CNC/coocox/cnc_device/Debug/bin restore cnc_device.elf set {unsigned int*}0xE000ED08 = 0x20000000 set $sp = {unsigned int*}0x20000000 set $pc = {unsigned int*}0x20000004 "/>
+    </DebugOption>
+    <ExcludeFile/>
+  </Target>
+  <Components path="./"/>
+  <Files>
+    <File name="sys/stm32f4xx_hal_conf.h" path="Inc/stm32f4xx_hal_conf.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_pwr_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_crc.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_crc.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_cortex.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c" type="1"/>
+    <File name="cmsis/device/stm32f407xx.h" path="Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f407xx.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_flash_ramfunc.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash_ramfunc.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_rcc_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc_ex.h" type="1"/>
+    <File name="cmsis/core/arm_const_structs.h" path="Drivers/CMSIS/Include/arm_const_structs.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_gpio.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c" type="1"/>
+    <File name="cmsis/core/core_cm4.h" path="Drivers/CMSIS/Include/core_cm4.h" type="1"/>
+    <File name="cmsis/core/core_cmFunc.h" path="Drivers/CMSIS/Include/core_cmFunc.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_tim_ex.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_cortex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_cortex.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_dma_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma_ex.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_rcc.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h" type="1"/>
+    <File name="cmsis/core/cmsis_armcc.h" path="Drivers/CMSIS/Include/cmsis_armcc.h" type="1"/>
+    <File name="cmsis/core/cmsis_gcc.h" path="Drivers/CMSIS/Include/cmsis_gcc.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_flash.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_dma.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h" type="1"/>
+    <File name="cmsis/device/stm32f4xx.h" path="Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f4xx.h" type="1"/>
+    <File name="sys/stm32f4xx_it.h" path="Inc/stm32f4xx_it.h" type="1"/>
+    <File name="cmsis/core" path="" type="2"/>
+    <File name="cmsis/core/core_cm3.h" path="Drivers/CMSIS/Include/core_cm3.h" type="1"/>
+    <File name="cmsis/core/arm_math.h" path="Drivers/CMSIS/Include/arm_math.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_rcc.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c" type="1"/>
+    <File name="sys" path="" type="2"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_gpio.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_flash.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c" type="1"/>
+    <File name="cmsis/core/core_cmInstr.h" path="Drivers/CMSIS/Include/core_cmInstr.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_def.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h" type="1"/>
+    <File name="cmsis/core/arm_common_tables.h" path="Drivers/CMSIS/Include/arm_common_tables.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_crc.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_crc.c" type="1"/>
+    <File name="cmsis/core/core_cm0plus.h" path="Drivers/CMSIS/Include/core_cm0plus.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_flash_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash_ex.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_tim_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h" type="1"/>
+    <File name="cmsis/core/core_cm0.h" path="Drivers/CMSIS/Include/core_cm0.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_flash_ramfunc.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c" type="1"/>
+    <File name="cmsis/core/core_sc300.h" path="Drivers/CMSIS/Include/core_sc300.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_pwr.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h" type="1"/>
+    <File name="cmsis/hal/inc" path="" type="2"/>
+    <File name="cmsis" path="" type="2"/>
+    <File name="cmsis/device/system_stm32f4xx.h" path="Drivers/CMSIS/Device/ST/STM32F4xx/Include/system_stm32f4xx.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_pwr.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_tim.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c" type="1"/>
+    <File name="cmsis/core/core_cm7.h" path="Drivers/CMSIS/Include/core_cm7.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_gpio_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio_ex.h" type="1"/>
+    <File name="cmsis/hal/src" path="" type="2"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_dma.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c" type="1"/>
+    <File name="cmsis/core/cmsis_armcc_V6.h" path="Drivers/CMSIS/Include/cmsis_armcc_V6.h" type="1"/>
+    <File name="cmsis/hal/inc/stm32f4xx_hal_tim.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_rcc_ex.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_dma_ex.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c" type="1"/>
+    <File name="cmsis/hal" path="" type="2"/>
+    <File name="sys/stm32f4xx_it.c" path="Src/stm32f4xx_it.c" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_pwr_ex.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c" type="1"/>
+    <File name="sys/stm32f4xx_hal_msp.c" path="Src/stm32f4xx_hal_msp.c" type="1"/>
+    <File name="sys/system_stm32f4xx.c" path="Src/system_stm32f4xx.c" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal_flash_ex.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c" type="1"/>
+    <File name="cmsis/core/core_sc000.h" path="Drivers/CMSIS/Include/core_sc000.h" type="1"/>
+    <File name="cmsis/device" path="" type="2"/>
+    <File name="cmsis/core/core_cmSimd.h" path="Drivers/CMSIS/Include/core_cmSimd.h" type="1"/>
+    <File name="cmsis/hal/src/stm32f4xx_hal.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c" type="1"/>
+    <File name="main.c" path="main.c" type="1"/>
+  </Files>
+</Project>
