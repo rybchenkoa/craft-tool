@@ -175,7 +175,7 @@ SECTIONS
 
   
 
-  /* Remove information from the standard libraries */
+  /* Remove information fr_om the standard libraries */
   /DISCARD/ :
   {
     libc.a ( * )
