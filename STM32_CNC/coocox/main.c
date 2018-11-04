@@ -29,27 +29,54 @@ void Init_SystemClock()
 	initPll.PLLN = 168;
 	initPll.PLLP = LL_RCC_PLLP_DIV_2;
 
-	LL_PLL_ConfigSystemClock_HSE(168000000, LL_UTILS_HSEBYPASS_OFF, &initPll, &initClk);
+	LL_PLL_ConfigSystemClock_HSE(8000000, LL_UTILS_HSEBYPASS_OFF, &initPll, &initClk);
+	LL_FLASH_SetLatency(LL_FLASH_LATENCY_5);
 
-	LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
-	LL_InitTick(168000000, 1000);
+	//LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+	//LL_InitTick(168000000, 1000);
 }
 
 static void Init_GPIO()
 {
+	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOF);
 	//LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOC);
 	//LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOH);
 	//LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
+
+	LL_GPIO_InitTypeDef gpio;
+	gpio.Pin = LL_GPIO_PIN_9 | LL_GPIO_PIN_10;
+	gpio.Mode = LL_GPIO_MODE_OUTPUT;
+	gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
+	gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+	gpio.Pull = LL_GPIO_PULL_NO;
+	LL_GPIO_Init(GPIOF, &gpio);
+}
+
+int timestamp()
+{
+	return DWT->CYCCNT;
+}
+
+void delay(int time)
+{
+	int next = timestamp() + time;
+	while(next - timestamp() > 0);
 }
 
 int main()
 {
+	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 	Init_IRQ();
 	Init_SystemClock();
 	Init_GPIO();
-	Init_CRC();
+
 	while (1)
 	{
+		LL_GPIO_SetOutputPin(GPIOF, LL_GPIO_PIN_9|LL_GPIO_PIN_10);
+		delay(SystemCoreClock/4);
+		LL_GPIO_ResetOutputPin(GPIOF, LL_GPIO_PIN_9|LL_GPIO_PIN_10);
+		delay(SystemCoreClock/4);
 	}
 }
 
