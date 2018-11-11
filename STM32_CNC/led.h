@@ -9,6 +9,7 @@ struct Led
 	{
 		RCC->AHB1ENR |= RCC_AHB1ENR_GPIOFEN;
 
+		LL_GPIO_InitTypeDef gpio;
 		gpio.Pin = LL_GPIO_PIN_9 | LL_GPIO_PIN_10;
 	    gpio.Mode = LL_GPIO_MODE_OUTPUT;
 	    gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
@@ -18,15 +19,15 @@ struct Led
 //---------------------------------------
 	void flip(int i)
 	{
-		if(on)
+		if(on[i])
 			hide(i);
 		else
 			show(i);
 	}
 //---------------------------------------
-	void show(int i) { GPIOC->BSRR=1<<(pos[i]+16); on[i] = true;}
+	void show(int i) { GPIOF->BSRR=1<<(pos[i]+16); on[i] = true;}
 //---------------------------------------
-	void hide(int i) { GPIOC->BSRR=1<<pos[i]; on[i] = false;}	
+	void hide(int i) { GPIOF->BSRR=1<<pos[i]; on[i] = false;}
 
 	Led() {on[0]=on[1]=false;}
 protected:
