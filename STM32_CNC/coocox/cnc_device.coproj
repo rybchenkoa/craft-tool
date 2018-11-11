@@ -4,10 +4,10 @@
     <Device manufacturerId="9" manufacturerName="ST" chipId="345" chipName="STM32F407ZG" boardId="" boardName=""/>
     <BuildOption>
       <Compile>
-        <Option name="OptimizationLevel" value="0"/>
+        <Option name="OptimizationLevel" value="4"/>
         <Option name="UseFPU" value="0"/>
-        <Option name="UserEditCompiler" value="-std=c99"/>
-        <Option name="SupportCPlusplus" value="0"/>
+        <Option name="UserEditCompiler" value=""/>
+        <Option name="SupportCPlusplus" value="1"/>
         <Option name="FPU" value="2"/>
         <Option name="CompileBeforeDebug" value="0"/>
         <Includepaths>
@@ -19,6 +19,7 @@
           <Define name="STM32F407xx"/>
           <Define name="USE_FULL_LL_DRIVER"/>
           <Define name="USE_FULL_ASSERT"/>
+          <Define name="SUPPORT_CPLUSPLUS"/>
         </DefinedSymbols>
       </Compile>
       <Link useDefault="0">
@@ -30,7 +31,7 @@
         <Option name="IsNewStartupCode" value="1"/>
         <Option name="Library" value="Not use C Library"/>
         <Option name="DiscardUnusedSections" value="1"/>
-        <Option name="UserEditLinker" value="--entry=main; --specs=nano.specs;"/>
+        <Option name="UserEditLinker" value="--entry=main;-lnosys;"/>
         <LinkedLibraries/>
         <MemoryAreas debugInFlashNotRAM="1">
           <Memory name="IROM1" type="ReadOnly" size="0x00100000" startValue="0x08000000"/>
