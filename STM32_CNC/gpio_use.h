@@ -152,7 +152,8 @@ void config_step_timer(TIM_TypeDef *tim)
 {
   tim->CNT = 0;
   tim->ARR = 0;
-  //tim->CR1 |= TIM_CR1_ARPE; //сравнение CNT == ARR, поэтому чтобы не пролететь мимо во время обновления
+  tim->CR1 |= TIM_CR1_ARPE; //сравнение CNT == ARR (а не <= ), поэтому чтобы не пролететь мимо во время обновления
+  tim->EGR |= TIM_EGR_UG;   //переносим значения из shadow регистров
   tim->DIER |= TIM_DIER_UDE; //разрешаем DMA запрос по событию переполнения (совпадение с ARR)
 }
 
@@ -222,6 +223,9 @@ void config_pwm_timer()
 //подключение шаговых таймеров
 void connect_step_channels()
 {
+    TIM1->PSC = 1; //приводим частоту всех таймеров к одному значению (минимальному)
+    TIM2->PSC = 1; //дальше будет вызвано EGR_UG
+
 	for (int i = 0; i < MAX_HARD_AXES; ++i) //настраиваем таймера, генерирующие шаги
 		config_step_timer(STEP_TIMERS[i]);
 
