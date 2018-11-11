@@ -20,7 +20,7 @@ void init_motors()
 void init()
 {
 	led.init();	
-	led.hide();
+	led.hide(0);
 	timer.init();
 	
 	RCC->AHBENR |= RCC_AHBENR_CRCEN;
@@ -39,7 +39,7 @@ void init()
 int main()
 {
 	init();
-	led.show();
+	led.show(0);
 
 	mover.init();
 	int timeToSend = timer.get_ms(500); //предварительная пауза на всякий случай
@@ -74,7 +74,7 @@ int main()
 		
 		if(!timer.check(timeToSend))
 		{
-			led.flip();
+			led.flip(0);
 			timeToSend = timer.get_ms(20);
 			numShow +=1; //возможность посылки короткими очередями, чтобы рассмотреть детали процесса
 		}

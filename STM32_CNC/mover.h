@@ -745,9 +745,9 @@ bool canLog;
 	OperateResult empty()
 	{
 		if((unsigned int)timer.get() % 12000000 > 6000000)
-			led.show();
+			led.show(0);
 		else
-			led.hide();
+			led.hide(0);
 
 		if (breakState == 1)
 		{
@@ -802,7 +802,7 @@ bool canLog;
 		case MoveMode_LINEAR:
 		case MoveMode_HOME:
 			{
-				led.flip();
+				led.flip(0);
 
 				//log_console("pos %7d, %7d, %5d, time %d init\n",
 				//       packet->coord[0], packet->coord[1], packet->coord[2], timer.get());

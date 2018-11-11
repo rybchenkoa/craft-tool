@@ -1,32 +1,36 @@
 #pragma once
-#include "stm32f10x.h"
+#include "stm32f4xx.h"
 
+static const int pos[] = {9, 10};
 struct Led
 {
 //---------------------------------------
 	void init()
 	{
-		RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
-			//             54321098
-		GPIOC->CRH &= ~0x00F00000;
-		GPIOC->CRH |=  0x00100000;	
+		RCC->AHB1ENR |= RCC_AHB1ENR_GPIOFEN;
+
+		gpio.Pin = LL_GPIO_PIN_9 | LL_GPIO_PIN_10;
+	    gpio.Mode = LL_GPIO_MODE_OUTPUT;
+	    gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
+	    gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+	    LL_GPIO_Init(GPIOF, &gpio);
 	}
 //---------------------------------------
-	void flip()
+	void flip(int i)
 	{
 		if(on)
-			hide();
+			hide(i);
 		else
-			show();
+			show(i);
 	}
 //---------------------------------------
-	void show() { GPIOC->BRR=1<<13; on = true;}
+	void show(int i) { GPIOC->BSRR=1<<(pos[i]+16); on[i] = true;}
 //---------------------------------------
-	void hide() { GPIOC->BSRR=1<<13; on = false;}	
+	void hide(int i) { GPIOC->BSRR=1<<pos[i]; on[i] = false;}	
 
-	Led(): on(false){}
+	Led() {on[0]=on[1]=false;}
 protected:
-	bool on;
+	bool on[2];
 };
 
 Led led;
