@@ -1,3 +1,4 @@
+//ǁ
 #pragma once
 
 template <class item, int bits> //какие элементы хранятся, сколько бит в счётчике (т.е. размер буфера = 2^bits)
