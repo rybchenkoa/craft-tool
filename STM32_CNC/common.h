@@ -9,7 +9,7 @@
 #define M_PI 3.1415f
 
 const int MAX_AXES = 5;
-const int PWM_SIZE = 24000000 / 30000;
+const int PWM_SIZE = 168000000 / 20000;
 const int MAX_STEP_TIME = 1<<30;
 
 //#define log_console(format, ...) {}

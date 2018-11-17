@@ -352,7 +352,7 @@ bool canLog;
 			for (int i = 0; i < activeSwitchCount; ++i)
 				if (activeSwitch[i] != -1 && get_pin(activeSwitch[i]))
 				{
-					log_console("switch %d, %d reached", i, activeSwitch[i]);
+					log_console("switch %d, %d reached\n", i, activeSwitch[i]);
 					return true;
 				}
 		}
@@ -745,7 +745,7 @@ bool canLog;
 	//=====================================================================================================
 	OperateResult empty()
 	{
-		if((unsigned int)timer.get() % 12000000 > 6000000)
+		if((unsigned int)timer.get() % 1200000 > 600000)
 			led.show(0);
 		else
 			led.hide(0);
