@@ -1,5 +1,6 @@
 //ǁ
-#include "stm32f10x.h"
+#include "stm32f4xx.h"
+#include "stm32f4xx_hal_conf.h"
 #include "led.h"
 #include "gpio_use.h"
 #include "fifo.h"
@@ -91,10 +92,4 @@ int main()
 		else
 			mover.canLog = false;
 	}
-}
-
-extern "C" void NMI_Handler()
-{
-	RCC->CIR |= RCC_CIR_CSSC; //если сломалось тактирование от внешнего кварца
-	log_console("err: external quarz has broken, use internal source %d\n", 0);//сообщим об этом и будем работать от внутреннего
 }

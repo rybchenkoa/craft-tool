@@ -43,7 +43,7 @@ struct float16
 	float16(int value)
 	{
 		int mant = value > 0 ? value : -value;
-		int pos = __clz(mant);
+		int pos = __CLZ(mant);
 		exponent = 32 - pos - 1;
 		if(pos > 16)
 			mantis = value << (pos - 17);
@@ -113,7 +113,7 @@ struct float16
 		}
 
 		int mantVal = mant > 0 ? mant : -mant;
-		int pos = 17 - __clz(mantVal);
+		int pos = 17 - __CLZ(mantVal);
 		if(pos < 0)
 			_mantis = mant << -pos;
 		else
@@ -143,7 +143,7 @@ struct float16
 		}
 
 		int mantVal = mant > 0 ? mant : -mant;
-		int pos = 17 - __clz(mantVal);
+		int pos = 17 - __CLZ(mantVal);
 		if(pos < 0)
 			_mantis = mant << -pos;
 		else
@@ -240,7 +240,7 @@ struct float16
 	}
 };
 
-#define INT16_MAX 32767
+//#define INT16_MAX 32767
 float16 sqrt(float16 value)
 {
 	short _mantis, _exponent;

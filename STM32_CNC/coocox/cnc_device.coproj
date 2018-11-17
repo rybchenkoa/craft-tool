@@ -31,7 +31,7 @@
         <Option name="IsNewStartupCode" value="1"/>
         <Option name="Library" value="Not use C Library"/>
         <Option name="DiscardUnusedSections" value="1"/>
-        <Option name="UserEditLinker" value="--entry=main;-lnosys;"/>
+        <Option name="UserEditLinker" value="--specs=nano.specs;-lnosys;--entry=main;"/>
         <LinkedLibraries/>
         <MemoryAreas debugInFlashNotRAM="1">
           <Memory name="IROM1" type="ReadOnly" size="0x00100000" startValue="0x08000000"/>
@@ -155,6 +155,7 @@
     <File name="cmsis/core/core_cmFunc.h" path="Drivers/CMSIS/Include/core_cmFunc.h" type="1"/>
     <File name="src/led.h" path="../led.h" type="1"/>
     <File name="sys/startup_stm32f407xx.s" path="startup/startup_stm32f407xx.s" type="1"/>
+    <File name="src/system.h" path="../system.h" type="1"/>
     <File name="cmsis/hal/src/stm32f4xx_hal_tim_ex.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c" type="1"/>
     <File name="cmsis/core/cmsis_gcc.h" path="Drivers/CMSIS/Include/cmsis_gcc.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_flash.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash.h" type="1"/>

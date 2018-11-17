@@ -211,7 +211,7 @@ int isqrt(int value)
 {
 	if(value <= 0) return 0;
 
-	int leftBits = __clz(value); //бит слева до первого значащего бита, 0 = сразу попался
+	int leftBits = __CLZ(value); //бит слева до первого значащего бита, 0 = сразу попался
 	unsigned int minVal = 1 << ((31-leftBits)/2); //примерный корень
 	/*unsigned int maxVal = minVal*2; //это его правая граница
 	//методом половинного деления добиваем до точного значения, макс. 16 итераций

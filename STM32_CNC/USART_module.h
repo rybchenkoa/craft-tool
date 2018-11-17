@@ -1,5 +1,7 @@
 //ǁ
 #include "stm32f4xx.h"
+#include "stm32f4xx_ll_gpio.h"
+#include "stm32f4xx_hal_gpio_ex.h"
 #include "fifo.h"
 #include "led.h"
 
@@ -43,7 +45,7 @@ class Usart
 
 		USART1->BRR = 84000000 / 230400;// 115200 230400 500000
 		
-		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE | 	// usart on, rx on, tx on, 
+		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE | 	// usart on, rx on, tx on,
 									USART_CR1_RXNEIE; 				//прерывание: байт принят
 
 		__enable_irq();               //разрешаем прерывания
@@ -58,12 +60,11 @@ class Usart
 		            | DMA_MDATAALIGN_BYTE   // размер данных 8 бит
 		            | DMA_PDATAALIGN_BYTE   // размер периферии 8 бит
 		            | DMA_SxCR_MINC   // память инкрементировать
-		            | DMA_SxCR_DIR      // направление от памяти в периферию
 		            | DMA_SxCR_TCIE | DMA_SxCR_TEIE //прерывание на полную посылку
                     | DMA_CHANNEL_4;
 		stream->PAR = (uint32_t)&USART1->DR;           // адрес перифериии
 
-		NVIC_EnableIRQ(DMA2_Stream4_IRQn);
+		NVIC_EnableIRQ(DMA2_Stream7_IRQn);
 	}
 
 //----------------------------------------------------------
@@ -168,7 +169,7 @@ class Usart
 	{
 		
 __disable_irq();
-		if((DMA2_Stream4->CR & DMA_SxCR_EN) == 0)
+		if((DMA2_Stream7->CR & DMA_SxCR_EN) == 0)
 		{
 			process_send_data();
 		}
@@ -181,18 +182,18 @@ __enable_irq();
 		transmitBuffer.Pop(lastSendSize);
 		if (transmitBuffer.Count()>0) //возможно, из-за многопоточности != здесь не работает
 		{
-			DMA2_Stream4->CR &= ~DMA_SxCR_EN;
+			DMA2_Stream7->CR &= ~DMA_SxCR_EN;
 			lastSendSize = transmitBuffer.ContinuousCount();
 			if (lastSendSize > 64) //если вдруг попадем на посылку от начала буфера до конца
 				lastSendSize = 64; // то чтобы не блокировать добавление элементов в начало, шлем по кускам
-			DMA2_Stream4->M0AR = (uint32_t)&transmitBuffer.Front();   // адрес памяти
-			DMA2_Stream4->NDTR = lastSendSize;   // длина пересылки
-			DMA2_Stream4->CR |= DMA_SxCR_EN;
+			DMA2_Stream7->M0AR = (uint32_t)&transmitBuffer.Front();   // адрес памяти
+			DMA2_Stream7->NDTR = lastSendSize;   // длина пересылки
+			DMA2_Stream7->CR |= DMA_SxCR_EN;
 		}
 		else
 		{
 			lastSendSize = 0;
-			DMA2_Stream4->CR &= ~DMA_SxCR_EN;
+			DMA2_Stream7->CR &= ~DMA_SxCR_EN;
 		}
 	}
 };
@@ -209,17 +210,17 @@ extern "C" void USART1_IRQHandler(void)
 }
 
 //----------------------------------------------------------
-extern "C" void DMA2_Stream4_IRQHandler (void)
+extern "C" void DMA2_Stream7_IRQHandler (void)
 {//led.flip();
 	//обмен завершен
-	//if(DMA2->ISR & DMA_ISR_TCIF4)
+	//if(DMA2->ISR & DMA_ISR_TCIF7)
 	//{
-		DMA2->HIFCR |= DMA_HIFCR_CTCIF4 /*| DMA_HIFCR_CHTIF4*/ | DMA_HIFCR_CTEIF4;
+		DMA2->HIFCR |= DMA_HIFCR_CTCIF7 /*| DMA_HIFCR_CHTIF7*/ | DMA_HIFCR_CTEIF7;
 		usart.process_send_data();
 	//}
 	//else
-	//	DMA2->IFCR |= DMA_HIFCR_CTCIF4 | DMA_HIFCR_CHTIF4 | DMA_HIFCR_CTEIF4;
-	//DMA2->HIFCR |= DMA_HIFCR_CGIF4;
+	//	DMA2->IFCR |= DMA_HIFCR_CTCIF7 | DMA_HIFCR_CHTIF7 | DMA_HIFCR_CTEIF7;
+	//DMA2->HIFCR |= DMA_HIFCR_CGIF7;
 }
 
 //----------------------------------------------------------
