@@ -131,7 +131,8 @@ void config_output_timer(TIM_TypeDef *tim, char *arr)
 void config_step_timer(TIM_TypeDef *tim)
 {
   tim->CNT = 0;
-  tim->ARR = 0;
+  tim->ARR = 32000;
+  tim->PSC = 0;
   tim->CR1 |= TIM_CR1_ARPE; //сравнение CNT == ARR (а не <= ), поэтому чтобы не пролететь мимо во время обновления
   tim->EGR |= TIM_EGR_UG;   //переносим значения из shadow регистров
   tim->DIER |= TIM_DIER_UDE; //разрешаем DMA запрос по событию переполнения (совпадение с ARR)
@@ -154,7 +155,7 @@ void dma_bsrr_stream(DMA_Stream_TypeDef *stream, int channel,
     | DMA_MDATAALIGN_WORD | DMA_PDATAALIGN_WORD
     | DMA_SxCR_MINC //увеличивать указатель на память
     | channel; //тактирование брать с этого триггера
-  stream->NDTR = 255;
+  stream->NDTR = MAX_STEP;
   stream->M0AR = (int)arr;
   stream->PAR = (int)&GPIOF->BSRR;
   stream->CR |= DMA_SxCR_EN;
@@ -164,15 +165,14 @@ void dma_bsrr_stream(DMA_Stream_TypeDef *stream, int channel,
 // DMA, который переключает ножку через канал сравнения таймера
 void dma_oc_stream(int *outReg, DMA_Stream_TypeDef *stream, int channel, char *arr)
 {
-  DMA_Stream_TypeDef *stream = DMA1_Stream1;
   stream->CR |= DMA_MEMORY_TO_PERIPH
     | DMA_SxCR_CIRC
     | DMA_MDATAALIGN_BYTE | DMA_PDATAALIGN_WORD
     | DMA_SxCR_MINC //увеличивать указатель на память
     | channel; //тактирование брать с этого триггера
-  stream->NDTR = 256;
+  stream->NDTR = MAX_STEP;
   stream->M0AR = (int)arr;
-  stream->PAR = (int)&outReg;	
+  stream->PAR = (int)outReg;
   stream->CR |= DMA_SxCR_EN;
 }
 
@@ -194,7 +194,7 @@ void config_pwm_timer()
 							| TIM_CCER_CC4E; //подключаем все каналы для шим
 
 	TIM1->PSC = 0;
-	TIM1->ARR = PWM_SIZE;
+	TIM1->ARR = PWM_SIZE-1;
 	TIM1->CR1 |= TIM_CR1_ARPE; //чтобы при обновлении с большего на меньшее не считать до 2^16
 	TIM1->CR1 |= TIM_CR1_CEN; //запускаем таймер
 }
@@ -211,9 +211,9 @@ void connect_step_channels()
 
     config_output_timer(TIM4, OC_ARRAY); //включаем таймер, шим каналы которого управляют ножками
     for (int i = 0; i < 4; ++i)
-      dma_oc_stream(&TIM4->CCR1 + i, DMA_STREAMS[i], DMA_TRIGGERS[i], OC_ARRAY);
+      dma_oc_stream((int*)&TIM4->CCR1 + i, DMA_STREAMS[i], DMA_TRIGGERS[i], OC_ARRAY);
 
-    dma_bsrr_stream(DMA_STREAMS[4], DMA_TRIGGERS[4], GPIOG, BSRR_ARRAY, GPIO_BSRR_BR4, GPIO_BSRR_BS4); 
+    dma_bsrr_stream(DMA_STREAMS[4], DMA_TRIGGERS[4], GPIOG, BSRR_ARRAY, GPIO_BSRR_BR4, GPIO_BSRR_BS4);
 }
 
 //--------------------------------------------------
@@ -227,7 +227,7 @@ void configure_timers()
 //--------------------------------------------------
 //--------------------------------------------------
 //задаёт состояние пина порта
-void __forceinline set_pin_state(GPIO_TypeDef *port, int pinnum, bool state)
+void inline set_pin_state(GPIO_TypeDef *port, int pinnum, bool state)
 {
 	if (state)
 		port->BSRR = 1 << pinnum;
