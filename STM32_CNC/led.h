@@ -8,8 +8,6 @@ struct Led
 //---------------------------------------
 	void init()
 	{
-		RCC->AHB1ENR |= RCC_AHB1ENR_GPIOFEN;
-
 		LL_GPIO_InitTypeDef gpio;
 		gpio.Pin = LL_GPIO_PIN_9 | LL_GPIO_PIN_10;
 	    gpio.Mode = LL_GPIO_MODE_OUTPUT;

@@ -32,10 +32,6 @@ class Usart
 //----------------------------------------------------------
 	void init()
 	{
-		RCC->APB2ENR |= RCC_APB2ENR_USART1EN; // включаем тактирование usart
-        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;  // подключаем к usart pin porta
-        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;   // посылка через DMA
-		
         LL_GPIO_InitTypeDef gpio;
         gpio.Pin = LL_GPIO_PIN_9|LL_GPIO_PIN_10;
         gpio.Mode = LL_GPIO_MODE_ALTERNATE;

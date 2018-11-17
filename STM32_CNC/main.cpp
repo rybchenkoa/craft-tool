@@ -9,6 +9,7 @@
 #include "string.h"
 #include "sys_timer.h"
 #include "mover.h"
+#include "system.h"
 
 //===============================================================
 void init_motors()
@@ -20,11 +21,14 @@ void init_motors()
 //===============================================================
 void init()
 {
+	init_fault_irq();
+	init_system_clock();
+	connect_peripherals();
+	init_default_gpio();
+
 	led.init();	
 	led.hide(0);
 	timer.init();
-	
-	RCC->AHBENR |= RCC_AHBENR_CRCEN;
 	
 	usart.init();
 	receiver.init();

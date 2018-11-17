@@ -70,27 +70,6 @@ int polarity = 0; //надо ли инвертировать вход (бито�
 char OC_ARRAY[MAX_STEP];
 int BSRR_ARRAY[MAX_STEP];
 
-
-//--------------------------------------------------
-// включает тактирование портов и таймеров
-void connect_timers_clock()
-{
-  	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
-                  | RCC_AHB1ENR_GPIOCEN
-                  | RCC_AHB1ENR_GPIODEN
-                  | RCC_AHB1ENR_GPIOGEN
-                  | RCC_AHB1ENR_DMA1EN
-                  | RCC_AHB1ENR_DMA2EN;
-
-	RCC->APB2ENR |= RCC_APB2ENR_TIM8EN;
-								
-	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN
-				  | RCC_APB1ENR_TIM3EN
-                  | RCC_APB1ENR_TIM4EN
-                  | RCC_APB1ENR_TIM6EN
-                  | RCC_APB1ENR_TIM7EN;
-}
-
 //--------------------------------------------------
 void configure_gpio()
 {
@@ -240,7 +219,6 @@ void connect_step_channels()
 //--------------------------------------------------
 void configure_timers()
 {
-	connect_timers_clock();
 	connect_step_channels();
 	config_pwm_timer();
 }

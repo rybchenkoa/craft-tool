@@ -13,11 +13,12 @@ class SysTimer
           highCounter = SysTick_LOAD_RELOAD_Msk + 1;
           SysTick_Config(SysTick_LOAD_RELOAD_Msk);
           */
-          /*
+
+          //таймер максимального разрешения
           CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 	      DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-          */
-          RCC->APB1ENR |= RCC_APB1ENR_TIM5EN;
+          
+		  //таймер в микросекундах
           TIM5->PSC = 83; //APB1*2 - 84 МГц
           TIM5->CNT = 0;
           TIM5->ARR = -1;

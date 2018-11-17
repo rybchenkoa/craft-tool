@@ -10,15 +10,11 @@ class Adc
 	
 	void init()
 	{
-        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOFEN;
-
         LL_GPIO_InitTypeDef gpio;
         gpio.Pin = LL_GPIO_PIN_3;
         gpio.Mode = LL_GPIO_MODE_ANALOG;
         gpio.Pull = LL_GPIO_PULL_NO;
         LL_GPIO_Init(GPIOF, &gpio);
-		
-		RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;   //подключаем тактирование adc
 
         ADC_TypeDef *adc = ADC3;
 		adc->CR2 |= ADC_CR2_ADON;            //включаем сам adc
