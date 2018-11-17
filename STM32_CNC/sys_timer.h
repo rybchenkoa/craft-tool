@@ -26,9 +26,19 @@ class SysTimer
           TIM5->CR1 |= TIM_CR1_CEN;
 		}
 		
+		inline int get_ticks()
+		{
+            return DWT->CYCCNT;
+		}
+
+		void delay_ticks(int ticks)
+		{
+			volatile int endTime = get_ticks() + ticks;
+			while(endTime - get() > 0);
+		}
+
 		inline int get()
 		{
-            //return DWT->CYCCNT;
             //return (highCounter - SysTick->VAL); //mks*168
 			return TIM5->CNT; //mks
 		}
