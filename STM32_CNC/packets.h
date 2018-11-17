@@ -178,7 +178,7 @@ uint32_t calc_crc(char *buffer, int size)
 		size -= 4;
 	}
 	
-	char *buf = (char*)wordBuffer;
+	uint8_t *buf = (uint8_t*)wordBuffer;
 	while(size-- > 0)
 	{
 		calc->DR = *(buf++);

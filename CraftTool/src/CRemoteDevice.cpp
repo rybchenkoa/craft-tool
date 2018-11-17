@@ -288,7 +288,7 @@ unsigned crc32_stm32(unsigned init_crc, unsigned *buf, int len)
         len -= 4;
     }
 
-    char *cbuf = (char*)buf;
+    uint8_t *cbuf = (uint8_t*)buf;
     while(len-- != 0)
     {
         v = htonl(*cbuf++);
