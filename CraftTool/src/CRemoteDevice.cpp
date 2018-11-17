@@ -802,7 +802,7 @@ void CRemoteDevice::init()
 	}
 
 	//читаем параметры дискретизации
-    secToTick = 1000000.0;
+    secToTick = 168000000.0;
 	double stepSize[MAX_AXES];
 	minStep = 1000000; //километровых шагов уж точно ни у кого не будет
 	for (int i = 0; i < MAX_AXES; ++i)

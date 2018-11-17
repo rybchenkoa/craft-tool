@@ -53,7 +53,7 @@ tim4 - выходы как замена bsrr
 #define MAX_HARD_AXES 5
 #define MAX_PWM  4
 
-#define MAX_PERIOD 65535 //16-бит максимальное время между шагами для аппаратного таймера
+#define MAX_PERIOD ((1<<17) - 1) //16-бит максимальное время между шагами для аппаратного таймера, плюс тактирование на 1/2 частоты процессора
 #define MAX_STEP 256 //8-битный счетчик шагов, 0 пропускается, вместо него 0x1 00
 
 int           DIR_PINS[]    = {10,    11,    2,     3,     6};
@@ -199,11 +199,14 @@ void config_pwm_timer()
 	TIM1->CR1 |= TIM_CR1_CEN; //запускаем таймер
 }
 
+//пересчитывает такты процессора в такты таймера
+int inline to_tim_clock(int interval) { return interval >> 1; }
+
 //--------------------------------------------------
 //подключение шаговых таймеров
 void connect_step_channels()
 {
-    TIM1->PSC = 1; //приводим частоту всех таймеров к одному значению (минимальному)
+    //TIM1->PSC = 1; //приводим частоту всех таймеров к одному значению (минимальному)
     TIM2->PSC = 1; //дальше будет вызвано EGR_UG
 
 	for (int i = 0; i < MAX_HARD_AXES; ++i) //настраиваем таймера, генерирующие шаги
@@ -254,7 +257,7 @@ bool inline get_pin(int index)
 //задает время между шагами
 void inline set_step_time(int index, int ticks)
 {
-	STEP_TIMERS[index]->ARR = ticks + 1;
+	STEP_TIMERS[index]->ARR = to_tim_clock(ticks) + 1;
 }
 
 //--------------------------------------------------
@@ -290,7 +293,7 @@ void inline step(int index)
 //выставляет время до следующего шага
 void inline set_next_step_time(int index, int time)
 {
-	time = STEP_TIMERS[index]->ARR - time;
+	time = STEP_TIMERS[index]->ARR - to_tim_clock(time);
 	if (time < 1)
 		time = 1;
 	STEP_TIMERS[index]->CNT = time;

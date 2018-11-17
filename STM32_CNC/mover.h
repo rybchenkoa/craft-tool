@@ -449,7 +449,7 @@ bool canLog;
 		else
 		{
 			int ref = linearData.refCoord;
-			int curTime = timer.get();
+			int curTime = timer.get_ticks();
 			int stepTimeArr[MAX_AXES+1];
 			float16 errCoef = float16(1.0f) / float16(linearData.size[ref]);
 			homeReached = true;
@@ -520,7 +520,7 @@ bool canLog;
 	//=====================================================================================================
 	bool brez_step()
 	{
-		int time = timer.get();
+		int time = timer.get_ticks();
 		for (int i = 0; i < MAX_AXES; ++i) //быстро запоминаем текущее состояние координат
 			if (linearData.size[i] != 0 && motor[i]._isHardware)
 				motor[i].shot(time);
@@ -599,13 +599,13 @@ bool canLog;
 	void start_acceleration()
 	{
 		linearData.lastVelocity = linearData.velocity;
-		linearData.lastTime = timer.get();
+		linearData.lastTime = timer.get_ticks();
 	}
 
 	//=====================================================================================================
 	void accelerate(int multiplier)
 	{
-		int currentTime = timer.get();
+		int currentTime = timer.get_ticks();
 		int delta = currentTime - linearData.lastTime;
 		linearData.velocity = linearData.lastVelocity + float16(delta * multiplier) * linearData.acceleration;
 		if (delta > 100000)

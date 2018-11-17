@@ -101,7 +101,7 @@ struct Motor
 			if (period >= MAX_PERIOD) //переключаем на программный счёт
 			{
 				disable_step_timer(_index);
-				shot(timer.get());
+				shot(timer.get_ticks());
 				_isHardware = false;
 			}
 			else
@@ -112,7 +112,7 @@ struct Motor
 			if (period < MAX_PERIOD) //переключаем на аппаратный счёт
 			{
 				set_step_time(_index, period);
-				int timeLeft = _lastTime + _period - timer.get();
+				int timeLeft = _lastTime + _period - timer.get_ticks();
 				if (timeLeft < 0)
 					timeLeft = 0;
 				set_next_step_time(_index, timeLeft);
@@ -122,7 +122,7 @@ struct Motor
 			}
 			else //масштабируем прошедшее время для более точного учета шагов
 			{
-				int curTime = timer.get();
+				int curTime = timer.get_ticks();
 				if (_period == MAX_STEP_TIME)
 					_lastTime = curTime;
 				else
@@ -141,7 +141,7 @@ struct Motor
 	void start(int period)
 	{
 		_isHardware = false;
-		_lastTime = timer.get();
+		_lastTime = timer.get_ticks();
 		_period = period;
 	}
 
@@ -151,7 +151,7 @@ struct Motor
 		if (_isHardware)
 		{
 			disable_step_timer(_index);
-			shot(timer.get());
+			shot(timer.get_ticks());
 			_isHardware = false;
 		}
 	}
@@ -193,7 +193,7 @@ struct VirtualMotor
 	//===============================================================
 	void set_period(int period)
 	{
-		int curTime = timer.get();
+		int curTime = timer.get_ticks();
 		if (_period == MAX_STEP_TIME)
 		{
 			_lastTime = curTime;
@@ -220,7 +220,7 @@ struct VirtualMotor
 	//===============================================================
 	void start(int period)
 	{
-		_lastTime = timer.get();
+		_lastTime = timer.get_ticks();
 		_period = period;
 		_newPeriod = _period;
 	}
