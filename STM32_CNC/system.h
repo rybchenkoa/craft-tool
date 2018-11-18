@@ -4,9 +4,10 @@ void init_fault_irq(void)
 {
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 	NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-	HAL_NVIC_SetPriority(MemoryManagement_IRQn, 0, 0);
-	HAL_NVIC_SetPriority(BusFault_IRQn, 0, 0);
-	HAL_NVIC_SetPriority(UsageFault_IRQn, 0, 0);
+	int priority = NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0);
+	NVIC_SetPriority(MemoryManagement_IRQn, priority);
+	NVIC_SetPriority(BusFault_IRQn, priority);
+	NVIC_SetPriority(UsageFault_IRQn, priority);
 }
 
 void init_system_clock()
