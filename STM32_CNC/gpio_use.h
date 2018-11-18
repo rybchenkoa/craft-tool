@@ -53,7 +53,10 @@ tim4 - выходы как замена bsrr
 #define MAX_HARD_AXES 5
 #define MAX_PWM  4
 
-#define MAX_PERIOD ((1<<17) - 1) //16-бит максимальное время между шагами для аппаратного таймера, плюс тактирование на 1/2 частоты процессора
+//16-бит максимальное время между шагами для аппаратного таймера
+//тактирование на 1/2 частоты процессора
+//время периода = ARR+1, поэтому здесь можно вылезть на 1 за пределы 16 бит
+#define MAX_PERIOD (1<<17)
 #define MAX_STEP 256 //8-битный счетчик шагов, 0 пропускается, вместо него 0x1 00
 
 int           DIR_PINS[]    = {10,    11,    2,     3,     6};
@@ -132,7 +135,7 @@ void config_step_timer(TIM_TypeDef *tim)
 {
   tim->CNT = 0;
   tim->ARR = 32000;
-  tim->PSC = 0;
+  //tim->PSC = 0; //надо ставить в зависимости от шины
   tim->CR1 |= TIM_CR1_ARPE; //сравнение CNT == ARR (а не <= ), поэтому чтобы не пролететь мимо во время обновления
   tim->EGR |= TIM_EGR_UG;   //переносим значения из shadow регистров
   tim->DIER |= TIM_DIER_UDE; //разрешаем DMA запрос по событию переполнения (совпадение с ARR)
@@ -207,7 +210,7 @@ int inline to_tim_clock(int interval) { return interval >> 1; }
 void connect_step_channels()
 {
     //TIM1->PSC = 1; //приводим частоту всех таймеров к одному значению (минимальному)
-    TIM2->PSC = 1; //дальше будет вызвано EGR_UG
+    TIM8->PSC = 1; //дальше будет вызвано EGR_UG
 
 	for (int i = 0; i < MAX_HARD_AXES; ++i) //настраиваем таймера, генерирующие шаги
 		config_step_timer(STEP_TIMERS[i]);
@@ -257,7 +260,7 @@ bool inline get_pin(int index)
 //задает время между шагами
 void inline set_step_time(int index, int ticks)
 {
-	STEP_TIMERS[index]->ARR = to_tim_clock(ticks) + 1;
+	STEP_TIMERS[index]->ARR = to_tim_clock(ticks) - 1;
 }
 
 //--------------------------------------------------
@@ -293,8 +296,15 @@ void inline step(int index)
 //выставляет время до следующего шага
 void inline set_next_step_time(int index, int time)
 {
-	time = STEP_TIMERS[index]->ARR - to_tim_clock(time);
+	//до этого могли поменять значение ARR, поэтому надо его реально вписать
+	auto tim = STEP_TIMERS[index];
+	auto dier = tim->DIER;
+	tim->DIER = dier & !TIM_DIER_UDE;
+	tim->EGR |= TIM_EGR_UG;
+	tim->DIER = dier | TIM_DIER_UDE;
+
+	time = tim->ARR - to_tim_clock(time);
 	if (time < 1)
 		time = 1;
-	STEP_TIMERS[index]->CNT = time;
+	tim->CNT = time;
 }
