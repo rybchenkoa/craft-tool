@@ -95,7 +95,25 @@ void ComPortConnect::send_data(char *buffer, int count)
     *(pointer++) = OP_STOP;
 
     DWORD write;
-    WriteFile(hCom, data, pointer-data, &write, &ovWrite);
+	BOOL result = WriteFile(hCom, data, pointer-data, &write, &ovWrite);
+    if (!result)
+	{
+		auto err = GetLastError();
+		if (err != ERROR_IO_PENDING)
+		{
+
+			log_message("port error");
+		}
+		else
+		{
+			result = GetOverlappedResult(hCom, &ovWrite, &write, true);
+			if (!result)
+			{
+				err = GetLastError();
+
+			}
+		}
+	}
     transmitBPS += pointer-data;
 }
 
@@ -280,6 +298,7 @@ ComPortConnect::ComPortConnect(void)
     hCom = 0;
     memset(&ovRead,0,sizeof(ovRead));
     memset(&ovWrite,0,sizeof(ovWrite));
+	ovWrite.hEvent = CreateEvent(NULL, TRUE, TRUE, NULL);
     receiveState = S_READY;
     receivedSize = 0;
     on_packet_received = nullptr;
