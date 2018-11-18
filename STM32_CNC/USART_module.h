@@ -16,18 +16,14 @@ class Usart
 
 	enum Tags
 	{
-		OP_CODE = '\\', //признак, что дальше идёт управляющий код, если надо послать 100, надо послать его 2 раза
+		OP_CODE = '\\', //признак, что дальше идёт управляющий код
 		OP_STOP = 'n',  //конец пакета
-		OP_RUN  = 'r',  //начало пакета
 	};
 	
 	enum States
 	{
-		S_READY,     //очередь пуста, никто ничего не присылал
+		S_NORMAL,     //очередь пуста, никто ничего не присылал
 		S_CODE,      //принят управляющий символ
-		S_RUN,       //вначале принят символ '\' , ждём символ 'r'
-		S_RECEIVING, //приём пакета
-		S_END,       //принят символ конца, проверка пакета
 	};
 	
 	char receiveState;
@@ -78,14 +74,12 @@ class Usart
 //----------------------------------------------------------
 	void send_packet(char *data, int size)
 	{
-		if(transmitBuffer.Count() + size + 5 > transmitBuffer.Size())
+		if(transmitBuffer.Count() + size + 3 > transmitBuffer.Size())
 		{
 			start_send();
 			return;
 		}
-			
-		transmitBuffer.Push(OP_CODE);
-		transmitBuffer.Push(OP_RUN);
+
 		for(char *endp = data+size; data != endp; data++)
 		{
 			if(*data == OP_CODE)
@@ -109,58 +103,27 @@ class Usart
 	{
 		switch (receiveState)
 		{
-			case S_READY:
-				if (data == OP_CODE)
-					receiveState = S_RUN;
-				return;
-
-			case S_RUN:
-				if (data == OP_RUN)
-				{
-					receiveState = S_RECEIVING;
-					receiveBuffer.Clear();
-				}
-				else
-					receiveState = S_READY;
-				return;
-
-			case S_RECEIVING:
+			case S_NORMAL:
 			{
 				if (data == OP_CODE)
-				{
 					receiveState = S_CODE;
-					return;
-				}
 				else
-					if(!receiveBuffer.IsFull())
-						receiveBuffer.Push(data);
+					receiveBuffer.Push(data);
 				return;
 			}
 			
 			case S_CODE:
 			{
-				switch (data)
+				receiveState = S_NORMAL;
+				if (data != OP_STOP)
+					receiveBuffer.Push(data); // '\' пересылаем как '\\'
+				else
 				{
-					case OP_CODE:                 //в пересылаемом пакете случайно был байт '\'
-						if(!receiveBuffer.IsFull())
-							receiveBuffer.Push(data);   //и мы его переслали таким образом
-						receiveState = S_RECEIVING;
-						return;
-					case OP_STOP:
-						receiveState = S_END;
-						on_packet_received(receiveBuffer.buffer, receiveBuffer.Count());
-						receiveBuffer.Clear();
-						receiveState = S_READY;
-						return;
+					on_packet_received(receiveBuffer.buffer, receiveBuffer.Count());
+					receiveBuffer.Clear();
 				}
 				return;
 			}
-			
-			case S_END:
-				return;
-				
-			default:
-				return;
 		}
 	}
 

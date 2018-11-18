@@ -77,8 +77,6 @@ void ComPortConnect::send_data(char *buffer, int count)
 {
     char data[1000];
     char *pointer = data;
-    *(pointer++) = OP_CODE;
-    *(pointer++) = OP_RUN;
     for(int i=0;i<count;i++)
     {
         if(buffer[i] == OP_CODE)
@@ -90,8 +88,6 @@ void ComPortConnect::send_data(char *buffer, int count)
             *(pointer++) = buffer[i];
     }
     *(pointer++) = OP_CODE;
-    *(pointer++) = OP_STOP;
-    *(pointer++) = OP_CODE; //второй раз страховочный конец пакета
     *(pointer++) = OP_STOP;
 
     DWORD write;
@@ -137,46 +133,26 @@ void ComPortConnect::process_bytes(char *buffer, int count)
         */
         switch (receiveState)
         {
-            case S_READY:
-                if (data == OP_CODE)
-                    receiveState = S_RUN;
-                break;
-
-            case S_RUN:
-                if (data == OP_RUN)
-                {
-                    receiveState = S_RECEIVING;
-                    receivedSize = 0;
-                }
-                else
-                {
-                    receiveState = S_READY;
-                    ++errs;
-                }
-                break;
-
-            case S_RECEIVING:
-            {
-                if (data == OP_CODE)
-                {
-                    receiveState = S_CODE;
-                    break;
-                }
-                else
-                {
-                    if(receivedSize < RECEIVE_SIZE)
+			case STATES_NORMAL:
+			{
+				if (data == OP_CODE)
+					receiveState = STATES_CODE;
+				else
+				{
+					if(receivedSize < RECEIVE_SIZE)
                         receiveBuffer[receivedSize++] = data;
                     else
                     {
                         receivedSize = 0;
                         ++errs;
                     }
-                }
-                break;
-            }
+				}
+				break;
+			}
 
-            case S_CODE:
+            case STATES_CODE:
             {
+				receiveState = STATES_NORMAL;
                 switch (data)
                 {
                     case OP_CODE:                 //в пересылаемом пакете случайно был байт '\'
@@ -187,25 +163,19 @@ void ComPortConnect::process_bytes(char *buffer, int count)
                             receivedSize = 0;
                             ++errs;
                         }
-                        receiveState = S_RECEIVING;
                         break;
+
                     case OP_STOP:
-                        receiveState = S_END;
-                        on_packet_received(receiveBuffer, receivedSize); //вот пакет наконец принят
-                        receiveState = S_READY;
+                        on_packet_received(receiveBuffer, receivedSize); //пакет наконец принят
+						receivedSize = 0;
                         break;
+
                     default:
-                        receiveState = S_READY;
+						receivedSize = 0;
                         ++errs;
                 }
                 break;
             }
-
-            case S_END:
-                break;
-
-            default:
-                break;
         }
     }
 }
@@ -299,7 +269,7 @@ ComPortConnect::ComPortConnect(void)
     memset(&ovRead,0,sizeof(ovRead));
     memset(&ovWrite,0,sizeof(ovWrite));
 	ovWrite.hEvent = CreateEvent(NULL, TRUE, TRUE, NULL);
-    receiveState = S_READY;
+    receiveState = STATES_NORMAL;
     receivedSize = 0;
     on_packet_received = nullptr;
 }

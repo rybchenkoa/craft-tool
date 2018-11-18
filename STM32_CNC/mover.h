@@ -1049,7 +1049,13 @@ void preprocess_command(PacketCommon *p)
 //=========================================================================================
 void on_packet_received(char * __restrict packet, int size)
 {
-	//led.show();
+	led.flip(1);
+	if(size > sizeof(MaxPacket))
+	{
+		send_wrong_crc();
+		log_console("ERR: rec pack %d, max %d\n", size, sizeof(MaxPacket));
+		return;
+	}
 	int crc = calc_crc(packet, size-4);
 	int receivedCrc = *(int*)(packet+size-4);
 	if(crc != receivedCrc)
@@ -1058,8 +1064,6 @@ void on_packet_received(char * __restrict packet, int size)
 		send_wrong_crc();
 		return;
 	}
-	if(size > sizeof(MaxPacket))
-		log_console("ERR: rec pack %d, max %d\n", size, sizeof(MaxPacket));
 		
 	PacketCommon* common = (PacketCommon*)packet;
 	switch (common->command)
