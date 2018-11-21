@@ -54,9 +54,10 @@ int main()
 	int numShow = 0;
 	while(1)
 	{
-		stepTime = timer.get();
+		stepTime = timer.get_ticks();
 		mover.update();
-		stepTime = timer.get() - stepTime;
+		usart.process_receive();
+		stepTime = timer.get_ticks() - stepTime;
 		
 		if (mover.canLog)
 		{

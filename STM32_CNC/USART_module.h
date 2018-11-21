@@ -7,10 +7,18 @@
 
 void on_packet_received(char *packet, int size);
 
+const int receiveSize = 512;
+const int packSize = 64;
+
 class Usart
 {
 	public:
-	FIFOBuffer<char, 6> receiveBuffer;  //64 байта на приём
+	char receiveBuffer[receiveSize];  //512 байт на приём
+	int receivePos = 0;
+
+	char pack[packSize];
+	int packPos = 0;
+
 	FIFOBuffer<char, 9> transmitBuffer; //512 на отправку
 	uint32_t lastSendSize;
 
@@ -18,12 +26,6 @@ class Usart
 	{
 		OP_CODE = '\\', //признак, что дальше идёт управляющий код
 		OP_STOP = 'n',  //конец пакета
-	};
-	
-	enum States
-	{
-		S_NORMAL,     //очередь пуста, никто ничего не присылал
-		S_CODE,      //принят управляющий символ
 	};
 	
 	char receiveState;
@@ -41,11 +43,9 @@ class Usart
 
 		USART1->BRR = 84000000 / 230400;// 115200 230400 500000
 		
-		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE | 	// usart on, rx on, tx on,
-									USART_CR1_RXNEIE; 				//прерывание: байт принят
+		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE; 	// usart on, rx on, tx on,
 
 		__enable_irq();               //разрешаем прерывания
-		NVIC_EnableIRQ (USART1_IRQn); //разрешаем прерывание usart
 		
 		// DMA для TX
 		USART1->CR3 |= USART_CR3_DMAT;
@@ -61,6 +61,22 @@ class Usart
 		stream->PAR = (uint32_t)&USART1->DR;           // адрес перифериии
 
 		NVIC_EnableIRQ(DMA2_Stream7_IRQn);
+
+		// DMA для RX
+		USART1->CR3 |= USART_CR3_DMAR;
+		receivePos = 0;
+		packPos = 0;
+		stream = DMA2_Stream2;
+		stream->CR = DMA_PERIPH_TO_MEMORY   // читаем из порта в кольцевой буфер
+		            | DMA_MDATAALIGN_BYTE   // размер данных 8 бит
+		            | DMA_PDATAALIGN_BYTE   // размер периферии 8 бит
+		            | DMA_SxCR_MINC   // память инкрементировать
+		            | DMA_SxCR_CIRC   // циклично
+                    | DMA_CHANNEL_4;
+		stream->NDTR = receiveSize;
+		stream->M0AR = (int)receiveBuffer;
+		stream->PAR = (int)&USART1->DR;
+		stream->CR |= DMA_SxCR_EN;
 	}
 
 //----------------------------------------------------------
@@ -99,32 +115,47 @@ class Usart
 	}
 	
 //----------------------------------------------------------
-	void process_receive_byte(char data)
+	void put_char(char data)
 	{
-		switch (receiveState)
+		pack[packPos] = data;
+		++packPos;
+		if (packPos >= packSize)
+			packPos = 0;
+	}
+	void process_receive()
+	{
+		int newPos = receiveSize - DMA2_Stream2->NDTR;
+		int boundPos = newPos;
+		if (boundPos < receivePos)
+			boundPos = receiveSize;
+		while (receivePos < boundPos)
 		{
-			case S_NORMAL:
+			if (receiveBuffer[receivePos] != OP_CODE)
+				put_char(receiveBuffer[receivePos++]);
+			else
 			{
-				if (data == OP_CODE)
-					receiveState = S_CODE;
-				else
-					receiveBuffer.Push(data);
-				return;
-			}
-			
-			case S_CODE:
-			{
-				receiveState = S_NORMAL;
-				if (data != OP_STOP)
-					receiveBuffer.Push(data); // '\' пересылаем как '\\'
+				int incPos = receivePos + 1;
+				if (incPos == boundPos)
+				{
+					if (newPos < incPos)
+						incPos = 0;
+					else
+						return;
+				}
+				receivePos = incPos;
+				if (receiveBuffer[receivePos] != OP_STOP)
+					put_char(receiveBuffer[receivePos++]);
 				else
 				{
-					on_packet_received(receiveBuffer.buffer, receiveBuffer.Count());
-					receiveBuffer.Clear();
+					on_packet_received(pack, packPos);
+					packPos = 0;
+					++receivePos;
 				}
-				return;
+
 			}
 		}
+		if (receivePos == receiveSize)
+			receivePos = 0;
 	}
 
 //----------------------------------------------------------
@@ -162,15 +193,6 @@ __enable_irq();
 };
 
 Usart usart;
-
-//----------------------------------------------------------
-extern "C" void USART1_IRQHandler(void)
-{
-	if (USART1->SR & USART_SR_RXNE) //байт принят
-	{
-		usart.process_receive_byte(USART1->DR);
-	}
-}
 
 //----------------------------------------------------------
 extern "C" void DMA2_Stream7_IRQHandler (void)

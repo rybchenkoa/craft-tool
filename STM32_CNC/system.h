@@ -8,6 +8,8 @@ void init_fault_irq(void)
 	NVIC_SetPriority(MemoryManagement_IRQn, priority);
 	NVIC_SetPriority(BusFault_IRQn, priority);
 	NVIC_SetPriority(UsageFault_IRQn, priority);
+	//отключает сохранение 32 регистров FPU при возникновении прерывания
+	//FPU->FPCCR &= ~(FPU_FPCCR_ASPEN_Msk | FPU_FPCCR_LSPEN_Msk);
 }
 
 void init_system_clock()
