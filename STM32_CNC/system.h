@@ -29,6 +29,8 @@ void init_system_clock()
 // подаем питание на используемую периферию
 void connect_peripherals()
 {
+	FLASH->ACR |= FLASH_ACR_PRFTEN | FLASH_ACR_DCEN | FLASH_ACR_ICEN;
+
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
                 | RCC_AHB1ENR_GPIOCEN
                 | RCC_AHB1ENR_GPIODEN
