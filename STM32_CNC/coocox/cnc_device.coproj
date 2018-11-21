@@ -31,7 +31,7 @@
         <Option name="IsNewStartupCode" value="1"/>
         <Option name="Library" value="Not use C Library"/>
         <Option name="DiscardUnusedSections" value="1"/>
-        <Option name="UserEditLinker" value="--specs=nano.specs;-lnosys;--entry=main;"/>
+        <Option name="UserEditLinker" value="--specs=nano.specs;-lnosys;-lm;--entry=main;"/>
         <LinkedLibraries/>
         <MemoryAreas debugInFlashNotRAM="1">
           <Memory name="IROM1" type="ReadOnly" size="0x00100000" startValue="0x08000000"/>
@@ -103,7 +103,6 @@
     <File name="cmsis/ll/inc/stm32f4xx_ll_dac.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_dac.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_rcc.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h" type="1"/>
     <File name="cmsis/core/cmsis_armcc.h" path="Drivers/CMSIS/Include/cmsis_armcc.h" type="1"/>
-    <File name="src/float16.h" path="../float16.h" type="1"/>
     <File name="cmsis/core/cmsis_gcc.h" path="Drivers/CMSIS/Include/cmsis_gcc.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_flash.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_dma.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h" type="1"/>

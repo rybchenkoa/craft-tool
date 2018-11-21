@@ -1,7 +1,6 @@
 //ǁ
 #include "stm32f4xx.h"
 #include "common.h"
-#include "float16.h"
 //=========================================================================================
 typedef char PacketCount;
 enum DeviceCommand //:char какие команды получает устройство
@@ -51,10 +50,10 @@ struct PacketMove : public PacketCommon
 {
 	__packed int coord[MAX_AXES];
 	char refCoord;
-	float16 velocity;      //скорость подачи, мм/тик
-	float16 acceleration;  //ускорение, мм/тик^2
-	int uLength;           //длина в микронах
-	float16 length;        // полная длина
+	float velocity;      //скорость подачи, мм/тик
+	float acceleration;  //ускорение, мм/тик^2
+	int uLength;         //длина в микронах
+	float length;        // полная длина
 };
 struct PacketWait : public PacketCommon
 {
@@ -71,16 +70,16 @@ struct PacketSetBounds : public PacketCommon
 };
 struct PacketSetVelAcc : public PacketCommon //осторожно, объявлено без packed
 {
-	float16 maxVelocity[MAX_AXES];
-	float16 maxAcceleration[MAX_AXES];
+	float maxVelocity[MAX_AXES];
+	float maxAcceleration[MAX_AXES];
 };
 struct PacketSetFeed : public PacketCommon
 {
-	float16 feedVel;
+	float feedVel;
 };
 struct PacketSetFeedMult : public PacketCommon
 {
-	float16 feedMult;
+	float feedMult;
 };
 struct PacketSetStepSize : public PacketCommon
 {

@@ -586,7 +586,7 @@ void CRemoteDevice::set_feed(double feed)
 
     auto packet = new PacketSetFeed;
     packet->command = DeviceCommand_SET_FEED;
-    packet->feed = float16(float(feed));
+    packet->feed = float(feed);
     push_packet_common(packet);
     this->feed = feed;
 }
@@ -598,7 +598,7 @@ void CRemoteDevice::set_feed_multiplier(double multiplier)
     packet->command = DeviceCommand_SET_FEED_MULT;
     if(multiplier < 1e-3)
         multiplier = 1e-3; //защита от глюков
-    packet->feedMult = float16(float(multiplier));
+    packet->feedMult = float(multiplier);
     push_packet_modal(packet);
 }
 

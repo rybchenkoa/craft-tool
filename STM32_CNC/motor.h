@@ -129,7 +129,7 @@ struct Motor
 				{
 					int timeLeft = _lastTime + _period - curTime;
 					//timeLeft = timeLeft * period / _period, чтобы не было потери точности, это выражение переписано в другом виде
-					timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
+					timeLeft += int(timeLeft * float(period - _period) / _period);
 					_lastTime = curTime - period + timeLeft;
 				}
 			}
@@ -205,7 +205,7 @@ struct VirtualMotor
 			{
 				_period = _newPeriod;
 				int timeLeft = _lastTime + _period - curTime;
-				timeLeft += int(float16(timeLeft) * float16(period - _period) / float16(_period));
+				timeLeft += int(timeLeft * float(period - _period) / _period);
 				_lastTime = curTime - period + timeLeft;
 			}
 			_period = period;

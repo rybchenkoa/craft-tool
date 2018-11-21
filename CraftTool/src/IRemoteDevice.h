@@ -4,7 +4,7 @@
 #include <memory>
 #include <QObject>
 #include "ComPortConnect.h"
-#include "float16.h"
+#include "stdint.h"
 
 #define NUM_COORDS 3 //сколько координат задаем в G-коде
 #define NUM_AXES   4 //сколько осей используем (координаты плюс подчиненные им оси)
@@ -79,10 +79,10 @@ struct PacketMove : public PacketCommon
 {
     int coord[MAX_AXES];
     char refCoord;
-    float16 velocity;      //скорость перемещения
-    float16 acceleration;  //ускорение, шагов/тик^2
+    float velocity;      //скорость перемещения
+    float acceleration;  //ускорение, шагов/тик^2
     int uLength;           //длина в микронах
-    float16 length;        //полная длина
+    float length;        //полная длина
     int crc;
 };
 struct PacketWait : public PacketCommon
@@ -107,18 +107,18 @@ struct PacketSetBounds : public PacketCommon //задать максимальные координаты
 };
 struct PacketSetVelAcc : public PacketCommon //задать ускорение и скорость
 {
-    float16 maxVelocity[MAX_AXES];
-    float16 maxAcceleration[MAX_AXES];
+    float maxVelocity[MAX_AXES];
+    float maxAcceleration[MAX_AXES];
     int crc;
 };
 struct PacketSetFeed : public PacketCommon //задать подачу
 {
-    float16 feed;
+    float feed;
     int crc;
 };
 struct PacketSetFeedMult : public PacketCommon //задать подачу
 {
-    float16 feedMult;
+    float feedMult;
     int crc;
 };
 struct PacketSetStepSize : public PacketCommon

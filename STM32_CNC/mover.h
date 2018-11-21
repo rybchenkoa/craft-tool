@@ -4,7 +4,7 @@
 #include "motor.h"
 #include "sys_timer.h"
 #include "led.h"
-#include "float16.h"
+#include "math.h"
 
 void send_packet(char *packet, int size);
 void preprocess_command(PacketCommon *p);
@@ -205,43 +205,8 @@ void send_packet_service_command(PacketCount number)
 }
 
 
-//=========================================================================================
-//примерное вычисление корня
-int isqrt(int value)
-{
-	if(value <= 0) return 0;
-
-	int leftBits = __CLZ(value); //бит слева до первого значащего бита, 0 = сразу попался
-	unsigned int minVal = 1 << ((31-leftBits)/2); //примерный корень
-	/*unsigned int maxVal = minVal*2; //это его правая граница
-	//методом половинного деления добиваем до точного значения, макс. 16 итераций
-	while(minVal != maxVal)
-	{
-		int current = (minVal + maxVal)/2;
-		int value2 = current * (current+1); //это не магия, ~= (a+0.5)*(a+0.5)
-		if (value2 >= value)
-			maxVal = current;
-		else
-			minVal = current+1;
-	}
-	return minVal;*/
-	//dx = dy/(2*x0) - dy^2/(8*x0^3)
-	minVal = (value/minVal + minVal)/2;
-	minVal = (value/minVal + minVal)/2;
-	minVal = (value/minVal + minVal)/2;
-	return minVal;	
-}
-
-
 //=====================================================================================================
-int iabs(int value)
-{
-	return value>0 ? value : -value;
-}
-
-
-//=====================================================================================================
-int ipow2(int value)
+float pow2(float value)
 {
 	return value*value;
 }
@@ -260,9 +225,9 @@ int isign(int value)
 class Mover
 {
 public:
-	float16 maxVelocity[MAX_AXES];      // мм/мкс
-	float16 maxAcceleration[MAX_AXES];  // мм/мкс^2
-	float16 stepLength[MAX_AXES]; // мм/шаг
+	float maxVelocity[MAX_AXES];      // мм/мкс
+	float maxAcceleration[MAX_AXES];  // мм/мкс^2
+	float stepLength[MAX_AXES]; // мм/шаг
 
 	int coord[MAX_AXES];    //текущие координаты
 	int stopTime;             //время следующей остановки
@@ -273,7 +238,7 @@ public:
 	MoveMode interpolation;
 	bool needPause;           //сбросить скорость до 0
 	char breakState;          //сбросить очередь команд
-	float16 feedMult;         //заданная из интерфейса скорость движения
+	float feedMult;         //заданная из интерфейса скорость движения
 
 	//данные, отвечающие за раздельное движение по осям (концевики и ручное управление)
 	char limitSwitchMin[MAX_AXES]; //концевики
@@ -282,7 +247,7 @@ public:
 	char activeSwitchCount;      //количество активных концевиков
 	
 	char homeSwitch[MAX_AXES]; //датчики дома
-	float16 axeVelocity[MAX_AXES]; //скорость оси во время попадания в концевик
+	float axeVelocity[MAX_AXES]; //скорость оси во время попадания в концевик
 	int timeActivate[MAX_AXES]; //время начала остановки
 	bool homeActivated[MAX_AXES]; //при наезде на дом выставляем бит
 	bool homeReached;
@@ -328,15 +293,15 @@ bool canLog;
 		int error[MAX_AXES]; //ошибка координат
 		int sign[MAX_AXES];  //изменение координаты при превышении ошибки {-1 || 1}
 		int last[MAX_AXES+1];   //последние координаты, для которых была посчитана ошибка
-		float16 velCoef[MAX_AXES]; //на что умножить скорость, чтобы получить число тактов на шаг
+		float velCoef[MAX_AXES]; //на что умножить скорость, чтобы получить число тактов на шаг
 
-		float16 maxFeedVelocity;	//скорость подачи, мм/тик
-		float16 acceleration;		//ускорение, мм/тик^2
-		float16 velocity;			//скорость на прошлом шаге
-		float16 invProj;			//(длина опорной координаты / полную длину)
+		float maxFeedVelocity;	//скорость подачи, мм/тик
+		float acceleration;		//ускорение, мм/тик^2
+		float velocity;			//скорость на прошлом шаге
+		float invProj;			//(длина опорной координаты / полную длину)
 		int state;			//ускорение/замедление/стабильное движение
 		int lastTime;		//предыдущее время, нужно для вычисления разницы
-		float16 lastVelocity; //предыдущая скорость
+		float lastVelocity; //предыдущая скорость
 	};
 	LinearData linearData;
 
@@ -440,7 +405,7 @@ bool canLog;
 	void set_velocity()
 	{
 		//задаем скорости
-		if (linearData.velocity.mantis == 0)
+		if (linearData.velocity == 0)
 		{
 			for (int i = 0; i < MAX_AXES; ++i)
 				motor[i].set_period(MAX_STEP_TIME);
@@ -451,11 +416,11 @@ bool canLog;
 			int ref = linearData.refCoord;
 			int curTime = timer.get_ticks();
 			int stepTimeArr[MAX_AXES+1];
-			float16 errCoef = float16(1.0f) / float16(linearData.size[ref]);
+			float errCoef = 1.0f / linearData.size[ref];
 			homeReached = true;
 			for (int i = 0; i < MAX_AXES; ++i)
 			{
-				if (linearData.velCoef[i].mantis == 0)
+				if (linearData.velCoef[i] == 0)
 				{
 					stepTimeArr[i] = MAX_STEP_TIME;
 					continue;
@@ -475,23 +440,23 @@ bool canLog;
 						if (curTime - timeActivate[i] > (1<<30)) //страховка на случай переполнения таймера
 							timeActivate[i] = curTime - (1<<30);
 							
-						float16 vel = axeVelocity[i] - maxAcceleration[i] * float16(curTime - timeActivate[i]);
-						int stepTime = float16(1) / vel;
+						float vel = axeVelocity[i] - maxAcceleration[i] * (curTime - timeActivate[i]);
+						int stepTime = 1 / vel;
 						if (stepTime > MAX_STEP_TIME || stepTime <= 0)
 							stepTime = MAX_STEP_TIME;
 						stepTimeArr[i] = stepTime;
-						if (vel.mantis >= 0)
+						if (vel >= 0)
 							homeReached = false;
 						continue;
 					}
 				}
 
-				float16 step = linearData.velCoef[i] / linearData.velocity;//linearData.maxFeedVelocity;//
+				float step = linearData.velCoef[i] / linearData.velocity;//linearData.maxFeedVelocity;//
 				int err = linearData.err[i];
-				float16 add = step * step * float16(err) * errCoef / float16(1024); //t*(1+t*e/T)
-				float16 maxAdd = step * float16(0.1f); //регулировка скорости максимально на 10 %
-				if (abs(add) > maxAdd)
-					add = maxAdd * float16(sign(add));
+				float add = step * step * err * errCoef / 1024; //t*(1+t*e/T)
+				float maxAdd = step * 0.1f; //регулировка скорости максимально на 10 %
+				if (fabsf(add) > maxAdd)
+					add = copysign(maxAdd, add);
 				int stepTime = step + add;
 				
 				if (stepTime > MAX_STEP_TIME || stepTime <= 0) //0 возможен при переполнении разрядов
@@ -607,7 +572,7 @@ bool canLog;
 	{
 		int currentTime = timer.get_ticks();
 		int delta = currentTime - linearData.lastTime;
-		linearData.velocity = linearData.lastVelocity + float16(delta * multiplier) * linearData.acceleration;
+		linearData.velocity = linearData.lastVelocity + delta * multiplier * linearData.acceleration;
 		if (delta > 100000)
 		{
 			linearData.lastVelocity = linearData.velocity;
@@ -630,32 +595,31 @@ bool canLog;
 			return END;
 		}
 			
-		float16 length = linearData.invProj * float16(virtualAxe._position);
-		length += (float16(1) / float16(1000)) * float16(current_track_length());
+		float length = linearData.invProj * virtualAxe._position;
+		length += 0.001f * current_track_length();
 
-		float16 currentFeed = linearData.maxFeedVelocity * feedMult;
+		float currentFeed = linearData.maxFeedVelocity * feedMult;
 #ifdef USE_ADC_FEED
-		currentFeed *= (float16(int(adc.value())) >> 12); //на максимальном напряжении   *= 0.99999
+		currentFeed *= adc.value() * (1.0f/(1<<12)); //на максимальном напряжении   *= 0.99999
 #endif
 
 		int lastState = linearData.state;
 		//v^2 = 2g*h; //сначала проверяем, что не врежемся с разгона
-		if (pow2(linearData.velocity) > (linearData.acceleration * length << 1))
+		if (pow2(linearData.velocity) > (linearData.acceleration * length * 2))
 		{
 			linearData.state = -2;
 			//v = sqrt(2*g*h)
-			linearData.velocity = sqrt(linearData.acceleration * length << 1);
+			linearData.velocity = sqrtf(linearData.acceleration * length * 2);
 		}
-		else if (needPause
-		|| (linearData.velocity > currentFeed))
+		else if (needPause || (linearData.velocity > currentFeed))
 		{
 			linearData.state = -1;
 			if (lastState != linearData.state)
 				start_acceleration();
 			else
 				accelerate(-1);
-			if(linearData.velocity.mantis <= 0)
-				linearData.velocity = float16(0, 0);
+			if(linearData.velocity < 0)
+				linearData.velocity = 0;
 		}
 		else if (linearData.velocity < currentFeed)
 		{
@@ -681,7 +645,7 @@ bool canLog;
 		}
 		
 		//прерывание обработки
-		if (linearData.velocity.mantis == 0 && breakState == 1)
+		if (linearData.velocity == 0 && breakState == 1)
 		{
 			stop_motors();
 			linearData.state = 0;
@@ -697,7 +661,7 @@ bool canLog;
 
 
 	//=====================================================================================================
-	void init_linear(int dest[MAX_AXES], int refCoord, float16 acceleration, int uLength, float16 length, float16 velocity)
+	void init_linear(int dest[MAX_AXES], int refCoord, float acceleration, int uLength, float length, float velocity)
 	{
 		dec_track(uLength);
 
@@ -720,10 +684,10 @@ bool canLog;
 			motor[i].set_direction(linearData.sign[i] > 0);
 			
 			if (linearData.size[i] == 0)
-				linearData.velCoef[i].mantis = linearData.velCoef[i].exponent = 0;
+				linearData.velCoef[i] = 0;
 			else
 			{
-				linearData.velCoef[i] = length / float16(linearData.size[i]);
+				linearData.velCoef[i] = length / linearData.size[i];
 				
 				int lim = linearData.sign[i] > 0 ? limitSwitchMax[i] : limitSwitchMin[i];
 				if (interpolation == MoveMode_HOME)
@@ -904,7 +868,7 @@ bool canLog;
 						for(int i = 0; i < MAX_AXES; ++i)
 						{
 							stepLength[i] = packet->stepSize[i];
-							log_console("[%d]: stepLength %d\n", i, int(stepLength[i].exponent));
+							log_console("[%d]: stepLength %f\n", i, stepLength[i]);
 						}
 						break;
 					}
@@ -1081,7 +1045,7 @@ void on_packet_received(char * __restrict packet, int size)
 			{
 				PacketSetFeedMult *packet = (PacketSetFeedMult*)common;
 				mover.feedMult = packet->feedMult;
-				log_console("feedMult %d\n", int(mover.feedMult.exponent));
+				log_console("feedMult %f\n", mover.feedMult);
 			}
 			break;
 		}
