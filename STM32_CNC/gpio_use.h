@@ -99,8 +99,8 @@ void configure_gpio()
 	gpio.Pin = LL_GPIO_PIN_4;
 	LL_GPIO_Init(GPIOG, &gpio);
 
-    // эти STEP управляется таймерами
-    gpio.Pin = GPIO_PIN_9;
+    // эти STEP управляются таймерами
+    gpio.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
     gpio.Mode = GPIO_MODE_AF_PP;
     gpio.Alternate = GPIO_AF2_TIM4;
     LL_GPIO_Init(GPIOD, &gpio);
@@ -117,7 +117,7 @@ void config_output_timer(TIM_TypeDef *tim, char *arr)
 	arr[i+1] = 0;
   }
 
-  TIM_TypeDef *timOut = TIM14;
+  TIM_TypeDef *timOut = TIM4;
   timOut->CNT = 1;
   timOut->ARR = 2;
   timOut->CCMR1 |= LL_TIM_OCMODE_PWM1*(1 + (1<<8)); // постоянное сравнение на <=
@@ -137,7 +137,7 @@ void config_step_timer(TIM_TypeDef *tim)
   tim->ARR = 32000;
   //tim->PSC = 0; //надо ставить в зависимости от шины
   tim->CR1 |= TIM_CR1_ARPE; //сравнение CNT == ARR (а не <= ), поэтому чтобы не пролететь мимо во время обновления
-  tim->EGR |= TIM_EGR_UG;   //переносим значения из shadow регистров
+  tim->EGR = TIM_EGR_UG;   //переносим значения из shadow регистров
   tim->DIER |= TIM_DIER_UDE; //разрешаем DMA запрос по событию переполнения (совпадение с ARR)
 }
 
@@ -153,7 +153,7 @@ void dma_bsrr_stream(DMA_Stream_TypeDef *stream, int channel,
 	arr[i+1] = bitReset;
   }
 
-  stream->CR |= DMA_MEMORY_TO_PERIPH
+  stream->CR = DMA_MEMORY_TO_PERIPH
     | DMA_SxCR_CIRC
     | DMA_MDATAALIGN_WORD | DMA_PDATAALIGN_WORD
     | DMA_SxCR_MINC //увеличивать указатель на память
@@ -168,9 +168,9 @@ void dma_bsrr_stream(DMA_Stream_TypeDef *stream, int channel,
 // DMA, который переключает ножку через канал сравнения таймера
 void dma_oc_stream(int *outReg, DMA_Stream_TypeDef *stream, int channel, char *arr)
 {
-  stream->CR |= DMA_MEMORY_TO_PERIPH
+  stream->CR = DMA_MEMORY_TO_PERIPH
     | DMA_SxCR_CIRC
-    | DMA_MDATAALIGN_BYTE | DMA_PDATAALIGN_WORD
+    | DMA_MDATAALIGN_BYTE | DMA_PDATAALIGN_BYTE
     | DMA_SxCR_MINC //увеличивать указатель на память
     | channel; //тактирование брать с этого триггера
   stream->NDTR = MAX_STEP;
@@ -300,7 +300,7 @@ void inline set_next_step_time(int index, int time)
 	auto tim = STEP_TIMERS[index];
 	auto dier = tim->DIER;
 	tim->DIER = dier & !TIM_DIER_UDE;
-	tim->EGR |= TIM_EGR_UG;
+	tim->EGR = TIM_EGR_UG;
 	tim->DIER = dier | TIM_DIER_UDE;
 
 	time = tim->ARR - to_tim_clock(time);

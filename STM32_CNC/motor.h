@@ -124,7 +124,10 @@ struct Motor
 			{
 				int curTime = timer.get_ticks();
 				if (_period == MAX_STEP_TIME)
-					_lastTime = curTime;
+				{
+					if (period < MAX_STEP_TIME) //при включении мотора заново инициализируем время шага
+						_lastTime = curTime;
+				}
 				else
 				{
 					int timeLeft = _lastTime + _period - curTime;
