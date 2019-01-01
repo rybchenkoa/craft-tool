@@ -455,7 +455,7 @@ void Scene3d::update_tool_coords(float x, float y, float z)
             auto prevDirect = realTrack[size-1] - realTrack[size - 2];
             auto direct = tool.position - realTrack[size - 1];
             auto cosA = glm::dot(direct, prevDirect) / sqrt(glm::dot(direct, direct)*glm::dot(prevDirect, prevDirect));
-            if (cosA < 1 - 0.01)
+            if (cosA < 1 - 0.00001)
               realTrack.push_back(tool.position);
             else
               realTrack.back() = tool.position;
