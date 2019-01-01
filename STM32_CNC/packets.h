@@ -95,7 +95,7 @@ struct PacketPause : public PacketCommon
 struct PacketSetSwitches : public PacketCommon
 {
 	char group;
-	__packed char pins[MAX_AXES];
+	char pins[MAX_AXES];
 	int16_t polarity;
 };
 struct PacketSetCoords : public PacketCommon

@@ -244,7 +244,7 @@ public:
 	char limitSwitchMin[MAX_AXES]; //концевики
 	char limitSwitchMax[MAX_AXES];
 	char activeSwitch[MAX_AXES]; //концевики, в сторону которых сейчас едем
-	char activeSwitchCount;      //количество активных концевиков
+	int  activeSwitchCount;      //количество активных концевиков
 	
 	char homeSwitch[MAX_AXES]; //датчики дома
 	float axeVelocity[MAX_AXES]; //скорость оси во время попадания в концевик
@@ -1014,7 +1014,7 @@ void preprocess_command(PacketCommon *p)
 void on_packet_received(char * __restrict packet, int size)
 {
 	led.flip(1);
-	if(size > sizeof(MaxPacket))
+	if(size > (int)sizeof(MaxPacket))
 	{
 		send_wrong_crc();
 		log_console("ERR: rec pack %d, max %d\n", size, sizeof(MaxPacket));
