@@ -868,7 +868,9 @@ bool canLog;
 						for(int i = 0; i < MAX_AXES; ++i)
 						{
 							stepLength[i] = packet->stepSize[i];
-							log_console("[%d]: stepLength %f\n", i, stepLength[i]);
+							float mk = stepLength[i]*1000;
+							int z = int(mk);
+							log_console("[%d]: stepLength %d.%02d um\n", i, z, int(mk*100 - z*100));
 						}
 						break;
 					}
@@ -1045,7 +1047,7 @@ void on_packet_received(char * __restrict packet, int size)
 			{
 				PacketSetFeedMult *packet = (PacketSetFeedMult*)common;
 				mover.feedMult = packet->feedMult;
-				log_console("feedMult %f\n", mover.feedMult);
+				log_console("feedMult %d%%\n", int(mover.feedMult*100));
 			}
 			break;
 		}
