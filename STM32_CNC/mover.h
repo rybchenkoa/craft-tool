@@ -25,18 +25,18 @@ class Receiver
 public:
 	FIFOBuffer<MaxPacket, 5> queue; //48*32+8 = 904
 	FIFOBuffer<Track, 5> tracks;
-	int tail; //первый ожидаемый элемент очереди (он не заполнен, а дальше могут быть заполненные)
-	PacketCount index; //номер его пакета
+	int _tail; //первый ожидаемый элемент очереди (он не заполнен, а дальше могут быть заполненные)
+	PacketCount _index; //номер его пакета
 	static const int BUFFER_LEN = 5;
-	PacketCount index2; //второе соединение, обработка на лету
+	PacketCount _index2; //второе соединение, обработка на лету
 
 	void init()
 	{
 		queue.Clear();
 		tracks.Clear();
-		index = PacketCount(-1);
-		index2 = PacketCount(-1);
-		tail = queue.last;
+		_index = PacketCount(-1);
+		_index2 = PacketCount(-1);
+		_tail = queue.last;
 	}
 	
 	bool queue_empty()
@@ -47,9 +47,9 @@ public:
 	void reinit()
 	{
 		//оставляем только непрерывный диапазон дошедших пакетов, отбросив все после первого не дошедшего
-		queue.last = tail;
-		index = PacketCount(0);
-		index2 = PacketCount(-1);
+		queue.last = _tail;
+		_index = PacketCount(0);
+		_index2 = PacketCount(-1);
 	}
 
 	void save_received_packet(char * __restrict packet, int size, int pos)
@@ -64,7 +64,7 @@ public:
 
 	void packet_received(PacketCommon *p, int size)
 	{
-		int offset = PacketCount(p->packetNumber - index);
+		int offset = PacketCount(p->packetNumber - _index);
 		if (offset < 0)
 		{
 			send_packet_repeat(p->packetNumber, 0);
@@ -75,7 +75,7 @@ public:
 			send_packet_error_number(p->packetNumber);
 			return;
 		}
-		int target = tail + offset;
+		int target = _tail + offset;
 		while(queue.last <= target) //добавляем в очередь пустые пакеты перед этим пакетом
 		{
 			if (queue.IsFull())
@@ -96,27 +96,27 @@ public:
 		send_packet_received(p->packetNumber, 0); //говорим, что приняли пакет
 		
 		//обрабатываем принятый сплошной список пакетов
-		while(queue.Element(tail).fill && (tail < queue.last))
+		while(queue.Element(_tail).fill && (_tail < queue.last))
 		{
-			preprocess_command((PacketCommon*)&queue.Element(tail));
-			++tail;
-			++index;
+			preprocess_command((PacketCommon*)&queue.Element(_tail));
+			++_tail;
+			++_index;
 		}
 	}
 
 	bool packet_received2(PacketCommon *p)
 	{
-		if (p->packetNumber == PacketCount(index2 - 1)) //до хоста не дошёл ответ о принятом пакете
+		if (p->packetNumber == PacketCount(_index2 - 1)) //до хоста не дошёл ответ о принятом пакете
 		{
 			send_packet_repeat(p->packetNumber, 1);         //шлём ещё раз
 		}
-		else if(p->packetNumber != index2) //принят следующий пакет
+		else if(p->packetNumber != _index2) //принят следующий пакет
 		{
-			send_packet_error_number(index2);
+			send_packet_error_number(_index2);
 		}
 		else
 		{
-			send_packet_received(++index2, 1);
+			send_packet_received(++_index2, 1);
 			return true;
 		}
 		return false;
