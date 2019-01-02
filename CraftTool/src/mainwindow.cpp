@@ -60,8 +60,7 @@ void MainWindow::on_c_setZ0Button_clicked()
 
 void MainWindow::on_c_toZeroButton_clicked()
 {
-    g_inter->runner.position = g_inter->runner.csd[0].pos0;
-    g_device->set_position(g_inter->runner.position);
+	g_inter->execute_line("G0 X0 Y0 Z0");
 }
 
 void MainWindow::on_c_feedSlider_valueChanged(int value)
