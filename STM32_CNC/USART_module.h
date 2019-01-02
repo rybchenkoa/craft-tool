@@ -7,16 +7,16 @@
 
 void on_packet_received(char *packet, int size);
 
-const int receiveSize = 512;
-const int packSize = 64;
+const int RECEIVE_SIZE = 512;
+const int PACK_SIZE = 64;
 
 class Usart
 {
 	public:
-	char receiveBuffer[receiveSize];  //512 байт на приём
+	char receiveBuffer[RECEIVE_SIZE];  //512 байт на приём
 	int receivePos = 0;
 
-	char pack[packSize];
+	char pack[PACK_SIZE];
 	int packPos = 0;
 
 	FIFOBuffer<char, 9> transmitBuffer; //512 на отправку
@@ -41,7 +41,7 @@ class Usart
         gpio.Alternate = GPIO_AF7_USART1;
         LL_GPIO_Init(GPIOA, &gpio);
 
-		USART1->BRR = 84000000 / 230400;// 115200 230400 500000
+		USART1->BRR = 84000000 / 2000000;// 115200 230400 500000
 		
 		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE; 	// usart on, rx on, tx on,
 
@@ -73,7 +73,7 @@ class Usart
 		            | DMA_SxCR_MINC   // память инкрементировать
 		            | DMA_SxCR_CIRC   // циклично
                     | DMA_CHANNEL_4;
-		stream->NDTR = receiveSize;
+		stream->NDTR = RECEIVE_SIZE;
 		stream->M0AR = (int)receiveBuffer;
 		stream->PAR = (int)&USART1->DR;
 		stream->CR |= DMA_SxCR_EN;
@@ -119,28 +119,31 @@ class Usart
 	{
 		pack[packPos] = data;
 		++packPos;
-		if (packPos >= packSize)
+		if (packPos >= PACK_SIZE) //при переполнении молча очищаем
 			packPos = 0;
 	}
 	void process_receive()
 	{
-		int newPos = receiveSize - DMA2_Stream2->NDTR;
-		int boundPos = newPos;
-		if (boundPos < receivePos)
-			boundPos = receiveSize;
+		int endPos = RECEIVE_SIZE - DMA2_Stream2->NDTR; //надо читать до этой позиции
+		int boundPos = endPos;
+		if (boundPos < receivePos) //если будет переход на начало буфера, то сначала дочитаем до конца
+			boundPos = RECEIVE_SIZE;
 		while (receivePos < boundPos)
 		{
-			if (receiveBuffer[receivePos] != OP_CODE)
+			if (receiveBuffer[receivePos] != OP_CODE) //обычные символы просто складываем в буфер
 				put_char(receiveBuffer[receivePos++]);
 			else
 			{
-				int incPos = receivePos + 1;
+				int incPos = receivePos + 1; //смотрим, где лежит следующий символ
 				if (incPos == boundPos)
 				{
-					if (newPos < incPos)
+					if (endPos < incPos) //либо в начале буфера
+					{
 						incPos = 0;
+						boundPos = endPos;
+					}
 					else
-						return;
+						return; //либо ещё не пришёл
 				}
 				receivePos = incPos;
 				if (receiveBuffer[receivePos] != OP_STOP)
@@ -154,7 +157,7 @@ class Usart
 
 			}
 		}
-		if (receivePos == receiveSize)
+		if (receivePos == RECEIVE_SIZE) //следующий кусок прочитаем в следующий раз
 			receivePos = 0;
 	}
 
