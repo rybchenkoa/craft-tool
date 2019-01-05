@@ -1,4 +1,4 @@
-#include <fstream>
+п»ї#include <fstream>
 
 #include "Config.h"
 
@@ -7,16 +7,16 @@ bool Config::read_from_file(const char *fileName)
     positions.clear();
     records.clear();
 
-    std::ifstream file(fileName); //открываем файл
+    std::ifstream file(fileName); //РѕС‚РєСЂС‹РІР°РµРј С„Р°Р№Р»
 
     if(!file)
         return false;
 
-    while(file) //пока он не закончился
+    while(file) //РїРѕРєР° РѕРЅ РЅРµ Р·Р°РєРѕРЅС‡РёР»СЃСЏ
     {
         records.emplace_back(KeyData());
         KeyData &value = records.back();
-        std::getline(file, value.record); //читаем строку
+        std::getline(file, value.record); //С‡РёС‚Р°РµРј СЃС‚СЂРѕРєСѓ
         size_t pos = 0;
         auto whitespace = [&pos, &value]()
         {
@@ -42,17 +42,17 @@ bool Config::read_from_file(const char *fileName)
                 ;
         };
 
-        whitespace();  //пропускаем пробелы в начале
-        if(pos == value.record.size()) //пустая строка
+        whitespace();  //РїСЂРѕРїСѓСЃРєР°РµРј РїСЂРѕР±РµР»С‹ РІ РЅР°С‡Р°Р»Рµ
+        if(pos == value.record.size()) //РїСѓСЃС‚Р°СЏ СЃС‚СЂРѕРєР°
             continue;
         if(is_comment())
             continue;
         size_t keyStart = pos;
-        not_whitespace();  //пропускаем символы ключа
+        not_whitespace();  //РїСЂРѕРїСѓСЃРєР°РµРј СЃРёРјРІРѕР»С‹ РєР»СЋС‡Р°
         std::string key = value.record.substr(keyStart, pos - keyStart);
         positions[key] = --records.end();
 
-        whitespace(); //пробелы после ключа
+        whitespace(); //РїСЂРѕР±РµР»С‹ РїРѕСЃР»Рµ РєР»СЋС‡Р°
         value.valueStart = pos;
         if(pos == value.record.size())
         {
@@ -81,7 +81,7 @@ bool Config::read_from_file(const char *fileName)
 
 bool Config::save_to_file(const char *fileName)
 {
-    std::ofstream file(fileName); //открываем файл
+    std::ofstream file(fileName); //РѕС‚РєСЂС‹РІР°РµРј С„Р°Р№Р»
 
     if(!file)
         return false;

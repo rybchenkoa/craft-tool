@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include <list>
 #include <queue>
 #include <memory>
@@ -6,14 +6,14 @@
 #include "ComPortConnect.h"
 #include "stdint.h"
 
-#define NUM_COORDS 3 //сколько координат задаем в G-коде
-#define NUM_AXES   4 //сколько осей используем (координаты плюс подчиненные им оси)
-#define MAX_AXES   5 //сколько всего есть осей на контроллере
-#define MAX_IN_PINS 11 //количество входных пинов
+#define NUM_COORDS 3 //СЃРєРѕР»СЊРєРѕ РєРѕРѕСЂРґРёРЅР°С‚ Р·Р°РґР°РµРј РІ G-РєРѕРґРµ
+#define NUM_AXES   4 //СЃРєРѕР»СЊРєРѕ РѕСЃРµР№ РёСЃРїРѕР»СЊР·СѓРµРј (РєРѕРѕСЂРґРёРЅР°С‚С‹ РїР»СЋСЃ РїРѕРґС‡РёРЅРµРЅРЅС‹Рµ РёРј РѕСЃРё)
+#define MAX_AXES   5 //СЃРєРѕР»СЊРєРѕ РІСЃРµРіРѕ РµСЃС‚СЊ РѕСЃРµР№ РЅР° РєРѕРЅС‚СЂРѕР»Р»РµСЂРµ
+#define MAX_IN_PINS 11 //РєРѕР»РёС‡РµСЃС‚РІРѕ РІС…РѕРґРЅС‹С… РїРёРЅРѕРІ
 
-typedef double coord;//чтобы не путаться, координатный тип введём отдельно
+typedef double coord;//С‡С‚РѕР±С‹ РЅРµ РїСѓС‚Р°С‚СЊСЃСЏ, РєРѕРѕСЂРґРёРЅР°С‚РЅС‹Р№ С‚РёРї РІРІРµРґС‘Рј РѕС‚РґРµР»СЊРЅРѕ
 
-struct Coords   //все координаты устройства
+struct Coords   //РІСЃРµ РєРѕРѕСЂРґРёРЅР°С‚С‹ СѓСЃС‚СЂРѕР№СЃС‚РІР°
 {
     union
     {
@@ -31,21 +31,21 @@ struct Coords   //все координаты устройства
 };
 
 typedef char PacketCount;
-enum DeviceCommand:char //какие команды получает устройство
+enum DeviceCommand:char //РєР°РєРёРµ РєРѕРјР°РЅРґС‹ РїРѕР»СѓС‡Р°РµС‚ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ
 {
     DeviceCommand_MOVE = 1,
     DeviceCommand_WAIT,
     DeviceCommand_MOVE_MODE,
-    DeviceCommand_PACKET_RECEIVED,     //пакет принят
-    DeviceCommand_PACKET_REPEAT,       //пакет повторился
-    DeviceCommand_QUEUE_FULL,          //очередь заполнена
-    DeviceCommand_PACKET_ERROR_CRC,    //пакет пришёл побитым
-    DeviceCommand_RESET_PACKET_NUMBER, //сбросить очередь пакетов
-    DeviceCommand_ERROR_PACKET_NUMBER, //пришёл пакет с неправильным номером
+    DeviceCommand_PACKET_RECEIVED,     //РїР°РєРµС‚ РїСЂРёРЅСЏС‚
+    DeviceCommand_PACKET_REPEAT,       //РїР°РєРµС‚ РїРѕРІС‚РѕСЂРёР»СЃСЏ
+    DeviceCommand_QUEUE_FULL,          //РѕС‡РµСЂРµРґСЊ Р·Р°РїРѕР»РЅРµРЅР°
+    DeviceCommand_PACKET_ERROR_CRC,    //РїР°РєРµС‚ РїСЂРёС€С‘Р» РїРѕР±РёС‚С‹Рј
+    DeviceCommand_RESET_PACKET_NUMBER, //СЃР±СЂРѕСЃРёС‚СЊ РѕС‡РµСЂРµРґСЊ РїР°РєРµС‚РѕРІ
+    DeviceCommand_ERROR_PACKET_NUMBER, //РїСЂРёС€С‘Р» РїР°РєРµС‚ СЃ РЅРµРїСЂР°РІРёР»СЊРЅС‹Рј РЅРѕРјРµСЂРѕРј
     DeviceCommand_SET_VEL_ACC,
 	DeviceCommand_SET_SWITCHES,
 	DeviceCommand_SET_COORDS,
-    DeviceCommand_SET_FEED, //выпилить?
+    DeviceCommand_SET_FEED, //РІС‹РїРёР»РёС‚СЊ?
     DeviceCommand_SET_FEED_MULT,
     DeviceCommand_SET_STEP_SIZE,
     DeviceCommand_SERVICE_COORDS,
@@ -55,7 +55,7 @@ enum DeviceCommand:char //какие команды получает устройство
     DeviceCommand_PAUSE,
     DeviceCommand_BREAK,
 };
-enum MoveMode:char //режим движения/интерполяции
+enum MoveMode:char //СЂРµР¶РёРј РґРІРёР¶РµРЅРёСЏ/РёРЅС‚РµСЂРїРѕР»СЏС†РёРё
 {
     MoveMode_LINEAR = 0,
 	MoveMode_HOME,
@@ -79,10 +79,10 @@ struct PacketMove : public PacketCommon
 {
     int coord[MAX_AXES];
     char refCoord;
-    float velocity;      //скорость перемещения
-    float acceleration;  //ускорение, шагов/тик^2
-    int uLength;           //длина в микронах
-    float length;        //полная длина
+    float velocity;      //СЃРєРѕСЂРѕСЃС‚СЊ РїРµСЂРµРјРµС‰РµРЅРёСЏ
+    float acceleration;  //СѓСЃРєРѕСЂРµРЅРёРµ, С€Р°РіРѕРІ/С‚РёРє^2
+    int uLength;           //РґР»РёРЅР° РІ РјРёРєСЂРѕРЅР°С…
+    float length;        //РїРѕР»РЅР°СЏ РґР»РёРЅР°
     int crc;
 };
 struct PacketWait : public PacketCommon
@@ -95,28 +95,28 @@ struct PacketInterpolationMode : public PacketCommon
     MoveMode mode;
     int crc;
 };
-struct PacketResetPacketNumber : public PacketCommon //сообщение о том, что пакет принят
+struct PacketResetPacketNumber : public PacketCommon //СЃРѕРѕР±С‰РµРЅРёРµ Рѕ С‚РѕРј, С‡С‚Рѕ РїР°РєРµС‚ РїСЂРёРЅСЏС‚
 {
     int crc;
 };
-struct PacketSetBounds : public PacketCommon //задать максимальные координаты
+struct PacketSetBounds : public PacketCommon //Р·Р°РґР°С‚СЊ РјР°РєСЃРёРјР°Р»СЊРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
 {
     int minCoord[MAX_AXES];
     int maxCoord[MAX_AXES];
     int crc;
 };
-struct PacketSetVelAcc : public PacketCommon //задать ускорение и скорость
+struct PacketSetVelAcc : public PacketCommon //Р·Р°РґР°С‚СЊ СѓСЃРєРѕСЂРµРЅРёРµ Рё СЃРєРѕСЂРѕСЃС‚СЊ
 {
     float maxVelocity[MAX_AXES];
     float maxAcceleration[MAX_AXES];
     int crc;
 };
-struct PacketSetFeed : public PacketCommon //задать подачу
+struct PacketSetFeed : public PacketCommon //Р·Р°РґР°С‚СЊ РїРѕРґР°С‡Сѓ
 {
     float feed;
     int crc;
 };
-struct PacketSetFeedMult : public PacketCommon //задать подачу
+struct PacketSetFeedMult : public PacketCommon //Р·Р°РґР°С‚СЊ РїРѕРґР°С‡Сѓ
 {
     float feedMult;
     int crc;
@@ -153,32 +153,32 @@ struct PacketSetCoords : public PacketCommon
 	int crc;
 };
 
-//принимаемые от мк пакеты
-struct PacketReceived //сообщение о том, что пакет принят
+//РїСЂРёРЅРёРјР°РµРјС‹Рµ РѕС‚ РјРє РїР°РєРµС‚С‹
+struct PacketReceived //СЃРѕРѕР±С‰РµРЅРёРµ Рѕ С‚РѕРј, С‡С‚Рѕ РїР°РєРµС‚ РїСЂРёРЅСЏС‚
 {
     DeviceCommand command;
-    PacketCount packetNumber; //номер принятого пакета
+    PacketCount packetNumber; //РЅРѕРјРµСЂ РїСЂРёРЅСЏС‚РѕРіРѕ РїР°РєРµС‚Р°
     int8_t queue;
     int crc;
 };
-struct PacketErrorCrc //сообщение о том, что пакет принят
+struct PacketErrorCrc //СЃРѕРѕР±С‰РµРЅРёРµ Рѕ С‚РѕРј, С‡С‚Рѕ РїР°РєРµС‚ РїСЂРёРЅСЏС‚
 {
     DeviceCommand command;
     int crc;
 };
-struct PacketErrorPacketNumber //сообщение о том, что сбилась очередь пакетов
+struct PacketErrorPacketNumber //СЃРѕРѕР±С‰РµРЅРёРµ Рѕ С‚РѕРј, С‡С‚Рѕ СЃР±РёР»Р°СЃСЊ РѕС‡РµСЂРµРґСЊ РїР°РєРµС‚РѕРІ
 {
     DeviceCommand command;
     PacketCount packetNumber;
     int crc;
 };
-struct PacketServiceCoords //текущие координаты устройства
+struct PacketServiceCoords //С‚РµРєСѓС‰РёРµ РєРѕРѕСЂРґРёРЅР°С‚С‹ СѓСЃС‚СЂРѕР№СЃС‚РІР°
 {
     DeviceCommand command;
     int coords[MAX_AXES];
     int crc;
 };
-struct PacketServiceCommand //текущий исполняемый устройством пакет
+struct PacketServiceCommand //С‚РµРєСѓС‰РёР№ РёСЃРїРѕР»РЅСЏРµРјС‹Р№ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј РїР°РєРµС‚
 {
     DeviceCommand command;
     PacketCount packetNumber;
@@ -186,34 +186,34 @@ struct PacketServiceCommand //текущий исполняемый устройством пакет
 };
 #pragma pack(pop)
 
-//для теста надо будет сделать отдельную реализацию класса
+//РґР»СЏ С‚РµСЃС‚Р° РЅР°РґРѕ Р±СѓРґРµС‚ СЃРґРµР»Р°С‚СЊ РѕС‚РґРµР»СЊРЅСѓСЋ СЂРµР°Р»РёР·Р°С†РёСЋ РєР»Р°СЃСЃР°
 class IRemoteDevice
 {
 public:
-    virtual void init()=0; //сбрасываем очередь команд, ищем начало координат и т.п.
+    virtual void init()=0; //СЃР±СЂР°СЃС‹РІР°РµРј РѕС‡РµСЂРµРґСЊ РєРѕРјР°РЅРґ, РёС‰РµРј РЅР°С‡Р°Р»Рѕ РєРѕРѕСЂРґРёРЅР°С‚ Рё С‚.Рї.
     virtual void reset_packet_queue()=0;
-    virtual void set_move_mode(MoveMode mode)=0; //задаём режим интерполяции
-    virtual void set_position(Coords position)=0; //перемещаем фрезу
-    virtual void wait(double time)=0; //задержка
-    virtual void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])=0; //задать скорость и ускорение
+    virtual void set_move_mode(MoveMode mode)=0; //Р·Р°РґР°С‘Рј СЂРµР¶РёРј РёРЅС‚РµСЂРїРѕР»СЏС†РёРё
+    virtual void set_position(Coords position)=0; //РїРµСЂРµРјРµС‰Р°РµРј С„СЂРµР·Сѓ
+    virtual void wait(double time)=0; //Р·Р°РґРµСЂР¶РєР°
+    virtual void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])=0; //Р·Р°РґР°С‚СЊ СЃРєРѕСЂРѕСЃС‚СЊ Рё СѓСЃРєРѕСЂРµРЅРёРµ
     virtual double get_max_velocity(int coord)=0;
     virtual double get_max_acceleration(int coord)=0;
-    virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
-    virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
-    virtual void set_step_size(double stepSize[MAX_AXES])=0; //длина одного шага
-    virtual void pause_moving(bool needStop)=0; //временная остановка движения
-    virtual void break_queue()=0; //полная остановка с прерыванием программы
-	virtual void homing()=0; //отъехать к концевикам и задать машинные координаты
+    virtual void set_feed(double feed)=0; //СЃРєРѕСЂРѕСЃС‚СЊ РїРѕРґР°С‡Рё (СЃРєРѕСЂРѕСЃС‚СЊ РґРІРёР¶РµРЅРёСЏ РїСЂРё СЂРµР·РєРµ)
+    virtual void set_feed_multiplier(double multiplier)=0; //РјРЅРѕР¶РёС‚РµР»СЊ СЃРєРѕСЂРѕСЃС‚Рё РїРѕРґР°С‡Рё
+    virtual void set_step_size(double stepSize[MAX_AXES])=0; //РґР»РёРЅР° РѕРґРЅРѕРіРѕ С€Р°РіР°
+    virtual void pause_moving(bool needStop)=0; //РІСЂРµРјРµРЅРЅР°СЏ РѕСЃС‚Р°РЅРѕРІРєР° РґРІРёР¶РµРЅРёСЏ
+    virtual void break_queue()=0; //РїРѕР»РЅР°СЏ РѕСЃС‚Р°РЅРѕРІРєР° СЃ РїСЂРµСЂС‹РІР°РЅРёРµРј РїСЂРѕРіСЂР°РјРјС‹
+	virtual void homing()=0; //РѕС‚СЉРµС…Р°С‚СЊ Рє РєРѕРЅС†РµРІРёРєР°Рј Рё Р·Р°РґР°С‚СЊ РјР°С€РёРЅРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
 
-    virtual int  queue_size() = 0; //длина очереди команд
+    virtual int  queue_size() = 0; //РґР»РёРЅР° РѕС‡РµСЂРµРґРё РєРѕРјР°РЅРґ
 
-    virtual void set_current_line(int line)=0; //задаёт номер строки, для которой сейчас будут вызываться команды
-    virtual int  get_current_line()=0; //возвращает номер строки, для которой сейчас исполняются команды
-    virtual const Coords* get_current_coords()=0; //последние принятые координаты
-    virtual double get_min_step()=0; //точность устройства
+    virtual void set_current_line(int line)=0; //Р·Р°РґР°С‘С‚ РЅРѕРјРµСЂ СЃС‚СЂРѕРєРё, РґР»СЏ РєРѕС‚РѕСЂРѕР№ СЃРµР№С‡Р°СЃ Р±СѓРґСѓС‚ РІС‹Р·С‹РІР°С‚СЊСЃСЏ РєРѕРјР°РЅРґС‹
+    virtual int  get_current_line()=0; //РІРѕР·РІСЂР°С‰Р°РµС‚ РЅРѕРјРµСЂ СЃС‚СЂРѕРєРё, РґР»СЏ РєРѕС‚РѕСЂРѕР№ СЃРµР№С‡Р°СЃ РёСЃРїРѕР»РЅСЏСЋС‚СЃСЏ РєРѕРјР°РЅРґС‹
+    virtual const Coords* get_current_coords()=0; //РїРѕСЃР»РµРґРЅРёРµ РїСЂРёРЅСЏС‚С‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
+    virtual double get_min_step()=0; //С‚РѕС‡РЅРѕСЃС‚СЊ СѓСЃС‚СЂРѕР№СЃС‚РІР°
 };
 
-//класс передаёт команды по com-порту на микроконтроллер, а он уже дальше интерполирует
+//РєР»Р°СЃСЃ РїРµСЂРµРґР°С‘С‚ РєРѕРјР°РЅРґС‹ РїРѕ com-РїРѕСЂС‚Сѓ РЅР° РјРёРєСЂРѕРєРѕРЅС‚СЂРѕР»Р»РµСЂ, Р° РѕРЅ СѓР¶Рµ РґР°Р»СЊС€Рµ РёРЅС‚РµСЂРїРѕР»РёСЂСѓРµС‚
 class CRemoteDevice : public QObject, public IRemoteDevice
 {
     Q_OBJECT
@@ -249,41 +249,41 @@ public:
     bool on_packet_received(char *data, int size);
     bool process_packet(char *data, int size);
 
-	bool inited;                       //порт нужен для инициализации, но до инициализации нельзя принимать с него лишних данных
-    ComPortConnect *comPort;           //подключение к удалённому устройству
-    int missedSends;                   //пакет послан, ответ не получен
-    int missedReceives;                //принят битый пакет
-    int missedHalfSend;                //принято сообщение о битом пакете
-    int packSends;                     //послано пакетов
+	bool inited;                       //РїРѕСЂС‚ РЅСѓР¶РµРЅ РґР»СЏ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё, РЅРѕ РґРѕ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё РЅРµР»СЊР·СЏ РїСЂРёРЅРёРјР°С‚СЊ СЃ РЅРµРіРѕ Р»РёС€РЅРёС… РґР°РЅРЅС‹С…
+    ComPortConnect *comPort;           //РїРѕРґРєР»СЋС‡РµРЅРёРµ Рє СѓРґР°Р»С‘РЅРЅРѕРјСѓ СѓСЃС‚СЂРѕР№СЃС‚РІСѓ
+    int missedSends;                   //РїР°РєРµС‚ РїРѕСЃР»Р°РЅ, РѕС‚РІРµС‚ РЅРµ РїРѕР»СѓС‡РµРЅ
+    int missedReceives;                //РїСЂРёРЅСЏС‚ Р±РёС‚С‹Р№ РїР°РєРµС‚
+    int missedHalfSend;                //РїСЂРёРЅСЏС‚Рѕ СЃРѕРѕР±С‰РµРЅРёРµ Рѕ Р±РёС‚РѕРј РїР°РєРµС‚Рµ
+    int packSends;                     //РїРѕСЃР»Р°РЅРѕ РїР°РєРµС‚РѕРІ
 
-    //текущее состояние
-    double scale[MAX_AXES];            //шагов на миллиметр
-    double minStep;                    //макс. точность устройства
-    double secToTick;                  //тиков таймера в одной секунде
-    Coords lastPosition;               //последняя переданная позиция
-    Coords lastDelta;                  //последний вектор сдвига
-    double feed;                       //подача
-    MoveMode moveMode;                 //режим перемещения
-    double velocity[MAX_AXES];         //максимальная скорость по каждой оси
-    double acceleration[MAX_AXES];     //максимальное ускорение по каждой оси
-    double fractValue;                 //насколько должна измениться траектория, чтобы считать её новой линией
-    bool fractSended;                  //послан ли уже излом траектории
-	bool usedCoords[MAX_AXES];         //используемые интерпретатором координаты
-	bool usedAxes[MAX_AXES];           //используемые станком оси
-	int  slaveAxes[MAX_AXES];          //связанная ось (к одной оси можно привязать еще только одну)
-	std::vector<int> toDeviceIndex;    //перевод номеров координат в номера генераторов сигнала на устройстве
-	std::vector<int> fromDeviceIndex;  //обратное преобразование при получении координат с устройства
-	bool invertAxe[MAX_AXES];          //инвертировать ли ось
-	int switchPolarity;                //биты - значения активного уровня сигнала
-	int  switchMin[MAX_AXES];          //концевик на минимум
-	int  switchMax[MAX_AXES];          //концевик на максимум
-	int  switchHome[MAX_AXES];         //концевик для дома
-	double backHome[MAX_AXES];         //на сколько отъехать от дома
-	Coords coordHome;                  //какие задать координаты дому
-	std::string homingScript;          //как ехать к дому
+    //С‚РµРєСѓС‰РµРµ СЃРѕСЃС‚РѕСЏРЅРёРµ
+    double scale[MAX_AXES];            //С€Р°РіРѕРІ РЅР° РјРёР»Р»РёРјРµС‚СЂ
+    double minStep;                    //РјР°РєСЃ. С‚РѕС‡РЅРѕСЃС‚СЊ СѓСЃС‚СЂРѕР№СЃС‚РІР°
+    double secToTick;                  //С‚РёРєРѕРІ С‚Р°Р№РјРµСЂР° РІ РѕРґРЅРѕР№ СЃРµРєСѓРЅРґРµ
+    Coords lastPosition;               //РїРѕСЃР»РµРґРЅСЏСЏ РїРµСЂРµРґР°РЅРЅР°СЏ РїРѕР·РёС†РёСЏ
+    Coords lastDelta;                  //РїРѕСЃР»РµРґРЅРёР№ РІРµРєС‚РѕСЂ СЃРґРІРёРіР°
+    double feed;                       //РїРѕРґР°С‡Р°
+    MoveMode moveMode;                 //СЂРµР¶РёРј РїРµСЂРµРјРµС‰РµРЅРёСЏ
+    double velocity[MAX_AXES];         //РјР°РєСЃРёРјР°Р»СЊРЅР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ РїРѕ РєР°Р¶РґРѕР№ РѕСЃРё
+    double acceleration[MAX_AXES];     //РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ СѓСЃРєРѕСЂРµРЅРёРµ РїРѕ РєР°Р¶РґРѕР№ РѕСЃРё
+    double fractValue;                 //РЅР°СЃРєРѕР»СЊРєРѕ РґРѕР»Р¶РЅР° РёР·РјРµРЅРёС‚СЊСЃСЏ С‚СЂР°РµРєС‚РѕСЂРёСЏ, С‡С‚РѕР±С‹ СЃС‡РёС‚Р°С‚СЊ РµС‘ РЅРѕРІРѕР№ Р»РёРЅРёРµР№
+    bool fractSended;                  //РїРѕСЃР»Р°РЅ Р»Рё СѓР¶Рµ РёР·Р»РѕРј С‚СЂР°РµРєС‚РѕСЂРёРё
+	bool usedCoords[MAX_AXES];         //РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ РёРЅС‚РµСЂРїСЂРµС‚Р°С‚РѕСЂРѕРј РєРѕРѕСЂРґРёРЅР°С‚С‹
+	bool usedAxes[MAX_AXES];           //РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ СЃС‚Р°РЅРєРѕРј РѕСЃРё
+	int  slaveAxes[MAX_AXES];          //СЃРІСЏР·Р°РЅРЅР°СЏ РѕСЃСЊ (Рє РѕРґРЅРѕР№ РѕСЃРё РјРѕР¶РЅРѕ РїСЂРёРІСЏР·Р°С‚СЊ РµС‰Рµ С‚РѕР»СЊРєРѕ РѕРґРЅСѓ)
+	std::vector<int> toDeviceIndex;    //РїРµСЂРµРІРѕРґ РЅРѕРјРµСЂРѕРІ РєРѕРѕСЂРґРёРЅР°С‚ РІ РЅРѕРјРµСЂР° РіРµРЅРµСЂР°С‚РѕСЂРѕРІ СЃРёРіРЅР°Р»Р° РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРµ
+	std::vector<int> fromDeviceIndex;  //РѕР±СЂР°С‚РЅРѕРµ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РїСЂРё РїРѕР»СѓС‡РµРЅРёРё РєРѕРѕСЂРґРёРЅР°С‚ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°
+	bool invertAxe[MAX_AXES];          //РёРЅРІРµСЂС‚РёСЂРѕРІР°С‚СЊ Р»Рё РѕСЃСЊ
+	int switchPolarity;                //Р±РёС‚С‹ - Р·РЅР°С‡РµРЅРёСЏ Р°РєС‚РёРІРЅРѕРіРѕ СѓСЂРѕРІРЅСЏ СЃРёРіРЅР°Р»Р°
+	int  switchMin[MAX_AXES];          //РєРѕРЅС†РµРІРёРє РЅР° РјРёРЅРёРјСѓРј
+	int  switchMax[MAX_AXES];          //РєРѕРЅС†РµРІРёРє РЅР° РјР°РєСЃРёРјСѓРј
+	int  switchHome[MAX_AXES];         //РєРѕРЅС†РµРІРёРє РґР»СЏ РґРѕРјР°
+	double backHome[MAX_AXES];         //РЅР° СЃРєРѕР»СЊРєРѕ РѕС‚СЉРµС…Р°С‚СЊ РѕС‚ РґРѕРјР°
+	Coords coordHome;                  //РєР°РєРёРµ Р·Р°РґР°С‚СЊ РєРѕРѕСЂРґРёРЅР°С‚С‹ РґРѕРјСѓ
+	std::string homingScript;          //РєР°Рє РµС…Р°С‚СЊ Рє РґРѕРјСѓ
 
-    //состояние удалённого устройства
-    Coords currentCoords;              //текущие координаты
+    //СЃРѕСЃС‚РѕСЏРЅРёРµ СѓРґР°Р»С‘РЅРЅРѕРіРѕ СѓСЃС‚СЂРѕР№СЃС‚РІР°
+    Coords currentCoords;              //С‚РµРєСѓС‰РёРµ РєРѕРѕСЂРґРёРЅР°С‚С‹
 
 protected:
 	void set_switches(SwitchGroup group, int pins[MAX_AXES]);
@@ -299,13 +299,13 @@ protected:
     HANDLE hThread;
 
     struct ConnectData;
-    std::unique_ptr<ConnectData> commands[2]; //очередь для g-кода и для сервисных команд
-    CRITICAL_SECTION queueCS;     //защита очереди от порчи
-    HANDLE eventQueueAdd;         //в очередь добавлен пакет
-    HANDLE eventPacketReceived;   //сообщение о принятии пакета
+    std::unique_ptr<ConnectData> commands[2]; //РѕС‡РµСЂРµРґСЊ РґР»СЏ g-РєРѕРґР° Рё РґР»СЏ СЃРµСЂРІРёСЃРЅС‹С… РєРѕРјР°РЅРґ
+    CRITICAL_SECTION queueCS;     //Р·Р°С‰РёС‚Р° РѕС‡РµСЂРµРґРё РѕС‚ РїРѕСЂС‡Рё
+    HANDLE eventQueueAdd;         //РІ РѕС‡РµСЂРµРґСЊ РґРѕР±Р°РІР»РµРЅ РїР°РєРµС‚
+    HANDLE eventPacketReceived;   //СЃРѕРѕР±С‰РµРЅРёРµ Рѕ РїСЂРёРЅСЏС‚РёРё РїР°РєРµС‚Р°
 
-    int pushLine;                 //строка, из которой читаются команды
-    int workLine;                 //строка, команда которой сейчас выполняется
+    int pushLine;                 //СЃС‚СЂРѕРєР°, РёР· РєРѕС‚РѕСЂРѕР№ С‡РёС‚Р°СЋС‚СЃСЏ РєРѕРјР°РЅРґС‹
+    int workLine;                 //СЃС‚СЂРѕРєР°, РєРѕРјР°РЅРґР° РєРѕС‚РѕСЂРѕР№ СЃРµР№С‡Р°СЃ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ
 
 signals:
     void coords_changed(float x, float y, float z);

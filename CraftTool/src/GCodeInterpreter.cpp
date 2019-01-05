@@ -1,4 +1,4 @@
-#include <math.h>
+п»ї#include <math.h>
 #include "GCodeInterpreter.h"
 #include "log.h"
 
@@ -109,20 +109,20 @@ InterError GCodeInterpreter::execute_frame(const char *frame)
 
     InterError state;
 
-    state = reader.parse_codes(frame); //проверяем строку на валидность, читаем значения в массив
+    state = reader.parse_codes(frame); //РїСЂРѕРІРµСЂСЏРµРј СЃС‚СЂРѕРєСѓ РЅР° РІР°Р»РёРґРЅРѕСЃС‚СЊ, С‡РёС‚Р°РµРј Р·РЅР°С‡РµРЅРёСЏ РІ РјР°СЃСЃРёРІ
     if(state.code) return state;
 
-    state = make_new_state(); //читаем все коды и по ним создаём команды изменения состояния
+    state = make_new_state(); //С‡РёС‚Р°РµРј РІСЃРµ РєРѕРґС‹ Рё РїРѕ РЅРёРј СЃРѕР·РґР°С‘Рј РєРѕРјР°РЅРґС‹ РёР·РјРµРЅРµРЅРёСЏ СЃРѕСЃС‚РѕСЏРЅРёСЏ
     if(state.code) return state;
 
-    state = run_modal_groups(); //исполняем коды или пересылаем их устройству
+    state = run_modal_groups(); //РёСЃРїРѕР»РЅСЏРµРј РєРѕРґС‹ РёР»Рё РїРµСЂРµСЃС‹Р»Р°РµРј РёС… СѓСЃС‚СЂРѕР№СЃС‚РІСѓ
     if(state.code) return state;
 
     return state;
 }
 
 //====================================================================================================
-//читает данные из строки в массив
+//С‡РёС‚Р°РµС‚ РґР°РЅРЅС‹Рµ РёР· СЃС‚СЂРѕРєРё РІ РјР°СЃСЃРёРІ
 InterError Reader::parse_codes(const char *frame)
 {
     codes.clear();
@@ -142,7 +142,7 @@ InterError Reader::parse_codes(const char *frame)
 }
 
 //====================================================================================================
-//очищает прочитанные данные фрейма
+//РѕС‡РёС‰Р°РµС‚ РїСЂРѕС‡РёС‚Р°РЅРЅС‹Рµ РґР°РЅРЅС‹Рµ С„СЂРµР№РјР°
 void FrameParams::reset()
 {
     flagValue.reset();
@@ -156,7 +156,7 @@ void FrameParams::reset()
 }
 
 //====================================================================================================
-//формирует параметры перехода в новое состояние
+//С„РѕСЂРјРёСЂСѓРµС‚ РїР°СЂР°РјРµС‚СЂС‹ РїРµСЂРµС…РѕРґР° РІ РЅРѕРІРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ
 InterError GCodeInterpreter::make_new_state()
 {
     readedFrame.reset();
@@ -168,7 +168,7 @@ InterError GCodeInterpreter::make_new_state()
         ModalGroup group = get_modal_group(iter->letter, iter->value);
         if (group > 0)
         {
-            if(readedFrame.flagModal.get(group))   //встретили два оператора из одной группы
+            if(readedFrame.flagModal.get(group))   //РІСЃС‚СЂРµС‚РёР»Рё РґРІР° РѕРїРµСЂР°С‚РѕСЂР° РёР· РѕРґРЅРѕР№ РіСЂСѓРїРїС‹
             {
                 reader.position = iter->position;
                 return InterError(InterError::DOUBLE_DEFINITION, 
@@ -218,7 +218,7 @@ InterError GCodeInterpreter::make_new_state()
                 break;
             }
 
-            case 'M': //пока у меня никакого охлаждения нет
+            case 'M': //РїРѕРєР° Сѓ РјРµРЅСЏ РЅРёРєР°РєРѕРіРѕ РѕС…Р»Р°Р¶РґРµРЅРёСЏ РЅРµС‚
             {
                 switch (intValue)
                 {
@@ -260,7 +260,7 @@ InterError GCodeInterpreter::make_new_state()
 }
 
 //====================================================================================================
-//возвращает модальную группу команды
+//РІРѕР·РІСЂР°С‰Р°РµС‚ РјРѕРґР°Р»СЊРЅСѓСЋ РіСЂСѓРїРїСѓ РєРѕРјР°РЅРґС‹
 ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
 {
     int num = int(value);
@@ -322,12 +322,12 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
 }
 
 //====================================================================================================
-//исполняет прочитанный фрейм в нужном порядке
+//РёСЃРїРѕР»РЅСЏРµС‚ РїСЂРѕС‡РёС‚Р°РЅРЅС‹Р№ С„СЂРµР№Рј РІ РЅСѓР¶РЅРѕРј РїРѕСЂСЏРґРєРµ
 InterError GCodeInterpreter::run_modal_groups()
 {
     double value;
 
-    switch (readedFrame.plane) //задаём плоскость обработки
+    switch (readedFrame.plane) //Р·Р°РґР°С‘Рј РїР»РѕСЃРєРѕСЃС‚СЊ РѕР±СЂР°Р±РѕС‚РєРё
     {
         case Plane_NONE: break;
 
@@ -345,10 +345,10 @@ InterError GCodeInterpreter::run_modal_groups()
 					 std::string("internal error, invalid plane ") + to_string(readedFrame.plane));
     }
 
-    //if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
+    //if(readedFrame.get_value('S', value)) //СЃРєРѕСЂРѕСЃС‚СЊ РІСЂР°С‰РµРЅРёСЏ С€РїРёРЅРґРµР»СЏ
     //    ;
 
-    if(readedFrame.get_value('F', value)) //скорость подачи
+    if(readedFrame.get_value('F', value)) //СЃРєРѕСЂРѕСЃС‚СЊ РїРѕРґР°С‡Рё
         if (!trajectory)
             remoteDevice->set_feed(value / 60);
 
@@ -449,9 +449,9 @@ InterError GCodeInterpreter::run_modal_groups()
             remoteDevice->wait(value);
     }
 
-    if(runner.cycle != CannedCycle_NONE) //включен постоянный цикл
+    if(runner.cycle != CannedCycle_NONE) //РІРєР»СЋС‡РµРЅ РїРѕСЃС‚РѕСЏРЅРЅС‹Р№ С†РёРєР»
     {
-        if(readedFrame.have_value('Z'))    //в нём нельзя двигаться по Z
+        if(readedFrame.have_value('Z'))    //РІ РЅС‘Рј РЅРµР»СЊР·СЏ РґРІРёРіР°С‚СЊСЃСЏ РїРѕ Z
             return InterError(InterError::WRONG_VALUE, "unexpected Z parameter");
 
         Coords pos;
@@ -463,14 +463,14 @@ InterError GCodeInterpreter::run_modal_groups()
                 pos.z = runner.cycleHiLevel;
 
             set_move_mode(MoveMode_FAST);
-            move_to(pos);    //двигаемся к следующему отверстию
+            move_to(pos);    //РґРІРёРіР°РµРјСЃСЏ Рє СЃР»РµРґСѓСЋС‰РµРјСѓ РѕС‚РІРµСЂСЃС‚РёСЋ
 
             auto pos2 = pos;
 
             if(!runner.cycleUseLowLevel)
             {
                 pos2.z = runner.cycleLowLevel;
-                move_to(pos2);  //двигаемся к безопасной плоскости
+                move_to(pos2);  //РґРІРёРіР°РµРјСЃСЏ Рє Р±РµР·РѕРїР°СЃРЅРѕР№ РїР»РѕСЃРєРѕСЃС‚Рё
             }
 
             switch(runner.cycle)
@@ -542,7 +542,7 @@ InterError GCodeInterpreter::run_modal_groups()
             runner.position = pos;
         }
     }
-    else if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //движение по прямой
+    else if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //РґРІРёР¶РµРЅРёРµ РїРѕ РїСЂСЏРјРѕР№
     {
         Coords pos;
         if(readedFrame.absoluteSet)
@@ -578,14 +578,14 @@ InterError GCodeInterpreter::run_modal_groups()
         Coords centerPos;
         centerPos.x = centerPos.y = centerPos.z = 0;
 
-        if(readedFrame.have_value('I') ||  //если задан центр круга
+        if(readedFrame.have_value('I') ||  //РµСЃР»Рё Р·Р°РґР°РЅ С†РµРЅС‚СЂ РєСЂСѓРіР°
            readedFrame.have_value('J') ||
            readedFrame.have_value('K'))
         {
             if(readedFrame.have_value('R'))
                 return InterError(InterError::WRONG_VALUE, "conflict parameter R with I,J,K offset");
 
-            get_readed_coord('I', centerPos.x); //читаем центр круга
+            get_readed_coord('I', centerPos.x); //С‡РёС‚Р°РµРј С†РµРЅС‚СЂ РєСЂСѓРіР°
             get_readed_coord('J', centerPos.y);
             get_readed_coord('K', centerPos.z);
 
@@ -593,23 +593,23 @@ InterError GCodeInterpreter::run_modal_groups()
             centerPos.y += runner.position.y;
             centerPos.z += runner.position.z;
 
-            Coords pos = runner.position;            //читаем, докуда двигаться
+            Coords pos = runner.position;            //С‡РёС‚Р°РµРј, РґРѕРєСѓРґР° РґРІРёРіР°С‚СЊСЃСЏ
             get_new_position(pos);
 
-            coord pitch = centerPos.r[iz] - runner.position.r[iz];//шаг винта
-            centerPos.r[iz] = pos.r[iz];      //третий параметр означает нечто другое
+            coord pitch = centerPos.r[iz] - runner.position.r[iz];//С€Р°Рі РІРёРЅС‚Р°
+            centerPos.r[iz] = pos.r[iz];      //С‚СЂРµС‚РёР№ РїР°СЂР°РјРµС‚СЂ РѕР·РЅР°С‡Р°РµС‚ РЅРµС‡С‚Рѕ РґСЂСѓРіРѕРµ
             Coords planeCenter = centerPos;
             planeCenter.r[iz] = runner.position.r[iz];
             double radius = length(runner.position, planeCenter);
 
 			auto len = length(pos, centerPos);
-            if(fabs(radius - len) > remoteDevice->get_min_step()*2)//растяжение пока не поддерживается
+            if(fabs(radius - len) > remoteDevice->get_min_step()*2)//СЂР°СЃС‚СЏР¶РµРЅРёРµ РїРѕРєР° РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ
                 return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable, start and endpoint have difference radius");
 
             double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
-            coord height = pos.r[iz] - runner.position.r[iz]; //длина винта
+            coord height = pos.r[iz] - runner.position.r[iz]; //РґР»РёРЅР° РІРёРЅС‚Р°
 
-            if(is_screw(centerPos) && pitch != 0) //винтовая интерполяция
+            if(is_screw(centerPos) && pitch != 0) //РІРёРЅС‚РѕРІР°СЏ РёРЅС‚РµСЂРїРѕР»СЏС†РёСЏ
             {
                 if(pitch < 0.0)
                     return InterError(InterError::WRONG_VALUE, "screw with negative pitch");
@@ -657,22 +657,22 @@ InterError GCodeInterpreter::run_modal_groups()
             coord radius;
             get_readed_coord('R', radius);
 
-            Coords pos = runner.position;            //читаем, докуда двигаться
+            Coords pos = runner.position;            //С‡РёС‚Р°РµРј, РґРѕРєСѓРґР° РґРІРёРіР°С‚СЊСЃСЏ
             get_new_position(pos);
 
             double distance = length(runner.position, pos);
-            if(fabs(distance / radius) < 0.01)       //плохо вычисляемая окружность
+            if(fabs(distance / radius) < 0.01)       //РїР»РѕС…Рѕ РІС‹С‡РёСЃР»СЏРµРјР°СЏ РѕРєСЂСѓР¶РЅРѕСЃС‚СЊ
                 return InterError(InterError::WRONG_VALUE, "poorly calculated arc");
 
-            if(distance > fabs(radius * 2))              //неверный радиус
+            if(distance > fabs(radius * 2))              //РЅРµРІРµСЂРЅС‹Р№ СЂР°РґРёСѓСЃ
                 return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable");
 
-            if(is_screw(pos)) //винтовая интерполяция пока не поддерживается
-                return InterError(InterError::WRONG_VALUE, "screw with R parameter not supported"); //TODO хорошо бы поддержать
+            if(is_screw(pos)) //РІРёРЅС‚РѕРІР°СЏ РёРЅС‚РµСЂРїРѕР»СЏС†РёСЏ РїРѕРєР° РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ
+                return InterError(InterError::WRONG_VALUE, "screw with R parameter not supported"); //TODO С…РѕСЂРѕС€Рѕ Р±С‹ РїРѕРґРґРµСЂР¶Р°С‚СЊ
 
-            //используется теорема Пифагора
-            Coords toCenter; //находим направление от центра отрезка к центру окружности
-            double length = sqrt(std::max(0.0, radius * radius - distance * distance / 4)); //длина перпендикуляра
+            //РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ С‚РµРѕСЂРµРјР° РџРёС„Р°РіРѕСЂР°
+            Coords toCenter; //РЅР°С…РѕРґРёРј РЅР°РїСЂР°РІР»РµРЅРёРµ РѕС‚ С†РµРЅС‚СЂР° РѕС‚СЂРµР·РєР° Рє С†РµРЅС‚СЂСѓ РѕРєСЂСѓР¶РЅРѕСЃС‚Рё
+            double length = sqrt(std::max(0.0, radius * radius - distance * distance / 4)); //РґР»РёРЅР° РїРµСЂРїРµРЅРґРёРєСѓР»СЏСЂР°
             if((radius < 0) == (runner.motionMode == MotionMode_CCW_ARC))
                 length *= -1;
             for(int i = 0; i < NUM_COORDS; ++i)
@@ -744,15 +744,15 @@ bool GCodeInterpreter::is_screw(Coords center)
 }
 
 //====================================================================================================
-//рисует винтовую линию или просто круг
+//СЂРёСЃСѓРµС‚ РІРёРЅС‚РѕРІСѓСЋ Р»РёРЅРёСЋ РёР»Рё РїСЂРѕСЃС‚Рѕ РєСЂСѓРі
 void GCodeInterpreter::draw_screw(Coords center, double radius, double ellipseCoef,
                 double angleStart, double angleMax, double angleToHeight,
                 int ix, int iy, int iz)
 {
     double accuracy = remoteDevice->get_min_step();
-    //шаг угла выбираем таким, чтобы точность была в пределах одного шага
-    //ряд Тейлора для синуса sin(x) = x +...
-    //при повороте от оси Х на заданный угол ошибка по второй оси должна быть равна погрешности
+    //С€Р°Рі СѓРіР»Р° РІС‹Р±РёСЂР°РµРј С‚Р°РєРёРј, С‡С‚РѕР±С‹ С‚РѕС‡РЅРѕСЃС‚СЊ Р±С‹Р»Р° РІ РїСЂРµРґРµР»Р°С… РѕРґРЅРѕРіРѕ С€Р°РіР°
+    //СЂСЏРґ РўРµР№Р»РѕСЂР° РґР»СЏ СЃРёРЅСѓСЃР° sin(x) = x +...
+    //РїСЂРё РїРѕРІРѕСЂРѕС‚Рµ РѕС‚ РѕСЃРё РҐ РЅР° Р·Р°РґР°РЅРЅС‹Р№ СѓРіРѕР» РѕС€РёР±РєР° РїРѕ РІС‚РѕСЂРѕР№ РѕСЃРё РґРѕР»Р¶РЅР° Р±С‹С‚СЊ СЂР°РІРЅР° РїРѕРіСЂРµС€РЅРѕСЃС‚Рё
     //  r - r*cos(a) = accuracy
     //  1 - cos(a) = acc/r
     //  cos(a) = sqrt(1-sin^2(a)) ~= sqrt(1-a^2)
@@ -783,7 +783,7 @@ void GCodeInterpreter::draw_screw(Coords center, double radius, double ellipseCo
 }
 
 //====================================================================================================
-//чтение новых координат с учётом модальных кодов
+//С‡С‚РµРЅРёРµ РЅРѕРІС‹С… РєРѕРѕСЂРґРёРЅР°С‚ СЃ СѓС‡С‘С‚РѕРј РјРѕРґР°Р»СЊРЅС‹С… РєРѕРґРѕРІ
 bool GCodeInterpreter::get_new_position(Coords &pos)
 {
     if(readedFrame.have_value('X') ||
@@ -800,7 +800,7 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
             to_local(pos);
         }
 
-        //координаты указаны в локальной системе
+        //РєРѕРѕСЂРґРёРЅР°С‚С‹ СѓРєР°Р·Р°РЅС‹ РІ Р»РѕРєР°Р»СЊРЅРѕР№ СЃРёСЃС‚РµРјРµ
         get_readed_coord('X', pos.x);
         get_readed_coord('Y', pos.y);
         get_readed_coord('Z', pos.z);
@@ -820,7 +820,7 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
 }
 
 //====================================================================================================
-//сдвиг в глобальные координаты
+//СЃРґРІРёРі РІ РіР»РѕР±Р°Р»СЊРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
 void GCodeInterpreter::to_global(Coords &coords)
 {
     if(runner.coordSystemNumber == -1)
@@ -832,7 +832,7 @@ void GCodeInterpreter::to_global(Coords &coords)
 }
 
 //====================================================================================================
-//получение локальных координат из глобальных
+//РїРѕР»СѓС‡РµРЅРёРµ Р»РѕРєР°Р»СЊРЅС‹С… РєРѕРѕСЂРґРёРЅР°С‚ РёР· РіР»РѕР±Р°Р»СЊРЅС‹С…
 void GCodeInterpreter::to_local(Coords &coords)
 {
     if(runner.coordSystemNumber == -1)
@@ -844,14 +844,14 @@ void GCodeInterpreter::to_local(Coords &coords)
 }
 
 //====================================================================================================
-//преобразования локальных координат
+//РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ Р»РѕРєР°Р»СЊРЅС‹С… РєРѕРѕСЂРґРёРЅР°С‚
 void GCodeInterpreter::local_deform(Coords &coords)
 {
     Q_UNUSED(coords)
 }
 
 //====================================================================================================
-//перевод в мм
+//РїРµСЂРµРІРѕРґ РІ РјРј
 coord GCodeInterpreter::to_mm(coord value)
 {
     if(runner.units == UnitSystem_INCHES)
@@ -880,14 +880,14 @@ double move_length(double t, double v, double a)
 //====================================================================================================
 void GCodeInterpreter::move(int coordNumber, coord add, bool fast)
 {
-    //во время исполнения ничего не двигаем
+    //РІРѕ РІСЂРµРјСЏ РёСЃРїРѕР»РЅРµРЅРёСЏ РЅРёС‡РµРіРѕ РЅРµ РґРІРёРіР°РµРј
     if(remoteDevice->queue_size() > 0)
         return;
 
     runner.motionMode = MotionMode_FAST;
     remoteDevice->set_move_mode(MoveMode_FAST);
 
-    //если только подключились к устройству, то координаты могут быть очень разными
+    //РµСЃР»Рё С‚РѕР»СЊРєРѕ РїРѕРґРєР»СЋС‡РёР»РёСЃСЊ Рє СѓСЃС‚СЂРѕР№СЃС‚РІСѓ, С‚Рѕ РєРѕРѕСЂРґРёРЅР°С‚С‹ РјРѕРіСѓС‚ Р±С‹С‚СЊ РѕС‡РµРЅСЊ СЂР°Р·РЅС‹РјРё
     if(!coordsInited)
     {
         runner.position = *remoteDevice->get_current_coords();
@@ -896,23 +896,23 @@ void GCodeInterpreter::move(int coordNumber, coord add, bool fast)
 
     double delta = abs(runner.position.r[coordNumber] - remoteDevice->get_current_coords()->r[coordNumber]);
 
-    if(delta > 10) //защита от багов
+    if(delta > 10) //Р·Р°С‰РёС‚Р° РѕС‚ Р±Р°РіРѕРІ
         return;
 
     if (!fast)
       runner.position.r[coordNumber] += add;
     else
     {
-      const double LATENCY = 0.2; //0.2 секунд на остановку после отпускания кнопки
+      const double LATENCY = 0.2; //0.2 СЃРµРєСѓРЅРґ РЅР° РѕСЃС‚Р°РЅРѕРІРєСѓ РїРѕСЃР»Рµ РѕС‚РїСѓСЃРєР°РЅРёСЏ РєРЅРѕРїРєРё
       double vel = remoteDevice->get_max_velocity(coordNumber);
       double acc = remoteDevice->get_max_acceleration(coordNumber);
       double maxLen = move_length(LATENCY, vel, acc);
 
-      if (maxLen > 10) //защита от багов
+      if (maxLen > 10) //Р·Р°С‰РёС‚Р° РѕС‚ Р±Р°РіРѕРІ
         maxLen = 10;
 
       double accWall = std::max(delta, abs(add)) * 5;
-      if (maxLen > accWall) //защита от слишком быстрого разгона
+      if (maxLen > accWall) //Р·Р°С‰РёС‚Р° РѕС‚ СЃР»РёС€РєРѕРј Р±С‹СЃС‚СЂРѕРіРѕ СЂР°Р·РіРѕРЅР°
         maxLen = accWall;
 
       int intDelta = abs((maxLen - delta) / add);
@@ -933,7 +933,7 @@ bool GCodeInterpreter::get_readed_coord(char letter, coord &value)
 }
 
 //====================================================================================================
-//читает следующий код
+//С‡РёС‚Р°РµС‚ СЃР»РµРґСѓСЋС‰РёР№ РєРѕРґ
 bool Reader::parse_code(char &letter, double &value) 
 {
     find_significal_symbol();
@@ -967,14 +967,14 @@ bool Reader::parse_code(char &letter, double &value)
 }
 
 //====================================================================================================
-//пропускает пробелы
+//РїСЂРѕРїСѓСЃРєР°РµС‚ РїСЂРѕР±РµР»С‹
 void Reader::accept_whitespace()
 {
     while (string[position] == ' ' || string[position] == '\t') position++;
 }
 
 //====================================================================================================
-//доходит до следующего кода
+//РґРѕС…РѕРґРёС‚ РґРѕ СЃР»РµРґСѓСЋС‰РµРіРѕ РєРѕРґР°
 void Reader::find_significal_symbol()
 {
     while(string[position] != 0)
@@ -991,16 +991,16 @@ void Reader::find_significal_symbol()
 }
 
 //====================================================================================================
-//читает число
+//С‡РёС‚Р°РµС‚ С‡РёСЃР»Рѕ
 bool Reader::parse_value(double &dst)
 {
     const char *cursor = string + position;
 
     double value = 0;
     int sign = 1;       // +-
-    int numDigits = 0;  //сколько цифр прочитано
-    int maxDigits = 20; //сколько всего можно
-    double denominator = 1;//на сколько поделить прочитанное
+    int numDigits = 0;  //СЃРєРѕР»СЊРєРѕ С†РёС„СЂ РїСЂРѕС‡РёС‚Р°РЅРѕ
+    int maxDigits = 20; //СЃРєРѕР»СЊРєРѕ РІСЃРµРіРѕ РјРѕР¶РЅРѕ
+    double denominator = 1;//РЅР° СЃРєРѕР»СЊРєРѕ РїРѕРґРµР»РёС‚СЊ РїСЂРѕС‡РёС‚Р°РЅРЅРѕРµ
 
     if (*cursor == '-')
         sign = -1;
@@ -1050,24 +1050,24 @@ bool Reader::parse_value(double &dst)
 }
 
 //====================================================================================================
-//читает строки в список
+//С‡РёС‚Р°РµС‚ СЃС‚СЂРѕРєРё РІ СЃРїРёСЃРѕРє
 bool GCodeInterpreter::read_file(const char *name)
 {
-    std::ifstream file(name); //открываем файл
+    std::ifstream file(name); //РѕС‚РєСЂС‹РІР°РµРј С„Р°Р№Р»
 
     inputFile.clear();
-    while(file) //пока он не закончился
+    while(file) //РїРѕРєР° РѕРЅ РЅРµ Р·Р°РєРѕРЅС‡РёР»СЃСЏ
     {
         std::string str;
-        std::getline(file, str); //читаем строку
-        inputFile.push_back(str); //добавляем в конец списка
+        std::getline(file, str); //С‡РёС‚Р°РµРј СЃС‚СЂРѕРєСѓ
+        inputFile.push_back(str); //РґРѕР±Р°РІР»СЏРµРј РІ РєРѕРЅРµС† СЃРїРёСЃРєР°
     }
 
     return true;
 }
 
 //====================================================================================================
-//читает строки в список
+//С‡РёС‚Р°РµС‚ СЃС‚СЂРѕРєРё РІ СЃРїРёСЃРѕРє
 void GCodeInterpreter::execute_file(Trajectory *trajectory)
 {
     this->trajectory = trajectory;
@@ -1089,7 +1089,7 @@ void GCodeInterpreter::execute_file(Trajectory *trajectory)
 }
 
 //====================================================================================================
-//читает строки в список
+//С‡РёС‚Р°РµС‚ СЃС‚СЂРѕРєРё РІ СЃРїРёСЃРѕРє
 void GCodeInterpreter::execute_line(std::string line)
 {
 	this->trajectory = nullptr;
@@ -1108,7 +1108,7 @@ void GCodeInterpreter::init()
     runner.coordSystemNumber = 0;
     runner.cutterLength = 0;
     runner.cutterRadius = 0;
-    runner.feed = 100; //отфига
+    runner.feed = 100; //РѕС‚С„РёРіР°
     runner.incremental = false;
     runner.motionMode = MotionMode_FAST;
     runner.deviceMoveMode = MoveMode_FAST;

@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -12,20 +12,20 @@
 namespace Interpreter
 {
 
-enum UnitSystem //система единиц
+enum UnitSystem //СЃРёСЃС‚РµРјР° РµРґРёРЅРёС†
 {
-    UnitSystem_METRIC, //метричекая
-    UnitSystem_INCHES, //дюймовая
+    UnitSystem_METRIC, //РјРµС‚СЂРёС‡РµРєР°СЏ
+    UnitSystem_INCHES, //РґСЋР№РјРѕРІР°СЏ
 };
 
-enum CoordIndex //номера координат в массиве
+enum CoordIndex //РЅРѕРјРµСЂР° РєРѕРѕСЂРґРёРЅР°С‚ РІ РјР°СЃСЃРёРІРµ
 {
     X_AXIS = 0,
     Y_AXIS = 1,
     Z_AXIS = 2,
 };
 /*
-enum BitPos //позиции битов во флаговых переменных
+enum BitPos //РїРѕР·РёС†РёРё Р±РёС‚РѕРІ РІРѕ С„Р»Р°РіРѕРІС‹С… РїРµСЂРµРјРµРЅРЅС‹С…
 {
     X = 0,
     Y = 1,
@@ -36,32 +36,32 @@ enum BitPos //позиции битов во флаговых переменных
     K = 2,
 };
 */
-enum MotionMode //режимы перемещения
+enum MotionMode //СЂРµР¶РёРјС‹ РїРµСЂРµРјРµС‰РµРЅРёСЏ
 {
     MotionMode_NONE = 0,
-    MotionMode_FAST,      //быстрое позиционирование
-    MotionMode_LINEAR,    //линейная интерполяция
-    MotionMode_CW_ARC,    //круговая интерполяция
+    MotionMode_FAST,      //Р±С‹СЃС‚СЂРѕРµ РїРѕР·РёС†РёРѕРЅРёСЂРѕРІР°РЅРёРµ
+    MotionMode_LINEAR,    //Р»РёРЅРµР№РЅР°СЏ РёРЅС‚РµСЂРїРѕР»СЏС†РёСЏ
+    MotionMode_CW_ARC,    //РєСЂСѓРіРѕРІР°СЏ РёРЅС‚РµСЂРїРѕР»СЏС†РёСЏ
     MotionMode_CCW_ARC,
 };
 
 enum CannedCycle
 {
     CannedCycle_NONE = 0,
-    CannedCycle_RESET,           //отмена цикла, G80
-    CannedCycle_SINGLE_DRILL,    //простое сверление, G81
-    CannedCycle_DRILL_AND_PAUSE, //сверление с задержкой на дне, G82
-    CannedCycle_DEEP_DRILL,      //сверление итерациями, G83
+    CannedCycle_RESET,           //РѕС‚РјРµРЅР° С†РёРєР»Р°, G80
+    CannedCycle_SINGLE_DRILL,    //РїСЂРѕСЃС‚РѕРµ СЃРІРµСЂР»РµРЅРёРµ, G81
+    CannedCycle_DRILL_AND_PAUSE, //СЃРІРµСЂР»РµРЅРёРµ СЃ Р·Р°РґРµСЂР¶РєРѕР№ РЅР° РґРЅРµ, G82
+    CannedCycle_DEEP_DRILL,      //СЃРІРµСЂР»РµРЅРёРµ РёС‚РµСЂР°С†РёСЏРјРё, G83
 };
 
 enum CannedLevel
 {
     CannedLevel_NONE = 0,
-    CannedLevel_HIGH,   //отвод к исходной плоскости, G98
-    CannedLevel_LOW,    //отвод к плоскости обработки, G99
+    CannedLevel_HIGH,   //РѕС‚РІРѕРґ Рє РёСЃС…РѕРґРЅРѕР№ РїР»РѕСЃРєРѕСЃС‚Рё, G98
+    CannedLevel_LOW,    //РѕС‚РІРѕРґ Рє РїР»РѕСЃРєРѕСЃС‚Рё РѕР±СЂР°Р±РѕС‚РєРё, G99
 };
 
-enum OpCode  //распознаваемые коды операций
+enum OpCode  //СЂР°СЃРїРѕР·РЅР°РІР°РµРјС‹Рµ РєРѕРґС‹ РѕРїРµСЂР°С†РёР№
 {
     OpCode_NONE = 0,
     G0_FAST_MOVE,
@@ -79,9 +79,9 @@ enum OpCode  //распознаваемые коды операций
     G21_METRIC,
     G27_REFERENCE_POINT,
     G40_RESET_CORRECTION_RADIUS,
-    G41_CORRECTION_LEFT,  //по часовой
+    G41_CORRECTION_LEFT,  //РїРѕ С‡Р°СЃРѕРІРѕР№
     G42_CORRECTION_RIGHT,
-    G43_CORRECTION_POSITIVE, //прибавить длину инструмента
+    G43_CORRECTION_POSITIVE, //РїСЂРёР±Р°РІРёС‚СЊ РґР»РёРЅСѓ РёРЅСЃС‚СЂСѓРјРµРЅС‚Р°
     G44_CORRECTION_NEGATIVE,
     G49_RESET_CORRECTION_LENGTH,
     //G50_MIRROR,
@@ -94,7 +94,7 @@ enum OpCode  //распознаваемые коды операций
     G91_INCREMENTAL_MOVES,
 };
 
-enum ModalGroup //некоторые операторы не могут одновременно содержаться в одном фрейме
+enum ModalGroup //РЅРµРєРѕС‚РѕСЂС‹Рµ РѕРїРµСЂР°С‚РѕСЂС‹ РЅРµ РјРѕРіСѓС‚ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊСЃСЏ РІ РѕРґРЅРѕРј С„СЂРµР№РјРµ
 {
     ModalGroup_NONE = 0, //g4,g10,g28,g30,g53,g92.[0-3]
     ModalGroup_MOVE,                 //g0..g3 //G38.2, G80..G89
@@ -125,9 +125,9 @@ struct InterError
 	enum Code
 	{
 		ALL_OK = 0,
-		INVALID_STATEMENT, //неизвестная буква
-		DOUBLE_DEFINITION, //буква повторилась
-		WRONG_PLANE,       //задана неправильная плоскость
+		INVALID_STATEMENT, //РЅРµРёР·РІРµСЃС‚РЅР°СЏ Р±СѓРєРІР°
+		DOUBLE_DEFINITION, //Р±СѓРєРІР° РїРѕРІС‚РѕСЂРёР»Р°СЃСЊ
+		WRONG_PLANE,       //Р·Р°РґР°РЅР° РЅРµРїСЂР°РІРёР»СЊРЅР°СЏ РїР»РѕСЃРєРѕСЃС‚СЊ
 		WRONG_LETTER,
 		WRONG_VALUE,
 		NO_VALUE,
@@ -139,13 +139,13 @@ struct InterError
 	InterError(Code code, std::string description) : code(code), description(description) {};
 };
 
-//параметры координатной системы
+//РїР°СЂР°РјРµС‚СЂС‹ РєРѕРѕСЂРґРёРЅР°С‚РЅРѕР№ СЃРёСЃС‚РµРјС‹
 struct CoordSystemData
 {
-    Coords pos0;               //начало отсчёта в глобальной системе координат
+    Coords pos0;               //РЅР°С‡Р°Р»Рѕ РѕС‚СЃС‡С‘С‚Р° РІ РіР»РѕР±Р°Р»СЊРЅРѕР№ СЃРёСЃС‚РµРјРµ РєРѕРѕСЂРґРёРЅР°С‚
 };
 
-//отрисовываемые отрезки
+//РѕС‚СЂРёСЃРѕРІС‹РІР°РµРјС‹Рµ РѕС‚СЂРµР·РєРё
 struct TrajectoryPoint
 {
     bool isFast;
@@ -154,34 +154,34 @@ struct TrajectoryPoint
 
 typedef std::vector<TrajectoryPoint> Trajectory;
 //=================================================================================================
-//интерпретатор работает следующим образом
-//читается вся строка, выбираются команды и для них ищутся параметры
+//РёРЅС‚РµСЂРїСЂРµС‚Р°С‚РѕСЂ СЂР°Р±РѕС‚Р°РµС‚ СЃР»РµРґСѓСЋС‰РёРј РѕР±СЂР°Р·РѕРј
+//С‡РёС‚Р°РµС‚СЃСЏ РІСЃСЏ СЃС‚СЂРѕРєР°, РІС‹Р±РёСЂР°СЋС‚СЃСЏ РєРѕРјР°РЅРґС‹ Рё РґР»СЏ РЅРёС… РёС‰СѓС‚СЃСЏ РїР°СЂР°РјРµС‚СЂС‹
 
-//здесь переменные для выполнения команд
+//Р·РґРµСЃСЊ РїРµСЂРµРјРµРЅРЅС‹Рµ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ РєРѕРјР°РЅРґ
 struct Runner
 {
-    //параметры, нужные для кодов, которые действуют на несколько строк
-    Coords position;         //"текущая" позиция устройства в миллиметрах
-    UnitSystem units;        //текущая система единиц измерения
-    bool incremental;        //абсолютная система координат?
-    MotionMode motionMode;   //режим перемещения (линейная интерполяция и т.п.)
-    MoveMode deviceMoveMode; //режим перемещения устройства
-    Plane plane;             //текущая плоскость интерполяции
-    double feed;             //подача в мм/мин
-    double cutterRadius;     //радиус фрезы
-    double cutterLength;     //длина фрезы
-    int coordSystemNumber;   //номер выбранной координатной системы
-    CoordSystemData csd[5];  //параметры команд G54..G58
+    //РїР°СЂР°РјРµС‚СЂС‹, РЅСѓР¶РЅС‹Рµ РґР»СЏ РєРѕРґРѕРІ, РєРѕС‚РѕСЂС‹Рµ РґРµР№СЃС‚РІСѓСЋС‚ РЅР° РЅРµСЃРєРѕР»СЊРєРѕ СЃС‚СЂРѕРє
+    Coords position;         //"С‚РµРєСѓС‰Р°СЏ" РїРѕР·РёС†РёСЏ СѓСЃС‚СЂРѕР№СЃС‚РІР° РІ РјРёР»Р»РёРјРµС‚СЂР°С…
+    UnitSystem units;        //С‚РµРєСѓС‰Р°СЏ СЃРёСЃС‚РµРјР° РµРґРёРЅРёС† РёР·РјРµСЂРµРЅРёСЏ
+    bool incremental;        //Р°Р±СЃРѕР»СЋС‚РЅР°СЏ СЃРёСЃС‚РµРјР° РєРѕРѕСЂРґРёРЅР°С‚?
+    MotionMode motionMode;   //СЂРµР¶РёРј РїРµСЂРµРјРµС‰РµРЅРёСЏ (Р»РёРЅРµР№РЅР°СЏ РёРЅС‚РµСЂРїРѕР»СЏС†РёСЏ Рё С‚.Рї.)
+    MoveMode deviceMoveMode; //СЂРµР¶РёРј РїРµСЂРµРјРµС‰РµРЅРёСЏ СѓСЃС‚СЂРѕР№СЃС‚РІР°
+    Plane plane;             //С‚РµРєСѓС‰Р°СЏ РїР»РѕСЃРєРѕСЃС‚СЊ РёРЅС‚РµСЂРїРѕР»СЏС†РёРё
+    double feed;             //РїРѕРґР°С‡Р° РІ РјРј/РјРёРЅ
+    double cutterRadius;     //СЂР°РґРёСѓСЃ С„СЂРµР·С‹
+    double cutterLength;     //РґР»РёРЅР° С„СЂРµР·С‹
+    int coordSystemNumber;   //РЅРѕРјРµСЂ РІС‹Р±СЂР°РЅРЅРѕР№ РєРѕРѕСЂРґРёРЅР°С‚РЅРѕР№ СЃРёСЃС‚РµРјС‹
+    CoordSystemData csd[5];  //РїР°СЂР°РјРµС‚СЂС‹ РєРѕРјР°РЅРґ G54..G58
 
-    CannedCycle cycle;       //текущий цикл
-    bool   cycleUseLowLevel; //использовать R вместо стартовой точки
-    double cycleLowLevel;    //плоскость отвода (задаётся в R)
-    double cycleHiLevel;     //исходная плоскость задаётся в стартовом Z
-    double cycleDeepLevel;   //глубина сверления задаётся в Z
-    double cycleStep;        //глубина одного шага Q
-    int    cycleWait;        //задержка в цикле P
+    CannedCycle cycle;       //С‚РµРєСѓС‰РёР№ С†РёРєР»
+    bool   cycleUseLowLevel; //РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ R РІРјРµСЃС‚Рѕ СЃС‚Р°СЂС‚РѕРІРѕР№ С‚РѕС‡РєРё
+    double cycleLowLevel;    //РїР»РѕСЃРєРѕСЃС‚СЊ РѕС‚РІРѕРґР° (Р·Р°РґР°С‘С‚СЃСЏ РІ R)
+    double cycleHiLevel;     //РёСЃС…РѕРґРЅР°СЏ РїР»РѕСЃРєРѕСЃС‚СЊ Р·Р°РґР°С‘С‚СЃСЏ РІ СЃС‚Р°СЂС‚РѕРІРѕРј Z
+    double cycleDeepLevel;   //РіР»СѓР±РёРЅР° СЃРІРµСЂР»РµРЅРёСЏ Р·Р°РґР°С‘С‚СЃСЏ РІ Z
+    double cycleStep;        //РіР»СѓР±РёРЅР° РѕРґРЅРѕРіРѕ С€Р°РіР° Q
+    int    cycleWait;        //Р·Р°РґРµСЂР¶РєР° РІ С†РёРєР»Рµ P
 
-    Coords offset;           //отступ для ручного задания положения
+    Coords offset;           //РѕС‚СЃС‚СѓРї РґР»СЏ СЂСѓС‡РЅРѕРіРѕ Р·Р°РґР°РЅРёСЏ РїРѕР»РѕР¶РµРЅРёСЏ
 };
 
 struct GKey
@@ -191,7 +191,7 @@ struct GKey
     int position;
 };
 
-//здесь переменные для чтения команд
+//Р·РґРµСЃСЊ РїРµСЂРµРјРµРЅРЅС‹Рµ РґР»СЏ С‡С‚РµРЅРёСЏ РєРѕРјР°РЅРґ
 struct Reader 
 {
     const char *string;
@@ -199,12 +199,12 @@ struct Reader
     InterError  state;
     std::vector<GKey> codes;
 
-    InterError parse_codes(const char *frame); //читает коды и значения параметров
+    InterError parse_codes(const char *frame); //С‡РёС‚Р°РµС‚ РєРѕРґС‹ Рё Р·РЅР°С‡РµРЅРёСЏ РїР°СЂР°РјРµС‚СЂРѕРІ
 
-    bool parse_code(char &letter, double &value); //следующий код
-    void accept_whitespace(); //пропускает пробелы
-    void find_significal_symbol(); //пропускает комментарии, пробелы
-    bool parse_value(double &value); //считывает число
+    bool parse_code(char &letter, double &value); //СЃР»РµРґСѓСЋС‰РёР№ РєРѕРґ
+    void accept_whitespace(); //РїСЂРѕРїСѓСЃРєР°РµС‚ РїСЂРѕР±РµР»С‹
+    void find_significal_symbol(); //РїСЂРѕРїСѓСЃРєР°РµС‚ РєРѕРјРјРµРЅС‚Р°СЂРёРё, РїСЂРѕР±РµР»С‹
+    bool parse_value(double &value); //СЃС‡РёС‚С‹РІР°РµС‚ С‡РёСЃР»Рѕ
 };
 
 enum BitPos
@@ -233,15 +233,15 @@ struct Flags
     }
 };
 
-//параметры, прочитанные из одной строки
+//РїР°СЂР°РјРµС‚СЂС‹, РїСЂРѕС‡РёС‚Р°РЅРЅС‹Рµ РёР· РѕРґРЅРѕР№ СЃС‚СЂРѕРєРё
 struct FrameParams
 {
     static const int flags = 256/32;
 
-    double value[32];  //значения для кодов, имеющих значения
-    Flags flagValue;          //битовый массив
+    double value[32];  //Р·РЅР°С‡РµРЅРёСЏ РґР»СЏ РєРѕРґРѕРІ, РёРјРµСЋС‰РёС… Р·РЅР°С‡РµРЅРёСЏ
+    Flags flagValue;          //Р±РёС‚РѕРІС‹Р№ РјР°СЃСЃРёРІ
 
-    //int modalCodes[12]; //по числу модальных команд
+    //int modalCodes[12]; //РїРѕ С‡РёСЃР»Сѓ РјРѕРґР°Р»СЊРЅС‹С… РєРѕРјР°РЅРґ
     Flags flagModal;
 
     bool sendWait;    //G4 readed
@@ -261,52 +261,52 @@ struct FrameParams
 
     BitPos get_bit_pos(char letter);
 
-    InterError set_value(char letter, double value);   //для кодов, имеющих значение, сохраняем это значение
-    bool get_value(char letter, double &value);        //забираем считанное значение
-    bool have_value(char letter);                      //есть ли значение
+    InterError set_value(char letter, double value);   //РґР»СЏ РєРѕРґРѕРІ, РёРјРµСЋС‰РёС… Р·РЅР°С‡РµРЅРёРµ, СЃРѕС…СЂР°РЅСЏРµРј СЌС‚Рѕ Р·РЅР°С‡РµРЅРёРµ
+    bool get_value(char letter, double &value);        //Р·Р°Р±РёСЂР°РµРј СЃС‡РёС‚Р°РЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ
+    bool have_value(char letter);                      //РµСЃС‚СЊ Р»Рё Р·РЅР°С‡РµРЅРёРµ
 
 };
 
-class GCodeInterpreter  //несомненно, это интерпретатор г-кода )
+class GCodeInterpreter  //РЅРµСЃРѕРјРЅРµРЅРЅРѕ, СЌС‚Рѕ РёРЅС‚РµСЂРїСЂРµС‚Р°С‚РѕСЂ Рі-РєРѕРґР° )
 {
 public:
 
-    std::list<std::string> inputFile;     //строки входного файла
+    std::list<std::string> inputFile;     //СЃС‚СЂРѕРєРё РІС…РѕРґРЅРѕРіРѕ С„Р°Р№Р»Р°
 
-    Runner runner;            //исполнитель команд
-    Reader reader;            //парсер команд
-    FrameParams readedFrame;  //прочитанные команды одной строки
-    IRemoteDevice *remoteDevice; //устройство, которое исполняет команды
-    Trajectory *trajectory;      //или массив, в который заносятся точки пути
-    bool coordsInited;        //при начальной инициализации выставляем интерпретатору координаты устройства
+    Runner runner;            //РёСЃРїРѕР»РЅРёС‚РµР»СЊ РєРѕРјР°РЅРґ
+    Reader reader;            //РїР°СЂСЃРµСЂ РєРѕРјР°РЅРґ
+    FrameParams readedFrame;  //РїСЂРѕС‡РёС‚Р°РЅРЅС‹Рµ РєРѕРјР°РЅРґС‹ РѕРґРЅРѕР№ СЃС‚СЂРѕРєРё
+    IRemoteDevice *remoteDevice; //СѓСЃС‚СЂРѕР№СЃС‚РІРѕ, РєРѕС‚РѕСЂРѕРµ РёСЃРїРѕР»РЅСЏРµС‚ РєРѕРјР°РЅРґС‹
+    Trajectory *trajectory;      //РёР»Рё РјР°СЃСЃРёРІ, РІ РєРѕС‚РѕСЂС‹Р№ Р·Р°РЅРѕСЃСЏС‚СЃСЏ С‚РѕС‡РєРё РїСѓС‚Рё
+    bool coordsInited;        //РїСЂРё РЅР°С‡Р°Р»СЊРЅРѕР№ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё РІС‹СЃС‚Р°РІР»СЏРµРј РёРЅС‚РµСЂРїСЂРµС‚Р°С‚РѕСЂСѓ РєРѕРѕСЂРґРёРЅР°С‚С‹ СѓСЃС‚СЂРѕР№СЃС‚РІР°
 
-    void init();                            //инициализация для нового файла
-    bool read_file(const char *name);             //запоминает строки текстового файла
-    void execute_file(Trajectory *trajectory);                    //исполняет файл
-	void execute_line(std::string line);    //исполняет одну строку
-    InterError execute_frame(const char *frame);    //выполнение строки
-    InterError make_new_state();            //чтение команд из строки
-    InterError run_modal_groups();          //запуск команд
-    ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
-    void set_move_mode(MoveMode mode);      //изменение режима перемещения
-    void local_deform(Coords &coords);      //преобразование масштаба, поворот в локальной системе координат
-    void to_global(Coords &coords);         //сдвиг в глобальные координаты
-    void to_local(Coords &coords);          //сдвиг в локальные координаты
-    coord to_mm(coord value);               //переводит из текущих единиц в мм
+    void init();                            //РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РґР»СЏ РЅРѕРІРѕРіРѕ С„Р°Р№Р»Р°
+    bool read_file(const char *name);             //Р·Р°РїРѕРјРёРЅР°РµС‚ СЃС‚СЂРѕРєРё С‚РµРєСЃС‚РѕРІРѕРіРѕ С„Р°Р№Р»Р°
+    void execute_file(Trajectory *trajectory);                    //РёСЃРїРѕР»РЅСЏРµС‚ С„Р°Р№Р»
+	void execute_line(std::string line);    //РёСЃРїРѕР»РЅСЏРµС‚ РѕРґРЅСѓ СЃС‚СЂРѕРєСѓ
+    InterError execute_frame(const char *frame);    //РІС‹РїРѕР»РЅРµРЅРёРµ СЃС‚СЂРѕРєРё
+    InterError make_new_state();            //С‡С‚РµРЅРёРµ РєРѕРјР°РЅРґ РёР· СЃС‚СЂРѕРєРё
+    InterError run_modal_groups();          //Р·Р°РїСѓСЃРє РєРѕРјР°РЅРґ
+    ModalGroup get_modal_group(char letter, double value); //РІРѕР·РІСЂР°С‰Р°РµС‚ РјРѕРґР°Р»СЊРЅСѓСЋ РіСЂСѓРїРїСѓ РєРѕРјР°РЅРґС‹
+    void set_move_mode(MoveMode mode);      //РёР·РјРµРЅРµРЅРёРµ СЂРµР¶РёРјР° РїРµСЂРµРјРµС‰РµРЅРёСЏ
+    void local_deform(Coords &coords);      //РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РјР°СЃС€С‚Р°Р±Р°, РїРѕРІРѕСЂРѕС‚ РІ Р»РѕРєР°Р»СЊРЅРѕР№ СЃРёСЃС‚РµРјРµ РєРѕРѕСЂРґРёРЅР°С‚
+    void to_global(Coords &coords);         //СЃРґРІРёРі РІ РіР»РѕР±Р°Р»СЊРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
+    void to_local(Coords &coords);          //СЃРґРІРёРі РІ Р»РѕРєР°Р»СЊРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
+    coord to_mm(coord value);               //РїРµСЂРµРІРѕРґРёС‚ РёР· С‚РµРєСѓС‰РёС… РµРґРёРЅРёС† РІ РјРј
     Coords to_mm(Coords value);
-    void move_to(Coords position);          //линейное перемещение
-    bool is_screw(Coords center);           //проверяет, что траектория будет винтовой
+    void move_to(Coords position);          //Р»РёРЅРµР№РЅРѕРµ РїРµСЂРµРјРµС‰РµРЅРёРµ
+    bool is_screw(Coords center);           //РїСЂРѕРІРµСЂСЏРµС‚, С‡С‚Рѕ С‚СЂР°РµРєС‚РѕСЂРёСЏ Р±СѓРґРµС‚ РІРёРЅС‚РѕРІРѕР№
     void draw_screw(Coords center, double radius, double ellipseCoef,
                     double angleStart, double angleMax, double angleToHeight,
-                    int ix, int iy, int iz);//рисует винтовую линию
+                    int ix, int iy, int iz);//СЂРёСЃСѓРµС‚ РІРёРЅС‚РѕРІСѓСЋ Р»РёРЅРёСЋ
 
-    bool get_readed_coord(char letter, coord &value); //сразу переводит единицы измерения
-    bool get_new_position(Coords &pos);  //чтение новых координат с учётом модальных кодов
+    bool get_readed_coord(char letter, coord &value); //СЃСЂР°Р·Сѓ РїРµСЂРµРІРѕРґРёС‚ РµРґРёРЅРёС†С‹ РёР·РјРµСЂРµРЅРёСЏ
+    bool get_new_position(Coords &pos);  //С‡С‚РµРЅРёРµ РЅРѕРІС‹С… РєРѕРѕСЂРґРёРЅР°С‚ СЃ СѓС‡С‘С‚РѕРј РјРѕРґР°Р»СЊРЅС‹С… РєРѕРґРѕРІ
 
-    void move(int coordNumber, coord add, bool fast); //ручное перемещение
+    void move(int coordNumber, coord add, bool fast); //СЂСѓС‡РЅРѕРµ РїРµСЂРµРјРµС‰РµРЅРёРµ
 
 
-    //функции чтения и исполнения команд с параметрами
+    //С„СѓРЅРєС†РёРё С‡С‚РµРЅРёСЏ Рё РёСЃРїРѕР»РЅРµРЅРёСЏ РєРѕРјР°РЅРґ СЃ РїР°СЂР°РјРµС‚СЂР°РјРё
     void run_G0(); //XYZ
     void run_G1(); //XYZ F
     void run_G2(); //XYZ IJK

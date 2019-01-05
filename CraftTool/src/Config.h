@@ -1,4 +1,4 @@
-#include <map>
+п»ї#include <map>
 #include <string>
 #include <list>
 
@@ -19,13 +19,13 @@ public:
 private:
     struct KeyData
     {
-        int valueStart;    //первый символ значения
-        int valueEnd;      //последний символ значения
-        std::string record;//прочитанная из файла строка
+        int valueStart;    //РїРµСЂРІС‹Р№ СЃРёРјРІРѕР» Р·РЅР°С‡РµРЅРёСЏ
+        int valueEnd;      //РїРѕСЃР»РµРґРЅРёР№ СЃРёРјРІРѕР» Р·РЅР°С‡РµРЅРёСЏ
+        std::string record;//РїСЂРѕС‡РёС‚Р°РЅРЅР°СЏ РёР· С„Р°Р№Р»Р° СЃС‚СЂРѕРєР°
         KeyData():valueStart(0), valueEnd(0){}
         std::string get_value();
     };
 
-    std::list<KeyData> records; //все строки файла
+    std::list<KeyData> records; //РІСЃРµ СЃС‚СЂРѕРєРё С„Р°Р№Р»Р°
     std::map<std::string, std::list<KeyData>::iterator> positions;
 };

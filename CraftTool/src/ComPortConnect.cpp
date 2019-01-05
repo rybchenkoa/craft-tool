@@ -1,6 +1,6 @@
-#include "ComPortConnect.h"
+п»ї#include "ComPortConnect.h"
 #include "log.h"
-//здесь описана связь по com порту пакетами
+//Р·РґРµСЃСЊ РѕРїРёСЃР°РЅР° СЃРІСЏР·СЊ РїРѕ com РїРѕСЂС‚Сѓ РїР°РєРµС‚Р°РјРё
 
 int ComPortConnect::init_port(int portNumber)
 {
@@ -155,9 +155,9 @@ void ComPortConnect::process_bytes(char *buffer, int count)
 				receiveState = STATES_NORMAL;
                 switch (data)
                 {
-                    case OP_CODE:                 //в пересылаемом пакете случайно был байт '\'
+                    case OP_CODE:                 //РІ РїРµСЂРµСЃС‹Р»Р°РµРјРѕРј РїР°РєРµС‚Рµ СЃР»СѓС‡Р°Р№РЅРѕ Р±С‹Р» Р±Р°Р№С‚ '\'
                         if(receivedSize < RECEIVE_SIZE)
-                            receiveBuffer[receivedSize++] = data;   //и мы его переслали таким образом
+                            receiveBuffer[receivedSize++] = data;   //Рё РјС‹ РµРіРѕ РїРµСЂРµСЃР»Р°Р»Рё С‚Р°РєРёРј РѕР±СЂР°Р·РѕРј
                         else
                         {
                             receivedSize = 0;
@@ -166,7 +166,7 @@ void ComPortConnect::process_bytes(char *buffer, int count)
                         break;
 
                     case OP_STOP:
-                        on_packet_received(receiveBuffer, receivedSize); //пакет наконец принят
+                        on_packet_received(receiveBuffer, receivedSize); //РїР°РєРµС‚ РЅР°РєРѕРЅРµС† РїСЂРёРЅСЏС‚
 						receivedSize = 0;
                         break;
 
@@ -208,12 +208,12 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
 
         if (eventMask & EV_ERR)
         {
-            DWORD ErrorMask = 0; // сюда будет занесен код ошибки порта, если таковая была
+            DWORD ErrorMask = 0; // СЃСЋРґР° Р±СѓРґРµС‚ Р·Р°РЅРµСЃРµРЅ РєРѕРґ РѕС€РёР±РєРё РїРѕСЂС‚Р°, РµСЃР»Рё С‚Р°РєРѕРІР°СЏ Р±С‹Р»Р°
             COMSTAT CStat;
 
             ClearCommError(_this->hCom, &ErrorMask, &CStat);
 
-            //DWORD quelen = CStat.cbInQue; //размер буфера порта
+            //DWORD quelen = CStat.cbInQue; //СЂР°Р·РјРµСЂ Р±СѓС„РµСЂР° РїРѕСЂС‚Р°
         }
         if (eventMask & EV_RXCHAR)
         {
@@ -224,7 +224,7 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
                 retcode = ReadFile(_this->hCom, inData, bufferSize, &readed, &_this->ovRead);
 //receiveBPS += readed;
 
-                if( retcode == 0 && GetLastError() == ERROR_IO_PENDING ) //не успели прочитать
+                if( retcode == 0 && GetLastError() == ERROR_IO_PENDING ) //РЅРµ СѓСЃРїРµР»Рё РїСЂРѕС‡РёС‚Р°С‚СЊ
                 {
                     WaitForSingleObject(_this->ovRead.hEvent, INFINITE);
                     retcode = GetOverlappedResult(_this->hCom, &_this->ovRead, &readed, FALSE) ;
@@ -232,15 +232,15 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
 
 _this->receiveBPS += readed;
 
-                if (readed > 0) //если прочитали данные
+                if (readed > 0) //РµСЃР»Рё РїСЂРѕС‡РёС‚Р°Р»Рё РґР°РЅРЅС‹Рµ
                 {
-                    //printf("%d байт прочитано: '%s'\n", readed, inData);
+                    //printf("%d Р±Р°Р№С‚ РїСЂРѕС‡РёС‚Р°РЅРѕ: '%s'\n", readed, inData);
                     //printf(inData);
                     _this->process_bytes(inData, readed);
                 }
                 else
                     break;
-                    //printf("не удалось прочитать, ошибка %d\n", GetLastError());
+                    //printf("РЅРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ, РѕС€РёР±РєР° %d\n", GetLastError());
                 //break;
             }
         }
@@ -278,6 +278,6 @@ ComPortConnect::ComPortConnect(void)
 ComPortConnect::~ComPortConnect(void)
 {
     //WaitForSingleObject(hThread)
-    TerminateThread(hThread, 0);   //если прервать, когда не до конца доработала обработка пакета, что будет?
+    TerminateThread(hThread, 0);   //РµСЃР»Рё РїСЂРµСЂРІР°С‚СЊ, РєРѕРіРґР° РЅРµ РґРѕ РєРѕРЅС†Р° РґРѕСЂР°Р±РѕС‚Р°Р»Р° РѕР±СЂР°Р±РѕС‚РєР° РїР°РєРµС‚Р°, С‡С‚Рѕ Р±СѓРґРµС‚?
     CloseHandle(hCom);
 }

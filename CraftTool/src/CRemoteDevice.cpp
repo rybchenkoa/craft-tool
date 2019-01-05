@@ -1,4 +1,4 @@
-#ifndef NOMINMAX
+п»ї#ifndef NOMINMAX
 #define NOMINMAX
 #endif
 #include <math.h>
@@ -35,28 +35,28 @@ struct PacketQueued
 {
     int line;
     int timestamp;
-    int sendCount;// 0 - не послан
+    int sendCount;// 0 - РЅРµ РїРѕСЃР»Р°РЅ
     std::shared_ptr<PacketCommon> data;
 };
 
 //====================================================================================================
-// обработка пересылки пакетов
+// РѕР±СЂР°Р±РѕС‚РєР° РїРµСЂРµСЃС‹Р»РєРё РїР°РєРµС‚РѕРІ
 struct CRemoteDevice::ConnectData
 {
-    int NUMBER;    //номер очереди команд
-    PacketCount packetNumber; //номер очередного добавляемого в очередь пакета
-    std::deque<PacketQueued> commands; //очередь команд
+    int NUMBER;    //РЅРѕРјРµСЂ РѕС‡РµСЂРµРґРё РєРѕРјР°РЅРґ
+    PacketCount packetNumber; //РЅРѕРјРµСЂ РѕС‡РµСЂРµРґРЅРѕРіРѕ РґРѕР±Р°РІР»СЏРµРјРѕРіРѕ РІ РѕС‡РµСЂРµРґСЊ РїР°РєРµС‚Р°
+    std::deque<PacketQueued> commands; //РѕС‡РµСЂРµРґСЊ РєРѕРјР°РЅРґ
 
-    int BUFFER_LEN;  //длина буфера посылки в пакетах
-    int resendTime; //время ожидания прихода пакетов
+    int BUFFER_LEN;  //РґР»РёРЅР° Р±СѓС„РµСЂР° РїРѕСЃС‹Р»РєРё РІ РїР°РєРµС‚Р°С…
+    int resendTime; //РІСЂРµРјСЏ РѕР¶РёРґР°РЅРёСЏ РїСЂРёС…РѕРґР° РїР°РєРµС‚РѕРІ
     int RESEND_TIME_MAX;
     int RESEND_TIME_MIN;
 
-    //посланные устройству пакеты, которые ещё не исполнены
-    //соответствует концу очереди команд
-    bool keepSent; //запоминать ли принятые устройством пакеты
+    //РїРѕСЃР»Р°РЅРЅС‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІСѓ РїР°РєРµС‚С‹, РєРѕС‚РѕСЂС‹Рµ РµС‰С‘ РЅРµ РёСЃРїРѕР»РЅРµРЅС‹
+    //СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ РєРѕРЅС†Сѓ РѕС‡РµСЂРµРґРё РєРѕРјР°РЅРґ
+    bool keepSent; //Р·Р°РїРѕРјРёРЅР°С‚СЊ Р»Рё РїСЂРёРЅСЏС‚С‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј РїР°РєРµС‚С‹
     std::deque<PacketQueued> forwarded;
-    int missedSends; //потеряно пакетов по таймауту
+    int missedSends; //РїРѕС‚РµСЂСЏРЅРѕ РїР°РєРµС‚РѕРІ РїРѕ С‚Р°Р№РјР°СѓС‚Сѓ
     bool connected;
     CRemoteDevice *parent;
 
@@ -124,7 +124,7 @@ struct CRemoteDevice::ConnectData
     }
 
     bool packet_received(PacketReceived *p)
-    {//устройство приняло посланный пакет
+    {//СѓСЃС‚СЂРѕР№СЃС‚РІРѕ РїСЂРёРЅСЏР»Рѕ РїРѕСЃР»Р°РЅРЅС‹Р№ РїР°РєРµС‚
         if(commands.empty())
             return false;
         int offset = PacketCount(p->packetNumber - commands.front().data->packetNumber);
@@ -157,7 +157,7 @@ struct CRemoteDevice::ConnectData
 
         it->sendCount = -1;
         //log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
-        //выкидываем сплошной кусок отправленных пакетов
+        //РІС‹РєРёРґС‹РІР°РµРј СЃРїР»РѕС€РЅРѕР№ РєСѓСЃРѕРє РѕС‚РїСЂР°РІР»РµРЅРЅС‹С… РїР°РєРµС‚РѕРІ
         while(!commands.empty())
         {
             auto it = commands.begin();
@@ -351,20 +351,20 @@ void CRemoteDevice::set_move_mode(MoveMode mode)
         return;
     moveMode = mode;
 
-	if (mode == MoveMode_LINEAR) //если едем на G1, то не надо замедляться перед G0
-		set_fract(); //а при переходе с быстрых перемещений на силовые скорость надо сбросить заранее
+	if (mode == MoveMode_LINEAR) //РµСЃР»Рё РµРґРµРј РЅР° G1, С‚Рѕ РЅРµ РЅР°РґРѕ Р·Р°РјРµРґР»СЏС‚СЊСЃСЏ РїРµСЂРµРґ G0
+		set_fract(); //Р° РїСЂРё РїРµСЂРµС…РѕРґРµ СЃ Р±С‹СЃС‚СЂС‹С… РїРµСЂРµРјРµС‰РµРЅРёР№ РЅР° СЃРёР»РѕРІС‹Рµ СЃРєРѕСЂРѕСЃС‚СЊ РЅР°РґРѕ СЃР±СЂРѕСЃРёС‚СЊ Р·Р°СЂР°РЅРµРµ
 
 	if (mode == MoveMode_FAST)
 		mode = MoveMode_LINEAR;
 
     auto packet = new PacketInterpolationMode;
-    packet->command = DeviceCommand_MOVE_MODE; //сменить режим перемещения
-    packet->mode = mode; //новый режим
+    packet->command = DeviceCommand_MOVE_MODE; //СЃРјРµРЅРёС‚СЊ СЂРµР¶РёРј РїРµСЂРµРјРµС‰РµРЅРёСЏ
+    packet->mode = mode; //РЅРѕРІС‹Р№ СЂРµР¶РёРј
     push_packet_common(packet);
 }
 
 //============================================================
-//оповещение о конце траектории
+//РѕРїРѕРІРµС‰РµРЅРёРµ Рѕ РєРѕРЅС†Рµ С‚СЂР°РµРєС‚РѕСЂРёРё
 void CRemoteDevice::set_fract()
 {
     if(fractSended)
@@ -382,34 +382,34 @@ void CRemoteDevice::set_position(Coords posIn)
 {
     //emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
 
-    if(lastPosition.r[0] == HUGE_VAL) //если шлём в первый раз
-        lastPosition = currentCoords; //то последними посланными считаем текущие реальные
+    if(lastPosition.r[0] == HUGE_VAL) //РµСЃР»Рё С€Р»С‘Рј РІ РїРµСЂРІС‹Р№ СЂР°Р·
+        lastPosition = currentCoords; //С‚Рѕ РїРѕСЃР»РµРґРЅРёРјРё РїРѕСЃР»Р°РЅРЅС‹РјРё СЃС‡РёС‚Р°РµРј С‚РµРєСѓС‰РёРµ СЂРµР°Р»СЊРЅС‹Рµ
 
     auto packet = new PacketMove;
-    packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
+    packet->command = DeviceCommand_MOVE; //РґРІРёРіР°С‚СЊСЃСЏ РІ Р·Р°РґР°РЅРЅСѓСЋ С‚РѕС‡РєСѓ
 
 	Coords pos = posIn;
-	for (int i = 0; i < MAX_AXES; ++i) //заполняем подчиненные оси
+	for (int i = 0; i < MAX_AXES; ++i) //Р·Р°РїРѕР»РЅСЏРµРј РїРѕРґС‡РёРЅРµРЅРЅС‹Рµ РѕСЃРё
 		if (slaveAxes[i] >= 0)
 			pos.r[slaveAxes[i]] = pos.r[i];
 
-	for (int i = 0; i < MAX_AXES; ++i) //инвертируем, если нужно
+	for (int i = 0; i < MAX_AXES; ++i) //РёРЅРІРµСЂС‚РёСЂСѓРµРј, РµСЃР»Рё РЅСѓР¶РЅРѕ
 		if (invertAxe[i])
 			pos.r[i] *= -1;
 
-	//сначала задаем используемые координаты
+	//СЃРЅР°С‡Р°Р»Р° Р·Р°РґР°РµРј РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
     for (int i = 0; i < MAX_AXES; ++i)
 	{
 		int index = toDeviceIndex[i];
 		if (usedAxes[i])
-			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
+			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //РїРµСЂРµРІРѕРґРёРј РјРј РІ С€Р°РіРё
 		else
 			packet->coord[index] = 0;
 	}
 
     Coords delta;
-    int referenceLen = 0; //максимальное число шагов по координате
-    int reference = 0;    //номер самой длинной по шагам координаты
+    int referenceLen = 0; //РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ С‡РёСЃР»Рѕ С€Р°РіРѕРІ РїРѕ РєРѕРѕСЂРґРёРЅР°С‚Рµ
+    int reference = 0;    //РЅРѕРјРµСЂ СЃР°РјРѕР№ РґР»РёРЅРЅРѕР№ РїРѕ С€Р°РіР°Рј РєРѕРѕСЂРґРёРЅР°С‚С‹
 
     for(int i = 0; i < MAX_AXES; ++i)
     {
@@ -438,24 +438,24 @@ void CRemoteDevice::set_position(Coords posIn)
     }
 
     double length = 0;
-    for(int i = 0; i < NUM_COORDS; ++i) //TODO для поворотной оси неизвестно как считать
+    for(int i = 0; i < NUM_COORDS; ++i) //TODO РґР»СЏ РїРѕРІРѕСЂРѕС‚РЅРѕР№ РѕСЃРё РЅРµРёР·РІРµСЃС‚РЅРѕ РєР°Рє СЃС‡РёС‚Р°С‚СЊ
         length += pow2(delta.r[i]);
 
     length = sqrt(length);
 
-    double lengths[NUM_COORDS]; //у подчиненных осей те же параметры, поэтому смотрим только на главные
+    double lengths[NUM_COORDS]; //Сѓ РїРѕРґС‡РёРЅРµРЅРЅС‹С… РѕСЃРµР№ С‚Рµ Р¶Рµ РїР°СЂР°РјРµС‚СЂС‹, РїРѕСЌС‚РѕРјСѓ СЃРјРѕС‚СЂРёРј С‚РѕР»СЊРєРѕ РЅР° РіР»Р°РІРЅС‹Рµ
     for(int i = 0; i < NUM_COORDS; ++i)
         lengths[i] = fabs(delta.r[i]);
 
     packet->refCoord = toDeviceIndex[reference];
     packet->length = float(length);
-    packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
+    packet->uLength = length * 1000; //РІ РјРёРєСЂРѕРЅР°С…, С‡С‚РѕР±С‹ С…РІР°С‚РёР»Рѕ СЂР°Р·СЂСЏРґРѕРІ Рё С‚РѕС‡РЅРѕСЃС‚Рё
 
     if(lastDelta.r[0] != HUGE_VAL)
     {
         double scalar = 0;
         double scalar1 = 0, scalar2 = 0;
-        for(int i = 0; i < NUM_COORDS; ++i) //поворотные оси тоже учитываем, так как на них тоже действует физика
+        for(int i = 0; i < NUM_COORDS; ++i) //РїРѕРІРѕСЂРѕС‚РЅС‹Рµ РѕСЃРё С‚РѕР¶Рµ СѓС‡РёС‚С‹РІР°РµРј, С‚Р°Рє РєР°Рє РЅР° РЅРёС… С‚РѕР¶Рµ РґРµР№СЃС‚РІСѓРµС‚ С„РёР·РёРєР°
         {
             scalar += lastDelta.r[i] * delta.r[i];
             scalar1 += delta.r[i] * delta.r[i];
@@ -463,13 +463,13 @@ void CRemoteDevice::set_position(Coords posIn)
         }
         double cosA = scalar / sqrt(scalar1 * scalar2);
 
-        if(cosA < 1 - fractValue) //если направление движения сильно изменилось
+        if(cosA < 1 - fractValue) //РµСЃР»Рё РЅР°РїСЂР°РІР»РµРЅРёРµ РґРІРёР¶РµРЅРёСЏ СЃРёР»СЊРЅРѕ РёР·РјРµРЅРёР»РѕСЃСЊ
             set_fract();
     }
 
     lastDelta = delta;
 
-    //находим максимальное время движения по отдельной координате
+    //РЅР°С…РѕРґРёРј РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РІСЂРµРјСЏ РґРІРёР¶РµРЅРёСЏ РїРѕ РѕС‚РґРµР»СЊРЅРѕР№ РєРѕРѕСЂРґРёРЅР°С‚Рµ
     double timeMove = lengths[0] / velocity[0];
     for(int i = 1; i < NUM_COORDS; ++i)
     {
@@ -477,16 +477,16 @@ void CRemoteDevice::set_position(Coords posIn)
         if(timeMove < time)
             timeMove = time;
     }
-    double velValue = length / timeMove; //максимальная скорость движения в заданном направлении
+    double velValue = length / timeMove; //РјР°РєСЃРёРјР°Р»СЊРЅР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ РґРІРёР¶РµРЅРёСЏ РІ Р·Р°РґР°РЅРЅРѕРј РЅР°РїСЂР°РІР»РµРЅРёРё
 
-    //ограничиваем скорость подачей
+    //РѕРіСЂР°РЅРёС‡РёРІР°РµРј СЃРєРѕСЂРѕСЃС‚СЊ РїРѕРґР°С‡РµР№
     if(moveMode == MoveMode_LINEAR)
         if(velValue > feed)
             velValue = feed;
 
     packet->velocity = float(velValue / secToTick);
 
-    //находим максимальное ускорение по опорной координате
+    //РЅР°С…РѕРґРёРј РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ СѓСЃРєРѕСЂРµРЅРёРµ РїРѕ РѕРїРѕСЂРЅРѕР№ РєРѕРѕСЂРґРёРЅР°С‚Рµ
     timeMove = lengths[0] / acceleration[0];
     for(int i = 1; i < NUM_COORDS; ++i)
     {
@@ -494,7 +494,7 @@ void CRemoteDevice::set_position(Coords posIn)
         if(timeMove < time)
             timeMove = time;
     }
-    double accValue = length / timeMove; //максимальное ускорение в заданном направлении
+    double accValue = length / timeMove; //РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ СѓСЃРєРѕСЂРµРЅРёРµ РІ Р·Р°РґР°РЅРЅРѕРј РЅР°РїСЂР°РІР»РµРЅРёРё
     packet->acceleration = float(accValue / (secToTick * secToTick));
 
     //log_message("   GO TO %d, %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2], packet->coord[3]);
@@ -511,12 +511,12 @@ void CRemoteDevice::wait(double time)
 
     auto packet = new PacketWait;
     packet->command = DeviceCommand_WAIT;
-    packet->delay = int(time*1000); //задержка
+    packet->delay = int(time*1000); //Р·Р°РґРµСЂР¶РєР°
     push_packet_common(packet);
 }
 
 //============================================================
-//задает номера концевиков всех осей
+//Р·Р°РґР°РµС‚ РЅРѕРјРµСЂР° РєРѕРЅС†РµРІРёРєРѕРІ РІСЃРµС… РѕСЃРµР№
 void CRemoteDevice::set_switches(SwitchGroup group, int pins[MAX_AXES])
 {
 	auto packet = new PacketSetSwitches;
@@ -529,25 +529,25 @@ void CRemoteDevice::set_switches(SwitchGroup group, int pins[MAX_AXES])
 }
 
 //============================================================
-//записывает аппаратные координаты
+//Р·Р°РїРёСЃС‹РІР°РµС‚ Р°РїРїР°СЂР°С‚РЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
 void CRemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 {
 	auto packet = new PacketSetCoords;
 	packet->command = DeviceCommand_SET_COORDS;
 
 	Coords pos = posIn;
-	for (int i = 0; i < MAX_AXES; ++i) //заполняем подчиненные оси
+	for (int i = 0; i < MAX_AXES; ++i) //Р·Р°РїРѕР»РЅСЏРµРј РїРѕРґС‡РёРЅРµРЅРЅС‹Рµ РѕСЃРё
 		if (slaveAxes[i] >= 0)
 			pos.r[slaveAxes[i]] = pos.r[i];
 
 	int usedBit = 0;
-	//сначала задаем используемые координаты
+	//СЃРЅР°С‡Р°Р»Р° Р·Р°РґР°РµРј РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹
     for (int i = 0; i < MAX_AXES; ++i)
 	{
 		int index = toDeviceIndex[i];
 		if (usedAxes[i])
 		{
-			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
+			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //РїРµСЂРµРІРѕРґРёРј РјРј РІ С€Р°РіРё
 			lastPosition.r[i] = pos.r[i];
 		}
 		else
@@ -565,11 +565,11 @@ void CRemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 }
 
 //============================================================
-//мм/сек, мм/сек^2
+//РјРј/СЃРµРє, РјРј/СЃРµРє^2
 void CRemoteDevice::set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])
 {
     auto packet = new PacketSetVelAcc;
-    packet->command = DeviceCommand_SET_VEL_ACC; //задать макс скорость и ускорение
+    packet->command = DeviceCommand_SET_VEL_ACC; //Р·Р°РґР°С‚СЊ РјР°РєСЃ СЃРєРѕСЂРѕСЃС‚СЊ Рё СѓСЃРєРѕСЂРµРЅРёРµ
     for(int i = 0; i < MAX_AXES; ++i)
     {
         packet->maxVelocity[toDeviceIndex[i]] = float(velocity[i]);
@@ -579,7 +579,7 @@ void CRemoteDevice::set_velocity_and_acceleration(double velocity[MAX_AXES], dou
 }
 
 //============================================================
-//мм/сек
+//РјРј/СЃРµРє
 void CRemoteDevice::set_feed(double feed)
 {
     set_fract();
@@ -597,7 +597,7 @@ void CRemoteDevice::set_feed_multiplier(double multiplier)
     auto packet = new PacketSetFeedMult;
     packet->command = DeviceCommand_SET_FEED_MULT;
     if(multiplier < 1e-3)
-        multiplier = 1e-3; //защита от глюков
+        multiplier = 1e-3; //Р·Р°С‰РёС‚Р° РѕС‚ РіР»СЋРєРѕРІ
     packet->feedMult = float(multiplier);
     push_packet_modal(packet);
 }
@@ -606,7 +606,7 @@ void CRemoteDevice::set_feed_multiplier(double multiplier)
 void CRemoteDevice::set_step_size(double stepSize[MAX_AXES])
 {
     auto packet = new PacketSetStepSize;
-    packet->command = DeviceCommand_SET_STEP_SIZE; //задать макс скорость и ускорение
+    packet->command = DeviceCommand_SET_STEP_SIZE; //Р·Р°РґР°С‚СЊ РјР°РєСЃ СЃРєРѕСЂРѕСЃС‚СЊ Рё СѓСЃРєРѕСЂРµРЅРёРµ
     for(int i = 0; i < MAX_AXES; ++i)
     {
         packet->stepSize[toDeviceIndex[i]] = float(stepSize[i]);
@@ -701,14 +701,14 @@ bool read_double(const std::string &str, int &pos, double &value)
 //============================================================
 void CRemoteDevice::homing()
 {
-    //строка формата [[координата сдвиг ...], ...]
+    //СЃС‚СЂРѕРєР° С„РѕСЂРјР°С‚Р° [[РєРѕРѕСЂРґРёРЅР°С‚Р° СЃРґРІРёРі ...], ...]
 	std::vector<std::string> moves = split(homingScript, ',');
-	double feed = 600; //по умолчанию сантиметр в секунду
+	double feed = 600; //РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ СЃР°РЅС‚РёРјРµС‚СЂ РІ СЃРµРєСѓРЅРґСѓ
 	auto lastMode = moveMode;
 	set_move_mode(MoveMode_HOME);
 	for (auto str = moves.begin(); str != moves.end(); ++str)
 	{
-		Coords pos; //по умолчанию везде смещения нулевые
+		Coords pos; //РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РІРµР·РґРµ СЃРјРµС‰РµРЅРёСЏ РЅСѓР»РµРІС‹Рµ
 		for (int i = 0; i < str->length(); )
 		{
 			char symbol = (*str)[i++];
@@ -717,14 +717,14 @@ void CRemoteDevice::homing()
 
 			int coordNum = letter_to_axe(symbol);
 			if (coordNum != -1)
-				if (!read_double(*str, i, pos.r[coordNum])) //координаты задаются инкрементально
+				if (!read_double(*str, i, pos.r[coordNum])) //РєРѕРѕСЂРґРёРЅР°С‚С‹ Р·Р°РґР°СЋС‚СЃСЏ РёРЅРєСЂРµРјРµРЅС‚Р°Р»СЊРЅРѕ
 				{
 					log_warning("invalid homing string");
 					return;
 				}
 
 			if (symbol == 'f' || symbol == 'F')
-				if (!read_double(*str, i, feed) || feed < 0) //мм/мин
+				if (!read_double(*str, i, feed) || feed < 0) //РјРј/РјРёРЅ
 				{
 					log_warning("invalid homing string");
 					return;
@@ -768,7 +768,7 @@ void CRemoteDevice::init()
         return value;
     };
 
-	std::string coordList = try_get_string(CFG_USED_COORDS); //читаем используемые интерпретатором координаты
+	std::string coordList = try_get_string(CFG_USED_COORDS); //С‡РёС‚Р°РµРј РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ РёРЅС‚РµСЂРїСЂРµС‚Р°С‚РѕСЂРѕРј РєРѕРѕСЂРґРёРЅР°С‚С‹
 
 	for (int i = 0; i < MAX_AXES; ++i)
 		usedCoords[i] = false;
@@ -782,7 +782,7 @@ void CRemoteDevice::init()
 	}
 	memcpy(usedAxes, usedCoords, sizeof(usedCoords));
 
-	//читаем подчиненные оси
+	//С‡РёС‚Р°РµРј РїРѕРґС‡РёРЅРµРЅРЅС‹Рµ РѕСЃРё
 	std::string slave = CFG_SLAVE;
 	std::string AXE_LIST = "XYZAB";
 	for (int i = 0; i < AXE_LIST.size(); ++i)
@@ -794,19 +794,19 @@ void CRemoteDevice::init()
 			if (value.length() != 1 || numAxe == -1 || usedAxes[numAxe] || !usedCoords[i])
 				throw("invalid value of '" + value + "' in config: '" + value + "'");
 			
-			usedAxes[numAxe] = true; //пишем используемые станком оси
+			usedAxes[numAxe] = true; //РїРёС€РµРј РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ СЃС‚Р°РЅРєРѕРј РѕСЃРё
 			slaveAxes[i] = numAxe;
 		}
 		else
 			slaveAxes[i] = -1;
 	}
 
-	//читаем параметры дискретизации
+	//С‡РёС‚Р°РµРј РїР°СЂР°РјРµС‚СЂС‹ РґРёСЃРєСЂРµС‚РёР·Р°С†РёРё
     secToTick = 168000000.0;
 	double stepSize[MAX_AXES];
-	minStep = 1000000; //километровых шагов уж точно ни у кого не будет
+	minStep = 1000000; //РєРёР»РѕРјРµС‚СЂРѕРІС‹С… С€Р°РіРѕРІ СѓР¶ С‚РѕС‡РЅРѕ РЅРё Сѓ РєРѕРіРѕ РЅРµ Р±СѓРґРµС‚
 	for (int i = 0; i < MAX_AXES; ++i)
-		if (usedAxes[i]) //дискретизация нужна для всех осей
+		if (usedAxes[i]) //РґРёСЃРєСЂРµС‚РёР·Р°С†РёСЏ РЅСѓР¶РЅР° РґР»СЏ РІСЃРµС… РѕСЃРµР№
 		{
 			scale[i] = try_get_float((std::string(CFG_STEPS_PER_MM) + AXE_LIST[i]).c_str());
 			stepSize[i] = 1 / scale[i];
@@ -819,9 +819,9 @@ void CRemoteDevice::init()
 		}
 
 	fractValue = try_get_float(CFG_FRACT_VALUE);
-	//читаем скорости и ускорения
+	//С‡РёС‚Р°РµРј СЃРєРѕСЂРѕСЃС‚Рё Рё СѓСЃРєРѕСЂРµРЅРёСЏ
 	for (int i = 0; i < MAX_AXES; ++i)
-		if (usedCoords[i]) //ограничение скорости надо только для ведущих осей
+		if (usedCoords[i]) //РѕРіСЂР°РЅРёС‡РµРЅРёРµ СЃРєРѕСЂРѕСЃС‚Рё РЅР°РґРѕ С‚РѕР»СЊРєРѕ РґР»СЏ РІРµРґСѓС‰РёС… РѕСЃРµР№
 		{
 			velocity[i] = try_get_float((std::string(CFG_MAX_VELOCITY) + AXE_LIST[i]).c_str()) / 60;
 			acceleration[i] = try_get_float((std::string(CFG_MAX_ACCELERATION) + AXE_LIST[i]).c_str());
@@ -833,7 +833,7 @@ void CRemoteDevice::init()
 		}
 
 	for (int i = 0; i < MAX_AXES; ++i)
-		if (slaveAxes[i] >= 0) //для ведомых осей задаем скорость на основе числа шагов
+		if (slaveAxes[i] >= 0) //РґР»СЏ РІРµРґРѕРјС‹С… РѕСЃРµР№ Р·Р°РґР°РµРј СЃРєРѕСЂРѕСЃС‚СЊ РЅР° РѕСЃРЅРѕРІРµ С‡РёСЃР»Р° С€Р°РіРѕРІ
 		{
 			int slave = slaveAxes[i];
 			double reScale = scale[slave] / scale[i];
@@ -843,7 +843,7 @@ void CRemoteDevice::init()
 
     double feed = 10.0;
 
-	//назначаем группы выводов, которые будут генерировать сигнал
+	//РЅР°Р·РЅР°С‡Р°РµРј РіСЂСѓРїРїС‹ РІС‹РІРѕРґРѕРІ, РєРѕС‚РѕСЂС‹Рµ Р±СѓРґСѓС‚ РіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ СЃРёРіРЅР°Р»
 	std::string pinsMap = try_get_string(CFG_AXE_MAP);
 	std::stringstream ss(pinsMap);
 	std::string token;
@@ -869,12 +869,12 @@ void CRemoteDevice::init()
 		if (std::find(fromDeviceIndex.begin(), fromDeviceIndex.end(), i) == fromDeviceIndex.end())
 			fromDeviceIndex.push_back(i);
 
-	// строим обратный индекс
+	// СЃС‚СЂРѕРёРј РѕР±СЂР°С‚РЅС‹Р№ РёРЅРґРµРєСЃ
 	toDeviceIndex.resize(MAX_AXES);
 	for (int i = 0; i < MAX_AXES; ++i)
 		toDeviceIndex[fromDeviceIndex[i]] = i;
 
-	//какие оси надо инвертировать
+	//РєР°РєРёРµ РѕСЃРё РЅР°РґРѕ РёРЅРІРµСЂС‚РёСЂРѕРІР°С‚СЊ
 	std::string inverted;
 	if (g_config->get_string(CFG_INVERTED_AXES, inverted))
 	{
@@ -888,7 +888,7 @@ void CRemoteDevice::init()
 		for (int i = 0; i < AXE_LIST.size(); ++i)
 			invertAxe[i] = false;
 
-	//читаем концевики
+	//С‡РёС‚Р°РµРј РєРѕРЅС†РµРІРёРєРё
 	auto get_in_pin = [](std::string key) -> int
 	{
 		int value;
@@ -1004,13 +1004,13 @@ bool CRemoteDevice::process_packet(char *data, int size)
         PacketServiceCoords *packet = (PacketServiceCoords*) data;
         for(int i = 0; i < MAX_AXES; ++i)
             currentCoords.r[i] = packet->coords[toDeviceIndex[i]] / scale[i] * (invertAxe[i] ? -1 : 1);
-        emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]); //TODO: переделать на правильные координаты?
+        emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]); //TODO: РїРµСЂРµРґРµР»Р°С‚СЊ РЅР° РїСЂР°РІРёР»СЊРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹?
         //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
         return true;
     }
     case DeviceCommand_SERVICE_COMMAND:
     {
-        PacketServiceCommand *packet = (PacketServiceCommand*) data; //находим строку, которая сейчас исполняется
+        PacketServiceCommand *packet = (PacketServiceCommand*) data; //РЅР°С…РѕРґРёРј СЃС‚СЂРѕРєСѓ, РєРѕС‚РѕСЂР°СЏ СЃРµР№С‡Р°СЃ РёСЃРїРѕР»РЅСЏРµС‚СЃСЏ
         AutoLockCS lock(queueCS);
         if (!commands[0]->packet_executed(packet->packetNumber, workLine))
             log_warning("executed undefined packet %d\n", packet->packetNumber);
@@ -1026,7 +1026,7 @@ bool CRemoteDevice::process_packet(char *data, int size)
 }
 
 //============================================================
-//обработка пакетов протокола
+//РѕР±СЂР°Р±РѕС‚РєР° РїР°РєРµС‚РѕРІ РїСЂРѕС‚РѕРєРѕР»Р°
 bool CRemoteDevice::on_packet_received(char *data, int size)
 {
     if(size < 4)

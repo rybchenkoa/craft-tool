@@ -1,4 +1,4 @@
-#include "scene3d.h"
+п»ї#include "scene3d.h"
 #include <QWheelEvent>
 #include <QCursor>
 #include <QApplication>
@@ -18,9 +18,9 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
     m_showGrid = true;
 
     camera.scale = 1;
-    camera.position = glm::vec3(0,0,0);  //находится сверху
-    camera.look     = glm::vec3(0,0,-1); //смотрит вниз
-    camera.top      = glm::vec3(0,1,0);  //смотрит ровно
+    camera.position = glm::vec3(0,0,0);  //РЅР°С…РѕРґРёС‚СЃСЏ СЃРІРµСЂС…Сѓ
+    camera.look     = glm::vec3(0,0,-1); //СЃРјРѕС‚СЂРёС‚ РІРЅРёР·
+    camera.top      = glm::vec3(0,1,0);  //СЃРјРѕС‚СЂРёС‚ СЂРѕРІРЅРѕ
 
     m_lastMousePosition = QPoint(0,0);
     m_mousePressed = false;
@@ -28,7 +28,7 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
     m_windowWidth = 0;
     m_windowHeight = 0;
 
-    make_tool_simple(tool); //делаем квадратное сверло )
+    make_tool_simple(tool); //РґРµР»Р°РµРј РєРІР°РґСЂР°С‚РЅРѕРµ СЃРІРµСЂР»Рѕ )
     for(int i = 0; i < 90000;++i)
     {
       glm::vec3 val(5,5,5);
@@ -39,7 +39,7 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
     _drawCalls = 0;
     _fps = 0;
 
-    //периодическая перерисовка для обновления траектории фрезы.
+    //РїРµСЂРёРѕРґРёС‡РµСЃРєР°СЏ РїРµСЂРµСЂРёСЃРѕРІРєР° РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ С‚СЂР°РµРєС‚РѕСЂРёРё С„СЂРµР·С‹.
     connect(&updateTimer, SIGNAL(timeout()), this, SLOT(update()));
     updateTimer.start(100); //10 fps
 }
@@ -321,13 +321,13 @@ void Scene3d::draw_3d_grid()
 //--------------------------------------------------------------------
 void Scene3d::draw_grid()
 {
-	//при масштабе 1:1 квадрат занимает 500 пикселей, это его максимальный размер
-	//на 1 толстую линию еще 10 тонких
-	//если между совсем тонкими больше 2 пикселей, показываем и их
+	//РїСЂРё РјР°СЃС€С‚Р°Р±Рµ 1:1 РєРІР°РґСЂР°С‚ Р·Р°РЅРёРјР°РµС‚ 500 РїРёРєСЃРµР»РµР№, СЌС‚Рѕ РµРіРѕ РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СЂР°Р·РјРµСЂ
+	//РЅР° 1 С‚РѕР»СЃС‚СѓСЋ Р»РёРЅРёСЋ РµС‰Рµ 10 С‚РѕРЅРєРёС…
+	//РµСЃР»Рё РјРµР¶РґСѓ СЃРѕРІСЃРµРј С‚РѕРЅРєРёРјРё Р±РѕР»СЊС€Рµ 2 РїРёРєСЃРµР»РµР№, РїРѕРєР°Р·С‹РІР°РµРј Рё РёС…
 	float maxSize = 500.f / camera.scale;
 	float quadSize = 1.f;
 
-	while (quadSize < maxSize) //находим подходящий размер
+	while (quadSize < maxSize) //РЅР°С…РѕРґРёРј РїРѕРґС…РѕРґСЏС‰РёР№ СЂР°Р·РјРµСЂ
 		quadSize *= 10;
 	while (quadSize > maxSize)
 		quadSize /= 10;
@@ -346,7 +346,7 @@ void Scene3d::draw_grid()
 
     glBegin(GL_LINES);
 
-		//мелкая сетка
+		//РјРµР»РєР°СЏ СЃРµС‚РєР°
 		float alpha = 0.2 + quadSize / maxSize * 0.7;
 		glColor4f(0.8f, 0.5f, 0.0f, alpha/3);
 	    for(float x = -width/2; x < width / 2 + quadSize; x += quadSize / 10)
@@ -361,7 +361,7 @@ void Scene3d::draw_grid()
             glVertex2f( width/2, y + offsetY);
         }
 
-		//крупная сетка
+		//РєСЂСѓРїРЅР°СЏ СЃРµС‚РєР°
 		glColor4f(0.8f, 0.5f, 0.0f, 1.f/3);
         for(float x = -width/2; x < width / 2 + quadSize; x += quadSize)
         {
@@ -375,7 +375,7 @@ void Scene3d::draw_grid()
             glVertex2f( width/2, y + offsetY);
         }
 
-		//отрезок меры
+		//РѕС‚СЂРµР·РѕРє РјРµСЂС‹
 		float line = quadSize / 10;
 		float notch = 3.f / camera.scale;
 		float offset = 15.f / camera.scale;
@@ -396,14 +396,14 @@ void Scene3d::draw_grid()
 	QString text;
 	switch (exp)
 	{
-		case -3: text = QString::fromLocal8Bit("1 мкм"); break;
-		case -2: text = QString::fromLocal8Bit("10 мкм"); break;
-		case -1: text = QString::fromLocal8Bit("100 мкм"); break;
-		case 0: text = QString::fromLocal8Bit("1 мм"); break;
-		case 1: text = QString::fromLocal8Bit("1 см"); break;
-		case 2: text = QString::fromLocal8Bit("10 см"); break;
-		case 3: text = QString::fromLocal8Bit("1 м"); break;
-		case 4: text = QString::fromLocal8Bit("10 м"); break;
+		case -3: text = QString::fromLocal8Bit("1 РјРєРј"); break;
+		case -2: text = QString::fromLocal8Bit("10 РјРєРј"); break;
+		case -1: text = QString::fromLocal8Bit("100 РјРєРј"); break;
+		case 0: text = QString::fromLocal8Bit("1 РјРј"); break;
+		case 1: text = QString::fromLocal8Bit("1 СЃРј"); break;
+		case 2: text = QString::fromLocal8Bit("10 СЃРј"); break;
+		case 3: text = QString::fromLocal8Bit("1 Рј"); break;
+		case 4: text = QString::fromLocal8Bit("10 Рј"); break;
 		default: text = "undef"; break;
 	}
 
@@ -455,7 +455,7 @@ void Scene3d::update_tool_coords(float x, float y, float z)
             auto prevDirect = realTrack[size-1] - realTrack[size - 2];
             auto direct = tool.position - realTrack[size - 1];
             auto cosA = glm::dot(direct, prevDirect) / sqrt(glm::dot(direct, direct)*glm::dot(prevDirect, prevDirect));
-            if (cosA < 1 - 0.00001)
+            if (cosA < 1 /*- 0.00001*/)
               realTrack.push_back(tool.position);
             else
               realTrack.back() = tool.position;
@@ -497,16 +497,16 @@ void Camera::recalc_matrix(int width, int height)
                                    position,
                                    top);
 
-    float fscale = scale * 2; //1пиксель - 1мм, координаты на виджете от -1 до 1
+    float fscale = scale * 2; //1РїРёРєСЃРµР»СЊ - 1РјРј, РєРѕРѕСЂРґРёРЅР°С‚С‹ РЅР° РІРёРґР¶РµС‚Рµ РѕС‚ -1 РґРѕ 1
     glm::mat4 mScale = glm::scale(glm::mat4(), glm::vec3(fscale/width, fscale/height, 1.f));
 
     //float angle = glm::pi<float>()/40;
     //glm::mat4 mProj  = glm::perspective(angle, 1.0f, 0.0f, 10000.0f);
     glm::mat4 mProj  = glm::ortho(-1.f,1.f,-1.f,1.f, -1000.f, 10000.f);
 
-    //сначала располагаем объекты перед камерой
-    //потом масштабируем по размеру окна
-    //и считаем искривление перспективы
+    //СЃРЅР°С‡Р°Р»Р° СЂР°СЃРїРѕР»Р°РіР°РµРј РѕР±СЉРµРєС‚С‹ РїРµСЂРµРґ РєР°РјРµСЂРѕР№
+    //РїРѕС‚РѕРј РјР°СЃС€С‚Р°Р±РёСЂСѓРµРј РїРѕ СЂР°Р·РјРµСЂСѓ РѕРєРЅР°
+    //Рё СЃС‡РёС‚Р°РµРј РёСЃРєСЂРёРІР»РµРЅРёРµ РїРµСЂСЃРїРµРєС‚РёРІС‹
     viewProjection = mProj * mScale * mView;
 
     glMatrixMode(GL_PROJECTION);
@@ -516,7 +516,7 @@ void Camera::recalc_matrix(int width, int height)
 //--------------------------------------------------------------------
 void Camera::screen_matrix(int width, int height)
 {
-    float fscale = scale * 2; //1пиксель - 1мм, координаты на виджете от -1 до 1
+    float fscale = scale * 2; //1РїРёРєСЃРµР»СЊ - 1РјРј, РєРѕРѕСЂРґРёРЅР°С‚С‹ РЅР° РІРёРґР¶РµС‚Рµ РѕС‚ -1 РґРѕ 1
     glm::mat4 mScale = glm::scale(glm::mat4(), glm::vec3(fscale/width, fscale/height, 1.f));
 
     glMatrixMode(GL_PROJECTION);
@@ -530,9 +530,9 @@ void Camera::rotate_cursor(float x, float y, float deltaX, float deltaY)
     glm::vec3 axisY = top;
     glm::vec3 axisZ = -look;
 
-    //считаем ось в пространстве камеры,
-    //потом переводим её в глобальное пространство
-    //и поворачиваем вектора камеры относительно этой оси
+    //СЃС‡РёС‚Р°РµРј РѕСЃСЊ РІ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµ РєР°РјРµСЂС‹,
+    //РїРѕС‚РѕРј РїРµСЂРµРІРѕРґРёРј РµС‘ РІ РіР»РѕР±Р°Р»СЊРЅРѕРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРѕ
+    //Рё РїРѕРІРѕСЂР°С‡РёРІР°РµРј РІРµРєС‚РѕСЂР° РєР°РјРµСЂС‹ РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ СЌС‚РѕР№ РѕСЃРё
     glm::vec3 axisToCursor(x, y, glm::sqrt(glm::abs(1 - x*x - y*y)));
     glm::vec3 cursorOffset(deltaX, deltaY, 0);
     glm::vec3 axis = glm::cross(axisToCursor, cursorOffset);
@@ -566,7 +566,7 @@ void Object3d::draw()
 }
 
 //--------------------------------------------------------------------
-//из границы в плоскости XZ создаёт объект вращения вокруг z
+//РёР· РіСЂР°РЅРёС†С‹ РІ РїР»РѕСЃРєРѕСЃС‚Рё XZ СЃРѕР·РґР°С‘С‚ РѕР±СЉРµРєС‚ РІСЂР°С‰РµРЅРёСЏ РІРѕРєСЂСѓРі z
 void make_cylinder(Object3d& edge, int divs)
 {
     int countPoints = edge.verts.size();
@@ -610,7 +610,7 @@ void make_cylinder(Object3d& edge, int divs)
 }
 
 //--------------------------------------------------------------------
-//создаёт объект сверло
+//СЃРѕР·РґР°С‘С‚ РѕР±СЉРµРєС‚ СЃРІРµСЂР»Рѕ
 void make_tool_simple(Object3d& tool)
 {
     tool.ortX = glm::vec3(1,0,0);

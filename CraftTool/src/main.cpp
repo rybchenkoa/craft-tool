@@ -1,4 +1,4 @@
-#include <QApplication>
+ï»¿#include <QApplication>
 #include <QDir>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -19,15 +19,15 @@ static DWORD WINAPI execute( LPVOID lpParam )
 {
     Q_UNUSED(lpParam)
 
-    CRemoteDevice *remoteDevice = new CRemoteDevice; //óïðàâëåíèå óäàë¸ííûì óñòðîéñòâîì
+    CRemoteDevice *remoteDevice = new CRemoteDevice; //ÑƒÐ¿Ñ€Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ ÑƒÐ´Ð°Ð»Ñ‘Ð½Ð½Ñ‹Ð¼ ÑƒÑÑ‚Ñ€Ð¾Ð¹ÑÑ‚Ð²Ð¾Ð¼
 
     QObject::connect(remoteDevice, SIGNAL(coords_changed(float, float, float)),
                      g_mainWindow->ui->c_3dView, SLOT(update_tool_coords(float, float, float)));
 
-    ComPortConnect *comPort = new ComPortConnect;    //óñòðîéñòâî äîâîäèò äàííûå äî ðåàëüíîãî óñòðîéòâà ÷åðåç ïîðò
+    ComPortConnect *comPort = new ComPortConnect;    //ÑƒÑÑ‚Ñ€Ð¾Ð¹ÑÑ‚Ð²Ð¾ Ð´Ð¾Ð²Ð¾Ð´Ð¸Ñ‚ Ð´Ð°Ð½Ð½Ñ‹Ðµ Ð´Ð¾ Ñ€ÐµÐ°Ð»ÑŒÐ½Ð¾Ð³Ð¾ ÑƒÑÑ‚Ñ€Ð¾Ð¹Ñ‚Ð²Ð° Ñ‡ÐµÑ€ÐµÐ· Ð¿Ð¾Ñ€Ñ‚
 
-    remoteDevice->comPort = comPort; //ãîâîðèì óñòðîéñòâó, ÷åðåç ÷òî ñëàòü
-    comPort->on_packet_received = std::bind(&CRemoteDevice::on_packet_received, remoteDevice, std::placeholders::_1, std::placeholders::_2); //ïîðòó ãîâîðèì, êòî ïðèíèìàåò
+    remoteDevice->comPort = comPort; //Ð³Ð¾Ð²Ð¾Ñ€Ð¸Ð¼ ÑƒÑÑ‚Ñ€Ð¾Ð¹ÑÑ‚Ð²Ñƒ, Ñ‡ÐµÑ€ÐµÐ· Ñ‡Ñ‚Ð¾ ÑÐ»Ð°Ñ‚ÑŒ
+    comPort->on_packet_received = std::bind(&CRemoteDevice::on_packet_received, remoteDevice, std::placeholders::_1, std::placeholders::_2); //Ð¿Ð¾Ñ€Ñ‚Ñƒ Ð³Ð¾Ð²Ð¾Ñ€Ð¸Ð¼, ÐºÑ‚Ð¾ Ð¿Ñ€Ð¸Ð½Ð¸Ð¼Ð°ÐµÑ‚
 
     g_device = remoteDevice;
 
@@ -35,7 +35,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
     {
         int port = 1;
         g_config->get_int(CFG_COM_PORT_NUMBER, port);
-        comPort->init_port(port);           //îòêðûâàåì ïîðò
+        comPort->init_port(port);           //Ð¾Ñ‚ÐºÑ€Ñ‹Ð²Ð°ÐµÐ¼ Ð¿Ð¾Ñ€Ñ‚
     }
     catch(const char *message)
     {

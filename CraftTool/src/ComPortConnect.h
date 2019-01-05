@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include "winerror.h"
 #include "windows.h"
 #include <string>
@@ -8,43 +8,43 @@
 class ComPortConnect
 {
 public:
-    ComPortConnect(void); //обнуляет всё
+    ComPortConnect(void); //РѕР±РЅСѓР»СЏРµС‚ РІСЃС‘
     ~ComPortConnect(void);
 
-    int init_port(int portNumber);                       //подключается к порту
-    void send_data(char *buffer, int count);             //шлёт данные
-    static DWORD WINAPI receive_thread( LPVOID lpParam );//принимает данные
+    int init_port(int portNumber);                       //РїРѕРґРєР»СЋС‡Р°РµС‚СЃСЏ Рє РїРѕСЂС‚Сѓ
+    void send_data(char *buffer, int count);             //С€Р»С‘С‚ РґР°РЅРЅС‹Рµ
+    static DWORD WINAPI receive_thread( LPVOID lpParam );//РїСЂРёРЅРёРјР°РµС‚ РґР°РЅРЅС‹Рµ
 
-    HANDLE hThread;    //поток чтения
-    HANDLE hCom;       //хэндл порта
-    OVERLAPPED ovRead; //переменные для одновременной работы с портом
+    HANDLE hThread;    //РїРѕС‚РѕРє С‡С‚РµРЅРёСЏ
+    HANDLE hCom;       //С…СЌРЅРґР» РїРѕСЂС‚Р°
+    OVERLAPPED ovRead; //РїРµСЂРµРјРµРЅРЅС‹Рµ РґР»СЏ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕР№ СЂР°Р±РѕС‚С‹ СЃ РїРѕСЂС‚РѕРј
     OVERLAPPED ovWrite;
 
-    int receiveBPS;    //число прочитанных байт
-    int transmitBPS;   //число записанных байт
-    int errs;          //ошибки разбиения на пакеты
+    int receiveBPS;    //С‡РёСЃР»Рѕ РїСЂРѕС‡РёС‚Р°РЅРЅС‹С… Р±Р°Р№С‚
+    int transmitBPS;   //С‡РёСЃР»Рѕ Р·Р°РїРёСЃР°РЅРЅС‹С… Р±Р°Р№С‚
+    int errs;          //РѕС€РёР±РєРё СЂР°Р·Р±РёРµРЅРёСЏ РЅР° РїР°РєРµС‚С‹
 
     static const int RECEIVE_SIZE = 100;
-    char receiveBuffer[RECEIVE_SIZE]; //текущий принимаемый пакет
-    int receivedSize;                 //принято байт текущего пакета
+    char receiveBuffer[RECEIVE_SIZE]; //С‚РµРєСѓС‰РёР№ РїСЂРёРЅРёРјР°РµРјС‹Р№ РїР°РєРµС‚
+    int receivedSize;                 //РїСЂРёРЅСЏС‚Рѕ Р±Р°Р№С‚ С‚РµРєСѓС‰РµРіРѕ РїР°РєРµС‚Р°
 
-    std::function<bool(char *data, int size)> on_packet_received;      //устройство, принимающее пакеты
+    std::function<bool(char *data, int size)> on_packet_received;      //СѓСЃС‚СЂРѕР№СЃС‚РІРѕ, РїСЂРёРЅРёРјР°СЋС‰РµРµ РїР°РєРµС‚С‹
 
 private:
     enum States
     {
-		STATES_NORMAL,  //приём пакета
-        STATES_CODE,    //принят управляющий символ
+		STATES_NORMAL,  //РїСЂРёС‘Рј РїР°РєРµС‚Р°
+        STATES_CODE,    //РїСЂРёРЅСЏС‚ СѓРїСЂР°РІР»СЏСЋС‰РёР№ СЃРёРјРІРѕР»
     };
 
     enum Tags
     {
-        OP_CODE = '\\', //признак, что дальше идёт управляющий код, если надо послать 100, надо послать его 2 раза
-        OP_STOP = 'n',  //конец пакета
+        OP_CODE = '\\', //РїСЂРёР·РЅР°Рє, С‡С‚Рѕ РґР°Р»СЊС€Рµ РёРґС‘С‚ СѓРїСЂР°РІР»СЏСЋС‰РёР№ РєРѕРґ, РµСЃР»Рё РЅР°РґРѕ РїРѕСЃР»Р°С‚СЊ 100, РЅР°РґРѕ РїРѕСЃР»Р°С‚СЊ РµРіРѕ 2 СЂР°Р·Р°
+        OP_STOP = 'n',  //РєРѕРЅРµС† РїР°РєРµС‚Р°
     };
 
     States receiveState;
 
-    void process_bytes(char *buffer, int count);   //формирует пакет из принятых данных
+    void process_bytes(char *buffer, int count);   //С„РѕСЂРјРёСЂСѓРµС‚ РїР°РєРµС‚ РёР· РїСЂРёРЅСЏС‚С‹С… РґР°РЅРЅС‹С…
 };
 

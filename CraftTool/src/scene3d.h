@@ -1,4 +1,4 @@
-#include <QtOpenGL/QGLWidget>
+п»ї#include <QtOpenGL/QGLWidget>
 #include <QPoint>
 #include <QTimer>
 #include "StdAfx.h"
@@ -26,16 +26,16 @@ enum View
 
 struct Camera
 {
-    float     scale;          //масштаб изображения
-    glm::vec3 position;       //где находится камера
-    glm::vec3 look;           //нормализованный вектор взгляда
-    glm::vec3 top;            //вектор ориентации камеры
-    float     screenAngle;    //поворот экрана
-    glm::mat4 viewProjection; //матрица камеры
+    float     scale;          //РјР°СЃС€С‚Р°Р± РёР·РѕР±СЂР°Р¶РµРЅРёВ¤
+    glm::vec3 position;       //РіРґРµ РЅР°С…РѕРґРёС‚СЃВ¤ РєР°РјРµСЂР°
+    glm::vec3 look;           //РЅРѕСЂРјР°Р»РёР·РѕРІР°РЅРЅС‹Р№ РІРµРєС‚РѕСЂ РІР·РіР»В¤РґР°
+    glm::vec3 top;            //РІРµРєС‚РѕСЂ РѕСЂРёРµРЅС‚Р°С†РёРё РєР°РјРµСЂС‹
+    float     screenAngle;    //РїРѕРІРѕСЂРѕС‚ СЌРєСЂР°РЅР°
+    glm::mat4 viewProjection; //РјР°С‚СЂРёС†Р° РєР°РјРµСЂС‹
 
-    void recalc_matrix(int width, int height);     //пересчитать матрицу проекции
-    void rotate_cursor(float x, float y, float deltaX, float deltaY); //обработка поворота камеры
-	void screen_matrix(int width, int height);     //вывод 2d графики
+    void recalc_matrix(int width, int height);     //РїРµСЂРµСЃС‡РёС‚Р°С‚СЊ РјР°С‚СЂРёС†Сѓ РїСЂРѕРµРєС†РёРё
+    void rotate_cursor(float x, float y, float deltaX, float deltaY); //РѕР±СЂР°Р±РѕС‚РєР° РїРѕРІРѕСЂРѕС‚Р° РєР°РјРµСЂС‹
+	void screen_matrix(int width, int height);     //РІС‹РІРѕРґ 2d РіСЂР°С„РёРєРё
 };
 
 struct Vertex
@@ -49,13 +49,13 @@ struct Vertex
 
 struct Object3d
 {
-    glm::vec3           position; //положение
-    glm::vec3           ortX;     //ориентация
+    glm::vec3           position; //РїРѕР»РѕР¶РµРЅРёРµ
+    glm::vec3           ortX;     //РѕСЂРёРµРЅС‚Р°С†РёВ¤
     glm::vec3           ortY;
-    std::vector<Vertex> verts;    //вершины
-    std::vector<int>    indices;  //треугольники
+    std::vector<Vertex> verts;    //РІРµСЂС€РёРЅС‹
+    std::vector<int>    indices;  //С‚СЂРµСѓРіРѕР»СЊРЅРёРєРё
 
-    void draw(); //нарисовать треугольники
+    void draw(); //РЅР°СЂРёСЃРѕРІР°С‚СЊ С‚СЂРµСѓРіРѕР»СЊРЅРёРєРё
 };
 
 class Scene3d :  public QGLWidget
@@ -87,15 +87,15 @@ protected:
     void draw_fps();
 
 public:
-    int    m_windowWidth;  //размеры окна
+    int    m_windowWidth;  //СЂР°Р·РјРµСЂС‹ РѕРєРЅР°
     int    m_windowHeight;
 
-    float  m_zoneWidth;  //размеры зоны станка
+    float  m_zoneWidth;  //СЂР°Р·РјРµСЂС‹ Р·РѕРЅС‹ СЃС‚Р°РЅРєР°
     float  m_zoneHeight;
     float  m_zoneTop;
 
-    bool   m_showGrid;   //показывать ли сетку масштаба
-    float  m_gridStep;   //размер ячейки сетки
+    bool   m_showGrid;   //РїРѕРєР°Р·С‹РІР°С‚СЊ Р»Рё СЃРµС‚РєСѓ РјР°СЃС€С‚Р°Р±Р°
+    float  m_gridStep;   //СЂР°Р·РјРµСЂ В¤С‡РµР№РєРё СЃРµС‚РєРё
 
     QPoint m_lastMousePosition;
     bool   m_mousePressed;
@@ -103,10 +103,10 @@ public:
     Camera camera;
     Object3d tool;
 
-    std::vector<TrackPoint> track; //траектория фрезы
-    std::vector<glm::vec3> realTrack; //пройденная фрезой траектория
+    std::vector<TrackPoint> track; //С‚СЂР°РµРєС‚РѕСЂРёВ¤ С„СЂРµР·С‹
+    std::vector<glm::vec3> realTrack; //РїСЂРѕР№РґРµРЅРЅР°В¤ С„СЂРµР·РѕР№ С‚СЂР°РµРєС‚РѕСЂРёВ¤
 
-    int _drawCalls; //вызовов отрисовки за последнюю секунду
+    int _drawCalls; //РІС‹Р·РѕРІРѕРІ РѕС‚СЂРёСЃРѕРІРєРё Р·Р° РїРѕСЃР»РµРґРЅСЋСЋ СЃРµРєСѓРЅРґСѓ
     int _fps;
     QTimer updateTimer;
 
@@ -114,6 +114,6 @@ public slots:
     void update_tool_coords(float x, float y, float z);
 };
 
-void make_cylinder(Object3d& edge, int divs); //из границы в плоскости XZ создаёт объект вращения вокруг z
+void make_cylinder(Object3d& edge, int divs); //РёР· РіСЂР°РЅРёС†С‹ РІ РїР»РѕСЃРєРѕСЃС‚Рё XZ СЃРѕР·РґР°Р„С‚ РѕР±СЉРµРєС‚ РІСЂР°С‰РµРЅРёВ¤ РІРѕРєСЂСѓРі z
 
-void make_tool_simple(Object3d& tool); //создаёт объект сверло
+void make_tool_simple(Object3d& tool); //СЃРѕР·РґР°Р„С‚ РѕР±СЉРµРєС‚ СЃРІРµСЂР»Рѕ

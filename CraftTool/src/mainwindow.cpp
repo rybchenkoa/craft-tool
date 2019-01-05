@@ -1,4 +1,4 @@
-#include <QFileDialog>
+ï»¿#include <QFileDialog>
 #include <QAction>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -85,21 +85,21 @@ void MainWindow::update_state()
 
 bool MainWindow::connect_to_device()
 {
-    /*CRemoteDevice *remoteDevice = new CRemoteDevice; //óïðàâëåíèå óäàë¸ííûì óñòðîéñòâîì
+    /*CRemoteDevice *remoteDevice = new CRemoteDevice; //ÑƒÐ¿Ñ€Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ ÑƒÐ´Ð°Ð»Ñ‘Ð½Ð½Ñ‹Ð¼ ÑƒÑÑ‚Ñ€Ð¾Ð¹ÑÑ‚Ð²Ð¾Ð¼
 
     QObject::connect(remoteDevice, SIGNAL(coords_changed(float, float, float)),
                      g_mainWindow->ui->c_3dView, SLOT(update_tool_coords(float, float, float)));
 
-    ComPortConnect *comPort = new ComPortConnect;    //óñòðîéñòâî äîâîäèò äàííûå äî ðåàëüíîãî óñòðîéòâà ÷åðåç ïîðò
+    ComPortConnect *comPort = new ComPortConnect;    //ÑƒÑÑ‚Ñ€Ð¾Ð¹ÑÑ‚Ð²Ð¾ Ð´Ð¾Ð²Ð¾Ð´Ð¸Ñ‚ Ð´Ð°Ð½Ð½Ñ‹Ðµ Ð´Ð¾ Ñ€ÐµÐ°Ð»ÑŒÐ½Ð¾Ð³Ð¾ ÑƒÑÑ‚Ñ€Ð¾Ð¹Ñ‚Ð²Ð° Ñ‡ÐµÑ€ÐµÐ· Ð¿Ð¾Ñ€Ñ‚
 
-    remoteDevice->comPort = comPort; //ãîâîðèì óñòðîéñòâó, ÷åðåç ÷òî ñëàòü
-    comPort->remoteDevice = remoteDevice; //ïîðòó ãîâîðèì, êòî ïðèíèìàåò
+    remoteDevice->comPort = comPort; //Ð³Ð¾Ð²Ð¾Ñ€Ð¸Ð¼ ÑƒÑÑ‚Ñ€Ð¾Ð¹ÑÑ‚Ð²Ñƒ, Ñ‡ÐµÑ€ÐµÐ· Ñ‡Ñ‚Ð¾ ÑÐ»Ð°Ñ‚ÑŒ
+    comPort->remoteDevice = remoteDevice; //Ð¿Ð¾Ñ€Ñ‚Ñƒ Ð³Ð¾Ð²Ð¾Ñ€Ð¸Ð¼, ÐºÑ‚Ð¾ Ð¿Ñ€Ð¸Ð½Ð¸Ð¼Ð°ÐµÑ‚
 
     try
     {
         int port = 1;
         g_config.get_int(CFG_COM_PORT_NUMBER, port);
-        comPort->init_port(port);           //îòêðûâàåì ïîðò
+        comPort->init_port(port);           //Ð¾Ñ‚ÐºÑ€Ñ‹Ð²Ð°ÐµÐ¼ Ð¿Ð¾Ñ€Ñ‚
     }
     catch(const char *message)
     {
@@ -125,18 +125,18 @@ void MainWindow::on_c_pauseButton_clicked()
 
 void MainWindow::on_c_startButton_clicked()
 {
-    g_inter->execute_file(nullptr);//çàïóñêàåì èíòåðïðåòàöèþ
+    g_inter->execute_file(nullptr);//Ð·Ð°Ð¿ÑƒÑÐºÐ°ÐµÐ¼ Ð¸Ð½Ñ‚ÐµÑ€Ð¿Ñ€ÐµÑ‚Ð°Ñ†Ð¸ÑŽ
 }
 
 void MainWindow::on_c_runLineButton_clicked()
 {
-    g_inter->execute_line(ui->c_lineEditCommand->text().toStdString());//çàïóñêàåì èíòåðïðåòàöèþ
+    g_inter->execute_line(ui->c_lineEditCommand->text().toStdString());//Ð·Ð°Ð¿ÑƒÑÐºÐ°ÐµÐ¼ Ð¸Ð½Ñ‚ÐµÑ€Ð¿Ñ€ÐµÑ‚Ð°Ñ†Ð¸ÑŽ
 }
 
 void MainWindow::on_c_refreshTrajectory_clicked()
 {
     Interpreter::Trajectory trajectory;
-    g_inter->execute_file(&trajectory); //ôîðìèðóåì òðàåêòîðèþ
+    g_inter->execute_file(&trajectory); //Ñ„Ð¾Ñ€Ð¼Ð¸Ñ€ÑƒÐµÐ¼ Ñ‚Ñ€Ð°ÐµÐºÑ‚Ð¾Ñ€Ð¸ÑŽ
     ui->c_3dView->track.clear();
     ui->c_3dView->track.reserve(trajectory.size());
     for (unsigned i = 0; i < trajectory.size(); ++i)
@@ -181,7 +181,7 @@ void MainWindow::on_c_rightViewButton_clicked()
 
 void MainWindow::load_file(QString fileName)
 {
-    g_inter->read_file(fileName.toLocal8Bit().data()); //÷èòàåì äàííûå èç ôàéëà
+    g_inter->read_file(fileName.toLocal8Bit().data()); //Ñ‡Ð¸Ñ‚Ð°ÐµÐ¼ Ð´Ð°Ð½Ð½Ñ‹Ðµ Ð¸Ð· Ñ„Ð°Ð¹Ð»Ð°
 
     ui->c_commandList->clear();
 	int line = 1;
