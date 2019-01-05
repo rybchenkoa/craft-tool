@@ -14,7 +14,7 @@ coord length(Coords from, Coords to)
     delta.x = from.x - to.x;
     delta.y = from.y - to.y;
     delta.z = from.z - to.z;
-    return sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+    return sqrtl(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
 }
 
 //====================================================================================================
@@ -53,15 +53,15 @@ InterError FrameParams::set_value(char letter, double value)
 {
     BitPos index = get_bit_pos(letter);
     if (index == BitPos_ERR)
-        return InterError_INVALID_STATEMENT;
+        return InterError(InterError::INVALID_STATEMENT, std::string("invalid letter: ") + letter);
 
     if(flagValue.get(index))
-        return InterError_DOUBLE_DEFINITION;
+        return InterError(InterError::DOUBLE_DEFINITION, std::string("duplicate letter: ") + letter);
 
     flagValue.set(index, true);
     this->value[int(index)] = value;
 
-    return InterError_ALL_OK;
+    return InterError();
 }
 
 //====================================================================================================
@@ -107,18 +107,18 @@ InterError GCodeInterpreter::execute_frame(const char *frame)
     //char letter;
     //double value;
 
-    InterError state = InterError_ALL_OK;
+    InterError state;
 
     state = reader.parse_codes(frame); //провер€ем строку на валидность, читаем значени€ в массив
-    if(state != InterError_ALL_OK) return state;
+    if(state.code) return state;
 
     state = make_new_state(); //читаем все коды и по ним создаЄм команды изменени€ состо€ни€
-    if(state != InterError_ALL_OK) return state;
+    if(state.code) return state;
 
     state = run_modal_groups(); //исполн€ем коды или пересылаем их устройству
-    if(state != InterError_ALL_OK) return state;
+    if(state.code) return state;
 
-    return InterError_ALL_OK;
+    return state;
 }
 
 //====================================================================================================
@@ -128,7 +128,7 @@ InterError Reader::parse_codes(const char *frame)
     codes.clear();
     position = 0;
     string = frame;
-    state = InterError_ALL_OK;
+    state = InterError();
 
     GKey current;
     current.position = position;
@@ -171,7 +171,8 @@ InterError GCodeInterpreter::make_new_state()
             if(readedFrame.flagModal.get(group))   //встретили два оператора из одной группы
             {
                 reader.position = iter->position;
-                return InterError_DOUBLE_DEFINITION;
+                return InterError(InterError::DOUBLE_DEFINITION, 
+					std::string("conflict modal group for ") + iter->letter + to_string(iter->value));
             }
             readedFrame.flagModal.set(group, true);
         }
@@ -211,7 +212,8 @@ InterError GCodeInterpreter::make_new_state()
                     case 98: readedFrame.cycleLevel = CannedLevel_HIGH; break;
                     case 99: readedFrame.cycleLevel = CannedLevel_LOW; break;
 
-                    default: return InterError_INVALID_STATEMENT;
+					default: return InterError(InterError::INVALID_STATEMENT, 
+								 std::string("unknown code: G") + to_string(intValue));
                 }
                 break;
             }
@@ -250,11 +252,11 @@ InterError GCodeInterpreter::make_new_state()
             case 'N':
                 break;
 
-            default: return InterError_INVALID_STATEMENT;
+			default: return InterError(InterError::INVALID_STATEMENT, std::string("invalid letter: ") + iter->letter);
         }
     }
 
-    return InterError_ALL_OK;
+    return InterError();
 }
 
 //====================================================================================================
@@ -339,7 +341,8 @@ InterError GCodeInterpreter::run_modal_groups()
             runner.plane = Plane_YZ;
             break;
 
-        default: return InterError_WRONG_PLANE;
+		default: return InterError(InterError::WRONG_PLANE, 
+					 std::string("internal error, invalid plane ") + to_string(readedFrame.plane));
     }
 
     //if(readedFrame.get_value('S', value)) //скорость вращени€ шпиндел€
@@ -383,21 +386,21 @@ InterError GCodeInterpreter::run_modal_groups()
         case CannedCycle_DEEP_DRILL:
         {
             if(runner.cycle != CannedCycle_NONE)
-                return InterError_DOUBLE_DEFINITION;
+                return InterError(InterError::DOUBLE_DEFINITION, "repeat canned cycle call");
 
             runner.cycle = readedFrame.cycle;
 
             if(!readedFrame.have_value('R'))
-                return InterError_NO_VALUE;
+                return InterError(InterError::NO_VALUE, "expected R parameter");
 
             if(!readedFrame.have_value('Z'))
-                return InterError_NO_VALUE;
+                return InterError(InterError::NO_VALUE, "expected Z parameter");
 
             if(!readedFrame.have_value('P') && runner.cycle == CannedCycle_DRILL_AND_PAUSE)
-                return InterError_NO_VALUE;
+                return InterError(InterError::NO_VALUE, "expected P parameter");
 
             if(!readedFrame.have_value('Q') && runner.cycle == CannedCycle_DEEP_DRILL)
-                return InterError_NO_VALUE;
+                return InterError(InterError::NO_VALUE, "expected Q parameter");
 
             runner.cycleHiLevel = runner.position.z;
 
@@ -437,10 +440,10 @@ InterError GCodeInterpreter::run_modal_groups()
     if(readedFrame.sendWait)
     {
         if(!readedFrame.get_value('P', value))
-            return InterError_NO_VALUE;
+            return InterError(InterError::NO_VALUE, "expected P parameter");
 
         if(value < 0)
-            return InterError_WRONG_VALUE;
+            return InterError(InterError::WRONG_VALUE, std::string("invalid P parameter") + to_string(value));
 
         if (!trajectory)
             remoteDevice->wait(value);
@@ -449,7 +452,7 @@ InterError GCodeInterpreter::run_modal_groups()
     if(runner.cycle != CannedCycle_NONE) //включен посто€нный цикл
     {
         if(readedFrame.have_value('Z'))    //в нЄм нельз€ двигатьс€ по Z
-            return InterError_WRONG_VALUE;
+            return InterError(InterError::WRONG_VALUE, "unexpected Z parameter");
 
         Coords pos;
         if(get_new_position(pos))
@@ -561,7 +564,7 @@ InterError GCodeInterpreter::run_modal_groups()
     else if(runner.motionMode == MotionMode_CW_ARC || runner.motionMode == MotionMode_CCW_ARC)
     {
         if(readedFrame.absoluteSet)
-            return InterError_WRONG_VALUE;
+            return InterError(InterError::WRONG_VALUE, "use absolute system G53 with arc");
 
         int ix, iy, iz;
         switch(runner.plane)
@@ -580,7 +583,7 @@ InterError GCodeInterpreter::run_modal_groups()
            readedFrame.have_value('K'))
         {
             if(readedFrame.have_value('R'))
-                return InterError_WRONG_VALUE;
+                return InterError(InterError::WRONG_VALUE, "conflict parameter R with I,J,K offset");
 
             get_readed_coord('I', centerPos.x); //читаем центр круга
             get_readed_coord('J', centerPos.y);
@@ -599,8 +602,9 @@ InterError GCodeInterpreter::run_modal_groups()
             planeCenter.r[iz] = runner.position.r[iz];
             double radius = length(runner.position, planeCenter);
 
-            if(fabs(radius - length(pos, centerPos)) > remoteDevice->get_min_step()*2)//раст€жение пока не поддерживаетс€
-                return InterError_WRONG_VALUE;
+			auto len = length(pos, centerPos);
+            if(fabs(radius - len) > remoteDevice->get_min_step()*2)//раст€жение пока не поддерживаетс€
+                return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable, start and endpoint have difference radius");
 
             double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
             coord height = pos.r[iz] - runner.position.r[iz]; //длина винта
@@ -608,7 +612,7 @@ InterError GCodeInterpreter::run_modal_groups()
             if(is_screw(centerPos) && pitch != 0) //винтова€ интерпол€ци€
             {
                 if(pitch < 0.0)
-                    return InterError_WRONG_VALUE;
+                    return InterError(InterError::WRONG_VALUE, "screw with negative pitch");
                 else
                 {
                     double countTurns = height / pitch;
@@ -618,7 +622,7 @@ InterError GCodeInterpreter::run_modal_groups()
                     draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
                 }
                 if(length(runner.position, pos) > remoteDevice->get_min_step()*2)
-                    return InterError_WRONG_VALUE;
+                    return InterError(InterError::WRONG_VALUE, "screw endpoint unreachable, start and end point have difference radius");
 
                 runner.position = pos;
             }
@@ -643,7 +647,7 @@ InterError GCodeInterpreter::run_modal_groups()
                 draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
 
                 if(length(runner.position, pos) > remoteDevice->get_min_step()*2)
-                    return InterError_WRONG_VALUE;
+                    return InterError(InterError::WRONG_VALUE, "unexpected fail to reach arc end point");
 
                 runner.position = pos;
             }
@@ -658,13 +662,13 @@ InterError GCodeInterpreter::run_modal_groups()
 
             double distance = length(runner.position, pos);
             if(fabs(distance / radius) < 0.01)       //плохо вычисл€ема€ окружность
-                return InterError_WRONG_VALUE;
+                return InterError(InterError::WRONG_VALUE, "poorly calculated arc");
 
             if(distance > fabs(radius * 2))              //неверный радиус
-                return InterError_WRONG_VALUE;
+                return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable");
 
             if(is_screw(pos)) //винтова€ интерпол€ци€ пока не поддерживаетс€
-                return InterError_WRONG_VALUE;
+                return InterError(InterError::WRONG_VALUE, "screw with R parameter not supported"); //TODO хорошо бы поддержать
 
             //используетс€ теорема ѕифагора
             Coords toCenter; //находим направление от центра отрезка к центру окружности
@@ -701,7 +705,7 @@ InterError GCodeInterpreter::run_modal_groups()
         }
     }
 
-    return InterError_ALL_OK;
+    return InterError();
 }
 
 //====================================================================================================
@@ -946,7 +950,7 @@ bool Reader::parse_code(char &letter, double &value)
 
     if(letter < 'A' || letter > 'Z')
     {
-        state = InterError_WRONG_LETTER;
+        state = InterError(InterError::WRONG_LETTER, std::string("wrong letter: ") + letter);
         return false;
     }
 
@@ -955,7 +959,7 @@ bool Reader::parse_code(char &letter, double &value)
     find_significal_symbol();
     if (!parse_value(value))
     {
-        state = InterError_WRONG_VALUE;
+        state = InterError(InterError::WRONG_VALUE, std::string("cant parse value"));
         return false;
     };
 
@@ -1076,8 +1080,8 @@ void GCodeInterpreter::execute_file(Trajectory *trajectory)
         if (!trajectory)
             remoteDevice->set_current_line(lineNumber);
         auto result = execute_frame(iter->c_str());
-        if(result != InterError_ALL_OK)
-            log_warning("execute_frame error %d, line %d\n", result, lineNumber);
+        if(result.code)
+            log_warning("[E] line %d, %s\n", lineNumber + 1, result.description.c_str());
         ++lineNumber;
     };
     if (trajectory)
@@ -1091,15 +1095,15 @@ void GCodeInterpreter::execute_line(std::string line)
 	this->trajectory = nullptr;
     remoteDevice->set_current_line(0);
     auto result = execute_frame(line.c_str());
-    if(result != InterError_ALL_OK)
-        log_warning("execute_frame error %d\n", result);
+    if(result.code)
+        log_warning("execute_frame error %s\n", result.description.c_str());
 }
 
 //====================================================================================================
 void GCodeInterpreter::init()
 {
     //reader.position = {0.0f, 0.0f, 0.0f};
-    reader.state = InterError_ALL_OK;
+    reader.state = InterError();
 
     runner.coordSystemNumber = 0;
     runner.cutterLength = 0;

@@ -184,8 +184,9 @@ void MainWindow::load_file(QString fileName)
     g_inter->read_file(fileName.toLocal8Bit().data()); //читаем данные из файла
 
     ui->c_commandList->clear();
-    for(auto i = g_inter->inputFile.begin(); i != g_inter->inputFile.end(); ++i)
-        ui->c_commandList->addItem(i->c_str());
+	int line = 1;
+    for(auto i = g_inter->inputFile.begin(); i != g_inter->inputFile.end(); ++i, ++line)
+        ui->c_commandList->addItem((to_string(line) + ": " + *i).c_str());
 
     on_c_refreshTrajectory_clicked();
     setWindowTitle(fileName);
