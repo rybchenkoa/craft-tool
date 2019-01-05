@@ -167,8 +167,8 @@ uint32_t calc_crc(char *buffer, int size)
 {
 	//__disable_irq();
 	volatile CRC_TypeDef *calc = CRC;
-	calc->CR |= CRC_CR_RESET;
-	//__NOP();__NOP();__NOP();
+	calc->CR = CRC_CR_RESET;
+	__NOP();//__NOP();__NOP();
 	uint32_t *wordBuffer = (uint32_t*) buffer;
 	
 	while(size >= 4)
