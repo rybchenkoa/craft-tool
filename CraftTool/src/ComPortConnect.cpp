@@ -75,6 +75,8 @@ int ComPortConnect::init_port(int portNumber)
 
 void ComPortConnect::send_data(char *buffer, int count)
 {
+	if (hCom == INVALID_HANDLE_VALUE)
+		return;
     char data[1000];
     char *pointer = data;
     for(int i=0;i<count;i++)
@@ -96,18 +98,12 @@ void ComPortConnect::send_data(char *buffer, int count)
 	{
 		auto err = GetLastError();
 		if (err != ERROR_IO_PENDING)
-		{
-
 			log_message("port error");
-		}
 		else
 		{
 			result = GetOverlappedResult(hCom, &ovWrite, &write, true);
 			if (!result)
-			{
 				err = GetLastError();
-
-			}
 		}
 	}
     transmitBPS += pointer-data;
