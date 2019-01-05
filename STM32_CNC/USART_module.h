@@ -41,7 +41,7 @@ class Usart
         gpio.Alternate = GPIO_AF7_USART1;
         LL_GPIO_Init(GPIOA, &gpio);
 
-		USART1->BRR = 84000000 / 2000000;// 115200 230400 500000
+		USART1->BRR = 84000000 / 1000000;// 115200 230400 500000
 		
 		USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE; 	// usart on, rx on, tx on,
 
