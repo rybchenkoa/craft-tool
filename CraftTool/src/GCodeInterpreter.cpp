@@ -455,22 +455,29 @@ InterError GCodeInterpreter::run_modal_groups()
             return InterError(InterError::WRONG_VALUE, "unexpected Z parameter");
 
         Coords pos;
+		auto moveTo = [&](Coords pos)
+		{
+			to_global(pos);
+            move_to(pos);
+		};
+
         if(get_new_position(pos))
         {
+			to_local(pos);
             if(runner.cycleUseLowLevel)
                 pos.z = runner.cycleLowLevel;
             else
                 pos.z = runner.cycleHiLevel;
 
             set_move_mode(MoveMode_FAST);
-            move_to(pos);    //двигаемся к следующему отверстию
+			moveTo(pos);    //двигаемся к следующему отверстию
 
             auto pos2 = pos;
 
             if(!runner.cycleUseLowLevel)
             {
                 pos2.z = runner.cycleLowLevel;
-                move_to(pos2);  //двигаемся к безопасной плоскости
+                moveTo(pos2);  //двигаемся к безопасной плоскости
             }
 
             switch(runner.cycle)
@@ -481,21 +488,21 @@ InterError GCodeInterpreter::run_modal_groups()
                 {
                     set_move_mode(MoveMode_LINEAR);
                     pos2.z = runner.cycleDeepLevel;
-                    move_to(pos2);
+                    moveTo(pos2);
                     set_move_mode(MoveMode_FAST);
-                    move_to(pos);
+                    moveTo(pos);
                     break;
                 }
                 case CannedCycle_DRILL_AND_PAUSE:
                 {
                     set_move_mode(MoveMode_LINEAR);
                     pos2.z = runner.cycleDeepLevel;
-                    move_to(pos2);
+                    moveTo(pos2);
                     if (!trajectory)
                         remoteDevice->wait(runner.cycleWait);
                     set_move_mode(MoveMode_FAST);
 
-                    move_to(pos);
+                    moveTo(pos);
                     break;
                 }
                 case CannedCycle_DEEP_DRILL:
@@ -505,40 +512,41 @@ InterError GCodeInterpreter::run_modal_groups()
                     {
                         set_move_mode(MoveMode_FAST);
                         pos2.z = curZ + runner.cycleStep;
-                        move_to(pos2);
+                        moveTo(pos2);
                         set_move_mode(MoveMode_LINEAR);
                         pos2.z = curZ;
-                        move_to(pos2);
+                        moveTo(pos2);
                         if(runner.cycleWait != 0.0)
                             if (!trajectory)
                                 remoteDevice->wait(runner.cycleWait);
                         set_move_mode(MoveMode_FAST);
                         pos2.z = runner.cycleLowLevel;
-                        move_to(pos2);
+                        moveTo(pos2);
                     }
                     if(curZ != runner.cycleDeepLevel)
                     {
                         set_move_mode(MoveMode_FAST);
                         pos2.z = curZ + runner.cycleStep;
-                        move_to(pos2);
+                        moveTo(pos2);
                         set_move_mode(MoveMode_LINEAR);
                         pos2.z = curZ;
-                        move_to(pos2);
+                        moveTo(pos2);
                         if(runner.cycleWait != 0.0)
                             if (!trajectory)
                                 remoteDevice->wait(runner.cycleWait);
                         set_move_mode(MoveMode_FAST);
                         pos2.z = runner.cycleLowLevel;
-                        move_to(pos2);
+                        moveTo(pos2);
                     }
 
                     set_move_mode(MoveMode_FAST);
-                    move_to(pos);
+                    moveTo(pos);
 
                     break;
                 }
             }
 
+			to_global(pos);
             runner.position = pos;
         }
     }
