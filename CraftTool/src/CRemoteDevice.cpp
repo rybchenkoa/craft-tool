@@ -382,20 +382,26 @@ void CRemoteDevice::set_position(Coords posIn)
 {
     //emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
 
+	//переводит чистые координаты в машинные
+	auto to_hard = [&](Coords pos) -> Coords
+	{
+		for (int i = 0; i < MAX_AXES; ++i) //заполняем подчиненные оси
+			if (slaveAxes[i] >= 0)
+				pos.r[slaveAxes[i]] = pos.r[i];
+
+		for (int i = 0; i < MAX_AXES; ++i) //инвертируем, если нужно
+			if (invertAxe[i])
+				pos.r[i] *= -1;
+		return pos;
+	};
+
     if(lastPosition.r[0] == HUGE_VAL) //если шлём в первый раз
-        lastPosition = currentCoords; //то последними посланными считаем текущие реальные
+        lastPosition = to_hard(currentCoords); //то последними посланными считаем текущие реальные
 
     auto packet = new PacketMove;
     packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
 
-	Coords pos = posIn;
-	for (int i = 0; i < MAX_AXES; ++i) //заполняем подчиненные оси
-		if (slaveAxes[i] >= 0)
-			pos.r[slaveAxes[i]] = pos.r[i];
-
-	for (int i = 0; i < MAX_AXES; ++i) //инвертируем, если нужно
-		if (invertAxe[i])
-			pos.r[i] *= -1;
+	Coords pos = to_hard(posIn);
 
 	//сначала задаем используемые координаты
     for (int i = 0; i < MAX_AXES; ++i)

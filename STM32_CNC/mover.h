@@ -1037,6 +1037,7 @@ void on_packet_received(char * __restrict packet, int size)
 		case DeviceCommand_RESET_PACKET_NUMBER:
 		{
 			receiver.reinit();
+			mover.breakState = 0;
 			send_packet_received(-1, 0);
 			break;
 		}
