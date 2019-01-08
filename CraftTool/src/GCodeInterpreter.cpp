@@ -611,7 +611,7 @@ InterError GCodeInterpreter::run_modal_groups()
             double radius = length(runner.position, planeCenter);
 
 			auto len = length(pos, centerPos);
-            if(fabs(radius - len) > remoteDevice->get_min_step()*2)//растяжение пока не поддерживается
+            if(fabs(radius - len) > remoteDevice->get_min_step(ix, iy)*2)//растяжение пока не поддерживается
                 return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable, start and endpoint have difference radius");
 
             double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
@@ -629,8 +629,8 @@ InterError GCodeInterpreter::run_modal_groups()
 
                     draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
                 }
-                if(length(runner.position, pos) > remoteDevice->get_min_step()*2)
-                    return InterError(InterError::WRONG_VALUE, "screw endpoint unreachable, start and end point have difference radius");
+                if(length(runner.position, pos) > remoteDevice->get_min_step(ix, iy)*2)
+                    return InterError(InterError::WRONG_VALUE, "unexpected fail to reach arc end point");
 
                 runner.position = pos;
             }
@@ -654,7 +654,7 @@ InterError GCodeInterpreter::run_modal_groups()
 
                 draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
 
-                if(length(runner.position, pos) > remoteDevice->get_min_step()*2)
+                if(length(runner.position, pos) > remoteDevice->get_min_step(ix, iy)*2)
                     return InterError(InterError::WRONG_VALUE, "unexpected fail to reach arc end point");
 
                 runner.position = pos;
@@ -757,7 +757,7 @@ void GCodeInterpreter::draw_screw(Coords center, double radius, double ellipseCo
                 double angleStart, double angleMax, double angleToHeight,
                 int ix, int iy, int iz)
 {
-    double accuracy = remoteDevice->get_min_step();
+    double accuracy = remoteDevice->get_min_step(ix, iy);
     //шаг угла выбираем таким, чтобы точность была в пределах одного шага
     //ряд Тейлора для синуса sin(x) = x +...
     //при повороте от оси Х на заданный угол ошибка по второй оси должна быть равна погрешности
@@ -774,19 +774,18 @@ void GCodeInterpreter::draw_screw(Coords center, double radius, double ellipseCo
         aScale = -1;
 
     Coords curPos;
-    double angle = 0;
-    for(; angle < angleMax; angle += step)
-    {
-        curPos.r[ix] = center.r[ix] + radius * cos(angleStart + angle * aScale);
+	auto moveTo = [&] (double angle)
+	{
+		curPos.r[ix] = center.r[ix] + radius * cos(angleStart + angle * aScale);
         curPos.r[iy] = center.r[iy] + radius * sin(angleStart + angle * aScale) * ellipseCoef;
         curPos.r[iz] = center.r[iz] + angle * angleToHeight;
         move_to(curPos);
-    }
-    angle = angleMax;
-    curPos.r[ix] = center.r[ix] + radius * cos(angleStart + angle * aScale);
-    curPos.r[iy] = center.r[iy] + radius * sin(angleStart + angle * aScale);
-    curPos.r[iz] = center.r[iz] + angle * angleToHeight;
-    move_to(curPos);
+	};
+
+    double angle = 0;
+    for(; angle < angleMax; angle += step)
+		moveTo(angle);
+    moveTo(angleMax);
     runner.position = curPos;
 }
 

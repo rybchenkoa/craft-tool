@@ -809,7 +809,6 @@ void CRemoteDevice::init()
 
 	//читаем параметры дискретизации
     secToTick = 168000000.0;
-	double stepSize[MAX_AXES];
 	minStep = 1000000; //километровых шагов уж точно ни у кого не будет
 	for (int i = 0; i < MAX_AXES; ++i)
 		if (usedAxes[i]) //дискретизация нужна для всех осей
@@ -985,9 +984,12 @@ const Coords* CRemoteDevice::get_current_coords()
     return &currentCoords;
 }
 
-double CRemoteDevice::get_min_step()
+double CRemoteDevice::get_min_step(int axis1, int axis2)
 {
-    return minStep;
+	if (axis1 < 0)
+		return minStep;
+	else
+		return std::min(stepSize[axis1], stepSize[axis2]);
 }
 
 //============================================================
