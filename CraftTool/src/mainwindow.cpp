@@ -3,7 +3,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "log.h"
-
+#include "config_defines.h"
 
 #include "GCodeInterpreter.h"
 extern Interpreter::GCodeInterpreter *g_inter;
@@ -13,6 +13,17 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+	std::string stylePath;
+	if (g_config->get_string(CFG_STYLESHEET, stylePath))
+	{
+		QFile styleFile;
+		styleFile.setFileName(stylePath.c_str());
+		if (styleFile.open(QFile::ReadOnly))
+		{
+			QString style = styleFile.readAll();
+			setStyleSheet(style);
+		}
+	}
     ui->setupUi(this);
 
     connect(ui->menuOpenProgram, SIGNAL(triggered()), this, SLOT(menu_open_program()));
