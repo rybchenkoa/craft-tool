@@ -9,6 +9,9 @@ namespace Ui {
 class MainWindow;
 }
 
+class QLineEdit;
+class QAbstractButton;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -26,28 +29,22 @@ public:
     Ui::MainWindow *ui;
     QTimer updateTimer;
     QTime time;
+	std::vector<QAbstractButton*> buttonSet0;
+	std::vector<QLineEdit*> textCoord;
+	std::vector<QAbstractButton*> buttonPlusCoord;
+	std::vector<QAbstractButton*> buttonMinusCoord;
 
 public slots:
     void menu_open_program();
     void update_state();
     void on_c_refHomeButton_clicked();
     void on_c_toZeroButton_clicked();
-    void on_c_setX0Button_clicked();
-    void on_c_setY0Button_clicked();
-    void on_c_setZ0Button_clicked();
     void on_c_feedSlider_valueChanged(int value);
     void on_c_startButton_clicked();
 	void on_c_runLineButton_clicked();
     void on_c_refreshTrajectory_clicked();
     void on_c_pauseButton_clicked();
     void on_c_breakButton_clicked();
-
-	void on_c_topViewButton_clicked();
-	void on_c_bottomViewButton_clicked();
-	void on_c_frontViewButton_clicked();
-	void on_c_backViewButton_clicked();
-	void on_c_leftViewButton_clicked();
-	void on_c_rightViewButton_clicked();
 };
 
 #endif // MAINWINDOW_H

@@ -8,6 +8,7 @@
 #include "GCodeInterpreter.h"
 extern Interpreter::GCodeInterpreter *g_inter;
 extern CRemoteDevice *g_device;
+void ManualMove(int axe, int dir, bool fast);
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -25,6 +26,36 @@ MainWindow::MainWindow(QWidget *parent) :
 		}
 	}
     ui->setupUi(this);
+
+	std::string axes = "XYZAB";
+	for(int i = 0; i < axes.size(); ++i) {
+		buttonSet0.push_back(findChild<QAbstractButton*>(QString("ButtonSet0") + axes[i]));
+		textCoord.push_back(findChild<QLineEdit*>(QString("c_lineEdit") + axes[i]));
+		buttonPlusCoord.push_back(findChild<QAbstractButton*>(QString("ButtonPlus") + axes[i]));
+		buttonMinusCoord.push_back(findChild<QAbstractButton*>(QString("ButtonMinus") + axes[i]));
+	}
+
+	char* views[] = {"Top", "Bottom", "Left", "Right", "Front", "Back"};
+	for(int i = 0; i < 6; ++i) {
+		auto button = findChild<QAbstractButton*>(QString("ButtonView") + views[i]);
+		connect(button, &QAbstractButton::clicked, [i, this]() {
+			ui->c_3dView->set_view(View(i));
+		});
+	}
+
+	for(int i = 0; i < axes.size(); ++i) {
+		connect(buttonSet0[i], &QAbstractButton::clicked, [i]() {
+			g_inter->runner.csd[0].pos0.r[i] = g_device->currentCoords.r[i];
+		});
+
+		connect(buttonPlusCoord[i], &QAbstractButton::clicked, [i]() {
+			ManualMove(i, 1, false);
+		});
+
+		connect(buttonMinusCoord[i], &QAbstractButton::clicked, [i]() {
+			ManualMove(i, -1, false);
+		});
+	}
 
     connect(ui->menuOpenProgram, SIGNAL(triggered()), this, SLOT(menu_open_program()));
     connect(&updateTimer, SIGNAL(timeout()), this, SLOT(update_state()));
@@ -54,21 +85,6 @@ void MainWindow::on_c_refHomeButton_clicked()
 	g_device->homing();
 }
 
-void MainWindow::on_c_setX0Button_clicked()
-{
-    g_inter->runner.csd[0].pos0.x = g_device->currentCoords.r[0];
-}
-
-void MainWindow::on_c_setY0Button_clicked()
-{
-    g_inter->runner.csd[0].pos0.y = g_device->currentCoords.r[1];
-}
-
-void MainWindow::on_c_setZ0Button_clicked()
-{
-    g_inter->runner.csd[0].pos0.z = g_device->currentCoords.r[2];
-}
-
 void MainWindow::on_c_toZeroButton_clicked()
 {
 	g_inter->execute_line("G0 X0 Y0 Z0");
@@ -89,9 +105,8 @@ void MainWindow::update_state()
 	if (!ui->c_machineCoordsButton->isChecked())
 		for (int i = 0; i < MAX_AXES; ++i)
 			coords.r[i] -= g_inter->runner.csd[0].pos0.r[i];
-    ui->c_lineEditX->setText(QString::number(coords.x));
-    ui->c_lineEditY->setText(QString::number(coords.y));
-    ui->c_lineEditZ->setText(QString::number(coords.z));
+	for (int i = 0; i < MAX_AXES; ++i)
+		textCoord[i]->setText(QString::number(coords.r[i]));
 }
 
 bool MainWindow::connect_to_device()
@@ -160,36 +175,6 @@ void MainWindow::on_c_refreshTrajectory_clicked()
     ui->c_3dView->realTrack.clear();
 }
 
-void MainWindow::on_c_topViewButton_clicked()
-{
-	ui->c_3dView->set_view(View::TOP);
-}
-
-void MainWindow::on_c_bottomViewButton_clicked()
-{
-	ui->c_3dView->set_view(View::BOTTOM);
-}
-
-void MainWindow::on_c_frontViewButton_clicked()
-{
-	ui->c_3dView->set_view(View::FRONT);
-}
-
-void MainWindow::on_c_backViewButton_clicked()
-{
-	ui->c_3dView->set_view(View::BACK);
-}
-
-void MainWindow::on_c_leftViewButton_clicked()
-{
-	ui->c_3dView->set_view(View::LEFT);
-}
-
-void MainWindow::on_c_rightViewButton_clicked()
-{
-	ui->c_3dView->set_view(View::RIGHT);
-}
-
 void MainWindow::load_file(QString fileName)
 {
     g_inter->read_file(fileName.toLocal8Bit().data()); //читаем данные из файла
@@ -203,6 +188,12 @@ void MainWindow::load_file(QString fileName)
     setWindowTitle(fileName);
 }
 
+void ManualMove(int axe, int dir, bool fast)
+{
+	coord step = 0.1;
+	g_inter->move(axe, step * dir, fast);
+}
+
 bool MainWindow::eventFilter(QObject *object, QEvent *event)
 {
     if (object == ui->c_3dView && event->type() == QEvent::KeyPress) {
@@ -214,22 +205,22 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
         switch(ke->nativeVirtualKey())
         {
         case VK_RIGHT:
-            g_inter->move(0, step, fast);
+			ManualMove(0, 1, fast);
             return true;
         case VK_LEFT:
-            g_inter->move(0, -step, fast);
+			ManualMove(0, -1, fast);
             return true;
         case VK_UP:
-            g_inter->move(1, step, fast);
+            ManualMove(1, 1, fast);
             return true;
         case VK_DOWN:
-            g_inter->move(1, -step, fast);
+            ManualMove(1, -1, fast);
             return true;
         case Qt::Key_W:
-            g_inter->move(2, step, fast);
+            ManualMove(2, 1, fast);
             return true;
         case Qt::Key_S:
-            g_inter->move(2, -step, fast);
+            ManualMove(2, -1, fast);
             return true;
         }
     }
