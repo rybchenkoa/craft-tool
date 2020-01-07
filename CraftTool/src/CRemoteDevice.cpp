@@ -486,7 +486,7 @@ void CRemoteDevice::set_position(Coords posIn)
     double velValue = length / timeMove; //максимальная скорость движения в заданном направлении
 
     //ограничиваем скорость подачей
-    if(moveMode == MoveMode_LINEAR)
+    if(moveMode != MoveMode_FAST)
         if(velValue > feed)
             velValue = feed;
 

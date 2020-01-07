@@ -846,11 +846,12 @@ bool canLog;
 				case DeviceCommand_SET_VEL_ACC:
 				{
 					PacketSetVelAcc *packet = (PacketSetVelAcc*)common;
+					float mks = 0.000001;
 					for(int i = 0; i < MAX_AXES; ++i)
 					{
-						maxVelocity[i] = packet->maxVelocity[i];
-						maxAcceleration[i] = packet->maxAcceleration[i];
-						log_console("[%d]: maxVel %d, maxAcc %d\n", i, int(maxVelocity[i]), int(maxAcceleration[i]));
+						maxVelocity[i] = packet->maxVelocity[i] * mks;
+						maxAcceleration[i] = packet->maxAcceleration[i] * mks * mks;
+						log_console("[%d]: maxVel %d, maxAcc %d\n", i, int(packet->maxVelocity[i]), int(packet->maxAcceleration[i]));
 					}
 					break;
 				}
