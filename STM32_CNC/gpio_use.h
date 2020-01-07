@@ -48,7 +48,7 @@ tim4 - выходы как замена bsrr
 //разводка выводов под двигатели
 //STEP [d12, d13, d14, d15, g4]
 //DIR [d10, d11, g2, g3, g6]
-//выводы ШИМ []
+//выводы ШИМ [e8, e10, e12  аппаратные e9, e11, e13, e14]
 
 #define MAX_HARD_AXES 5
 #define MAX_PWM  4
@@ -70,6 +70,9 @@ GPIO_TypeDef* IN_PORTS[] = {GPIOA, GPIOC, GPIOC, GPIOC, GPIOD, GPIOD, GPIOD, GPI
 int           IN_PINS[]  = {15,        10,    11,    12,    0,    1,     2,     3,     4};
 int polarity = 0; //надо ли инвертировать вход (битовый массив)
 
+int           OUT_PINS[]    = {8, 10, 12, 9, 11, 13, 14};
+GPIO_TypeDef* OUT_PORTS[]   = {GPIOE, GPIOE, GPIOE, GPIOE, GPIOE, GPIOE, GPIOE};
+
 char OC_ARRAY[MAX_STEP];
 int BSRR_ARRAY[MAX_STEP];
 
@@ -83,6 +86,24 @@ void configure_gpio()
     {
 	  gpio.Pin = 1<<IN_PINS[i];
 	  LL_GPIO_Init(IN_PORTS[i], &gpio);
+    }
+
+    //PWM
+	gpio.Mode = LL_GPIO_MODE_OUTPUT;
+	gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
+	gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    for (int i = 0; i < MAX_SLOW_PWMS; ++i)
+    {
+	  gpio.Pin = 1<<OUT_PINS[i];
+	  LL_GPIO_Init(OUT_PORTS[i], &gpio);
+    }
+
+    gpio.Mode = GPIO_MODE_AF_PP;
+    gpio.Alternate = GPIO_AF1_TIM1;
+    for (int i = MAX_SLOW_PWMS; i < MAX_SLOW_PWMS + MAX_PWM; ++i)
+    {
+		gpio.Pin = 1<<OUT_PINS[i];
+		LL_GPIO_Init(OUT_PORTS[i], &gpio);
     }
 
     //DIR управляется вручную
@@ -102,7 +123,7 @@ void configure_gpio()
     // эти STEP управляются таймерами
     gpio.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
     gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Alternate = GPIO_AF2_TIM4;
+	gpio.Alternate = GPIO_AF2_TIM4;
     LL_GPIO_Init(GPIOD, &gpio);
 }
 
@@ -307,4 +328,25 @@ void inline set_next_step_time(int index, int time)
 	if (time < 1)
 		time = 1;
 	tim->CNT = time;
+}
+
+//--------------------------------------------------
+//выдает сигнал на ножке
+void inline set_pwm_pin(int index, bool state)
+{
+	set_pin_state(OUT_PORTS[index], OUT_PINS[index], state);
+}
+
+//--------------------------------------------------
+//задает ширину импульсов на аппаратной ножке
+void inline set_pwm_width(int index, int width)
+{
+	(&TIM1->CCR1)[index] = width;
+}
+
+//--------------------------------------------------
+//задает ширину импульсов на аппаратной ножке
+void inline set_pwm_period(int period)
+{
+	TIM1->ARR = period;
 }

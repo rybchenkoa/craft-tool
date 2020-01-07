@@ -345,8 +345,9 @@ InterError GCodeInterpreter::run_modal_groups()
 					 std::string("internal error, invalid plane ") + to_string(readedFrame.plane));
     }
 
-    //if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
-    //    ;
+    if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
+        if (!trajectory)
+            remoteDevice->set_spindle_vel(value);
 
     if(readedFrame.get_value('F', value)) //скорость подачи
         if (!trajectory)

@@ -47,6 +47,8 @@ enum DeviceCommand:char //какие команды получает устро�
 	DeviceCommand_SET_COORDS,
     DeviceCommand_SET_FEED, //выпилить?
     DeviceCommand_SET_FEED_MULT,
+	DeviceCommand_SET_PWM,
+	DeviceCommand_SET_PWM_FREQ,
     DeviceCommand_SET_STEP_SIZE,
     DeviceCommand_SERVICE_COORDS,
     DeviceCommand_TEXT_MESSAGE,
@@ -119,6 +121,18 @@ struct PacketSetFeed : public PacketCommon //задать подачу
 struct PacketSetFeedMult : public PacketCommon //задать подачу
 {
     float feedMult;
+    int crc;
+};
+struct PacketSetPWM : public PacketCommon //управление шим выходами
+{
+	char pin;
+    float value;
+    int crc;
+};
+struct PacketSetPWMFreq : public PacketCommon //управление шим выходами
+{
+    float freq;
+	float slowFreq;
     int crc;
 };
 struct PacketSetStepSize : public PacketCommon
@@ -200,6 +214,7 @@ public:
     virtual double get_max_acceleration(int coord)=0;
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
+	virtual void set_spindle_vel(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_step_size(double stepSize[MAX_AXES])=0; //длина одного шага
     virtual void pause_moving(bool needStop)=0; //временная остановка движения
     virtual void break_queue()=0; //полная остановка с прерыванием программы
@@ -232,6 +247,7 @@ public:
     void set_feed(double feed) override;
     void set_feed_multiplier(double multiplier) override;
     void set_step_size(double stepSize[MAX_AXES]) override;
+	void set_spindle_vel(double feed) override;
     void pause_moving(bool needStop) override;
     void break_queue() override;
 	void homing() override;
@@ -264,6 +280,7 @@ public:
     Coords lastPosition;               //последняя переданная позиция
     Coords lastDelta;                  //последний вектор сдвига
     double feed;                       //подача
+	double spindleSpeed;               //скорость шпинделя
     MoveMode moveMode;                 //режим перемещения
     double velocity[MAX_AXES];         //максимальная скорость по каждой оси
     double acceleration[MAX_AXES];     //максимальное ускорение по каждой оси
@@ -289,6 +306,7 @@ public:
 protected:
 	void set_switches(SwitchGroup group, int pins[MAX_AXES]);
 	void set_coord(Coords pos, bool used[MAX_AXES]);
+	void set_pwm_freq(double fast, double slow);
 
     template<typename T>
     void push_packet_common(T *packet);

@@ -252,6 +252,11 @@ public:
 	bool homeActivated[MAX_AXES]; //при наезде на дом выставляем бит
 	bool homeReached;
 
+	//медленный ШИМ
+	int pwmSlowPeriod;
+	int lastPwmUpdate;
+	int pwmSizes[MAX_SLOW_PWMS];
+
 bool canLog;
 
 	//расчёт ускорения не совсем корректен
@@ -758,6 +763,17 @@ bool canLog;
 		handler = &Mover::wait;
 	}
 
+	void updateSlowPwms()
+	{
+		int delta = timer.get() - lastPwmUpdate;
+		if (delta >= pwmSlowPeriod)
+		{
+			lastPwmUpdate = timer.get();
+			delta = 0;
+		}
+		for (int i = 0; i < MAX_SLOW_PWMS; ++i)
+			set_pwm_pin(i, delta < pwmSizes[i]);
+	}
 
 	//=====================================================================================================
 	void process_packet_move(PacketMove *packet)
@@ -874,6 +890,25 @@ bool canLog;
 						}
 						break;
 					}
+				case DeviceCommand_SET_PWM:
+					{
+						PacketSetPWM *packet = (PacketSetPWM*)common;
+						if (packet->pin < MAX_SLOW_PWMS + MAX_PWM)
+						{
+							if (packet->pin < MAX_SLOW_PWMS)
+								pwmSizes[(int)packet->pin] = pwmSlowPeriod * packet->value;
+							else
+								set_pwm_width(MAX_SLOW_PWMS - packet->pin, TIM1->ARR * packet->value);
+						}
+						break;
+					}
+				case DeviceCommand_SET_PWM_FREQ:
+					{
+						PacketSetPWMFreq *packet = (PacketSetPWMFreq*)common;
+						pwmSlowPeriod = 1000000 / packet->slowFreq;
+						set_pwm_period(CORE_FREQ / packet->freq);
+						break;
+					}
 				case DeviceCommand_WAIT:
 					{
 						PacketWait *packet = (PacketWait*)common;
@@ -893,6 +928,8 @@ bool canLog;
 				//      receiver.queue.first, receiver.queue.last);
 			}
 		}
+
+		updateSlowPwms();
 	}
 
 
@@ -926,6 +963,11 @@ bool canLog;
 		interpolation = MoveMode_LINEAR;
 		//feedVelocity = maxVelocity[0]; //для обычной подачи задержка больше
 		feedMult = 1;
+
+		pwmSlowPeriod = PWM_SLOW_SIZE;
+		for(int i = 0; i < MAX_SLOW_PWMS; i++)
+			pwmSizes[i] = 0;
+		lastPwmUpdate = 0;
 	}
 
 	//=====================================================================================================

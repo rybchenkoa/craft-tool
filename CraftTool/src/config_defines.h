@@ -20,3 +20,5 @@ extern Config *g_config;
 #define CFG_COORD_HOME         "coordHome"
 #define CFG_HOMING             "homing"
 #define CFG_FRACT_VALUE        "fractValue"
+#define CFG_SLOW_PWM_FREQ      "slowPWMFreq"
+#define CFG_PWM_FREQ           "PWMFreq"

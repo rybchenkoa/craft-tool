@@ -19,6 +19,8 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SET_COORDS,       //in
 	DeviceCommand_SET_FEED,         //in
 	DeviceCommand_SET_FEED_MULT,    //in
+	DeviceCommand_SET_PWM,          //in
+	DeviceCommand_SET_PWM_FREQ,     //in
 	DeviceCommand_SET_STEP_SIZE,    //in
 	DeviceCommand_SERVICE_COORDS,   //out
 	DeviceCommand_TEXT_MESSAGE,     //out
@@ -80,6 +82,16 @@ struct PacketSetFeed : public PacketCommon
 struct PacketSetFeedMult : public PacketCommon
 {
 	float feedMult;
+};
+struct PacketSetPWM : public PacketCommon
+{
+	char pin;
+	float value;
+};
+struct PacketSetPWMFreq : public PacketCommon
+{
+	float freq;
+	float slowFreq;
 };
 struct PacketSetStepSize : public PacketCommon
 {

@@ -609,6 +609,29 @@ void CRemoteDevice::set_feed_multiplier(double multiplier)
 }
 
 //============================================================
+//от 0 до 1?
+void CRemoteDevice::set_spindle_vel(double value)
+{
+    auto packet = new PacketSetPWM;
+    packet->command = DeviceCommand_SET_PWM;
+	packet->pin = 0;
+    packet->value = float(value);
+    push_packet_common(packet);
+    this->spindleSpeed = value;
+}
+
+//============================================================
+//в герцах
+void CRemoteDevice::set_pwm_freq(double fast, double slow)
+{
+    auto packet = new PacketSetPWMFreq;
+    packet->command = DeviceCommand_SET_PWM_FREQ;
+    packet->freq = float(fast);
+	packet->slowFreq = float(slow);
+    push_packet_common(packet);
+}
+
+//============================================================
 void CRemoteDevice::set_step_size(double stepSize[MAX_AXES])
 {
     auto packet = new PacketSetStepSize;
@@ -952,6 +975,7 @@ void CRemoteDevice::init()
     set_feed(feed);
     set_step_size(stepSize);
     set_fract();
+	set_pwm_freq(try_get_float(CFG_PWM_FREQ), try_get_float(CFG_SLOW_PWM_FREQ));
 
 	inited = true;
 }
