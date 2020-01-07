@@ -433,7 +433,7 @@ bool canLog;
 				else if (interpolation == MoveMode_HOME)
 				{
 					//если не задали концевик, но пытаемся на него наехать, то считаем что уже на нем
-					if (homeSwitch[i] == -1 || get_pin(homeSwitch[i]))
+					if (homeSwitch[i] == -1 || get_pin(homeSwitch[i]) || homeActivated[i])
 					{
 						if (!homeActivated[i])
 						{
@@ -453,6 +453,9 @@ bool canLog;
 						if (vel >= 0)
 							homeReached = false;
 						continue;
+					}
+					else {
+						homeReached = false;
 					}
 				}
 
@@ -586,17 +589,27 @@ bool canLog;
 	}
 	
 	//=====================================================================================================
+	void finish_linear()
+	{
+		stop_motors();
+		for(int i = 0; i < MAX_AXES; ++i)
+			to[i] = coord[i];
+		linearData.state = 0;
+		init_empty();
+	}
+
+	//=====================================================================================================
 	OperateResult linear()
 	{
 		if (switch_reached())
 		{
-			stop_motors(); //TODO сделать обработку остановки
+			finish_linear(); //TODO сделать обработку остановки
 			return END;
 		}
 		
 		if (home_reached())
 		{
-			stop_motors();
+			finish_linear();
 			return END;
 		}
 			
@@ -652,10 +665,7 @@ bool canLog;
 		//прерывание обработки
 		if (linearData.velocity == 0 && breakState == 1)
 		{
-			stop_motors();
-			linearData.state = 0;
-			for(int i = 0; i < MAX_AXES; ++i)
-				to[i] = coord[i];
+			finish_linear();
 			receiver.init();
 			breakState = 2;
 			return END;
