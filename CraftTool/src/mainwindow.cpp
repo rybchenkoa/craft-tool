@@ -8,7 +8,6 @@
 #include "GCodeInterpreter.h"
 extern Interpreter::GCodeInterpreter *g_inter;
 extern CRemoteDevice *g_device;
-void ManualMove(int axe, int dir, bool fast);
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -43,17 +42,24 @@ MainWindow::MainWindow(QWidget *parent) :
 		});
 	}
 
+	coord stp[] = {1, 0.5, 0.1, 0.05, 0.01}; //TODO сделать чтение из конфига
+	steps.assign(stp, stp+5);
+	for(int i = 0; i < steps.size(); ++i){
+		ui->c_stepSwitch->insertItem(i, QString::number(steps[i]));
+	}
+	ui->c_stepSwitch->setCurrentIndex(2);
+
 	for(int i = 0; i < axes.size(); ++i) {
 		connect(buttonSet0[i], &QAbstractButton::clicked, [i]() {
 			g_inter->runner.csd[0].pos0.r[i] = g_device->currentCoords.r[i];
 		});
 
-		connect(buttonPlusCoord[i], &QAbstractButton::clicked, [i]() {
-			ManualMove(i, 1, false);
+		connect(buttonPlusCoord[i], &QAbstractButton::clicked, [this, i]() {
+			manual_move(i, 1, false);
 		});
 
-		connect(buttonMinusCoord[i], &QAbstractButton::clicked, [i]() {
-			ManualMove(i, -1, false);
+		connect(buttonMinusCoord[i], &QAbstractButton::clicked, [this, i]() {
+			manual_move(i, -1, false);
 		});
 	}
 
@@ -188,9 +194,9 @@ void MainWindow::load_file(QString fileName)
     setWindowTitle(fileName);
 }
 
-void ManualMove(int axe, int dir, bool fast)
+void MainWindow::manual_move(int axe, int dir, bool fast)
 {
-	coord step = 0.1;
+	coord step = steps[ui->c_stepSwitch->currentIndex()];
 	g_inter->move(axe, step * dir, fast);
 }
 
@@ -205,22 +211,22 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
         switch(ke->nativeVirtualKey())
         {
         case VK_RIGHT:
-			ManualMove(0, 1, fast);
+			manual_move(0, 1, fast);
             return true;
         case VK_LEFT:
-			ManualMove(0, -1, fast);
+			manual_move(0, -1, fast);
             return true;
         case VK_UP:
-            ManualMove(1, 1, fast);
+            manual_move(1, 1, fast);
             return true;
         case VK_DOWN:
-            ManualMove(1, -1, fast);
+            manual_move(1, -1, fast);
             return true;
         case Qt::Key_W:
-            ManualMove(2, 1, fast);
+            manual_move(2, 1, fast);
             return true;
         case Qt::Key_S:
-            ManualMove(2, -1, fast);
+            manual_move(2, -1, fast);
             return true;
         }
     }

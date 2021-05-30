@@ -22,6 +22,7 @@ public:
 
     bool connect_to_device();
     void load_file(QString fileName);
+	void manual_move(int axe, int dir, bool fast);
 
     bool eventFilter(QObject *object, QEvent *event);
 
@@ -33,6 +34,7 @@ public:
 	std::vector<QLineEdit*> textCoord;
 	std::vector<QAbstractButton*> buttonPlusCoord;
 	std::vector<QAbstractButton*> buttonMinusCoord;
+	std::vector<double> steps;
 
 public slots:
     void menu_open_program();
