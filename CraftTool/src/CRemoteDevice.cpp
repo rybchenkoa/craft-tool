@@ -875,6 +875,7 @@ void CRemoteDevice::init()
 	std::string pinsMap = try_get_string(CFG_AXE_MAP);
 	std::stringstream ss(pinsMap);
 	std::string token;
+	fromDeviceIndex.resize(MAX_AXES, -1);
 	while (ss >> token)
 	{
 		bool processed = false;
@@ -886,7 +887,7 @@ void CRemoteDevice::init()
 				std::find(fromDeviceIndex.begin(), fromDeviceIndex.end(), numAxe) == fromDeviceIndex.end())
 			{
 				processed = true;
-				fromDeviceIndex.push_back(numAxe);
+				fromDeviceIndex[numPin] = numAxe;
 			}
 		}
 		if (!processed)
@@ -895,7 +896,7 @@ void CRemoteDevice::init()
 
 	for (int i = 0; i < MAX_AXES; ++i)
 		if (std::find(fromDeviceIndex.begin(), fromDeviceIndex.end(), i) == fromDeviceIndex.end())
-			fromDeviceIndex.push_back(i);
+			*std::find(fromDeviceIndex.begin(), fromDeviceIndex.end(), -1) = i;
 
 	// строим обратный индекс
 	toDeviceIndex.resize(MAX_AXES);
