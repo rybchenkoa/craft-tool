@@ -216,17 +216,33 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
         case VK_LEFT:
 			manual_move(0, -1, fast);
             return true;
+
         case VK_UP:
             manual_move(1, 1, fast);
             return true;
         case VK_DOWN:
             manual_move(1, -1, fast);
             return true;
+
         case Qt::Key_W:
             manual_move(2, 1, fast);
             return true;
         case Qt::Key_S:
             manual_move(2, -1, fast);
+            return true;
+
+		case Qt::Key_R:
+            manual_move(3, 1, fast);
+            return true;
+        case Qt::Key_F:
+            manual_move(3, -1, fast);
+            return true;
+
+		case Qt::Key_T:
+            manual_move(4, 1, fast);
+            return true;
+        case Qt::Key_G:
+            manual_move(4, -1, fast);
             return true;
         }
     }

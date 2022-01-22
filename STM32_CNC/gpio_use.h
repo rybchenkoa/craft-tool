@@ -181,7 +181,7 @@ void dma_bsrr_stream(DMA_Stream_TypeDef *stream, int channel,
     | channel; //тактирование брать с этого триггера
   stream->NDTR = MAX_STEP;
   stream->M0AR = (int)arr;
-  stream->PAR = (int)&GPIOF->BSRR;
+  stream->PAR = (int)&port->BSRR;
   stream->CR |= DMA_SxCR_EN;
 }
 
