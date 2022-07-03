@@ -65,9 +65,9 @@ TIM_TypeDef*  STEP_TIMERS[] = {TIM2,  TIM3, TIM6,  TIM7, TIM8};
 DMA_Stream_TypeDef* DMA_STREAMS[] = {DMA1_Stream7, DMA1_Stream2, DMA1_Stream1, DMA1_Stream4, DMA2_Stream1};
 int DMA_TRIGGERS[] = {DMA_CHANNEL_3, DMA_CHANNEL_5, DMA_CHANNEL_7, DMA_CHANNEL_1, DMA_CHANNEL_7};
 
-//входы a15, c10, c11, c12, d0, d1, d2, d3, d4
-GPIO_TypeDef* IN_PORTS[] = {GPIOA, GPIOC, GPIOC, GPIOC, GPIOD, GPIOD, GPIOD, GPIOD, GPIOD};
-int           IN_PINS[]  = {15,        10,    11,    12,    0,    1,     2,     3,     4};
+//входы c11, c12, d0, d1, d2, d3, d4, d5
+GPIO_TypeDef* IN_PORTS[] = {GPIOC, GPIOC, GPIOD, GPIOD, GPIOD, GPIOD, GPIOD, GPIOD};
+int           IN_PINS[]  = {11,    12,    0,     1,     2,     3,     4,     5};
 int polarity = 0; //надо ли инвертировать вход (битовый массив)
 
 int           OUT_PINS[]    = {8, 10, 12, 9, 11, 13, 14};
