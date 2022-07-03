@@ -6,8 +6,7 @@
 #include "ComPortConnect.h"
 #include "stdint.h"
 
-#define NUM_COORDS 3 //сколько координат задаем в G-коде
-#define NUM_AXES   4 //сколько осей используем (координаты плюс подчиненные им оси)
+#define NUM_COORDS 4 //сколько координат задаем в G-коде
 #define MAX_AXES   5 //сколько всего есть осей на контроллере
 #define MAX_IN_PINS 11 //количество входных пинов
 

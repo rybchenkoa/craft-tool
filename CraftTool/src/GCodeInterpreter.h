@@ -180,8 +180,6 @@ struct Runner
     double cycleDeepLevel;   //глубина сверления задаётся в Z
     double cycleStep;        //глубина одного шага Q
     int    cycleWait;        //задержка в цикле P
-
-    Coords offset;           //отступ для ручного задания положения
 };
 
 struct GKey

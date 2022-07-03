@@ -31,6 +31,8 @@ BitPos FrameParams::get_bit_pos(char letter)
         case 'X': return BitPos_X;
         case 'Y': return BitPos_Y;
         case 'Z': return BitPos_Z;
+		case 'A': return BitPos_A;
+		case 'B': return BitPos_B;
 
         case 'I': return BitPos_I;
         case 'J': return BitPos_J;
@@ -560,6 +562,8 @@ InterError GCodeInterpreter::run_modal_groups()
             get_readed_coord('X', pos.x);
             get_readed_coord('Y', pos.y);
             get_readed_coord('Z', pos.z);
+			get_readed_coord('A', pos.a);
+			get_readed_coord('B', pos.b);
 
             runner.position = pos;
             move_to(pos);
@@ -585,7 +589,6 @@ InterError GCodeInterpreter::run_modal_groups()
         }
 
         Coords centerPos;
-        centerPos.x = centerPos.y = centerPos.z = 0;
 
         if(readedFrame.have_value('I') ||  //если задан центр круга
            readedFrame.have_value('J') ||
@@ -594,6 +597,7 @@ InterError GCodeInterpreter::run_modal_groups()
             if(readedFrame.have_value('R'))
                 return InterError(InterError::WRONG_VALUE, "conflict parameter R with I,J,K offset");
 
+			centerPos.x = centerPos.y = centerPos.z = 0;
             get_readed_coord('I', centerPos.x); //читаем центр круга
             get_readed_coord('J', centerPos.y);
             get_readed_coord('K', centerPos.z);
@@ -796,11 +800,14 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
 {
     if(readedFrame.have_value('X') ||
        readedFrame.have_value('Y') ||
-       readedFrame.have_value('Z'))
+       readedFrame.have_value('Z') ||
+	   readedFrame.have_value('A') ||
+	   readedFrame.have_value('B')
+	   )
     {
         if(runner.incremental)
         {
-            pos.x = pos.y = pos.z = 0;
+            pos = Coords();
         }
         else
         {
@@ -812,6 +819,8 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
         get_readed_coord('X', pos.x);
         get_readed_coord('Y', pos.y);
         get_readed_coord('Z', pos.z);
+		get_readed_coord('A', pos.a);
+		get_readed_coord('B', pos.b);
 
         if(runner.incremental)
         {
@@ -1122,12 +1131,7 @@ void GCodeInterpreter::init()
     runner.deviceMoveMode = MoveMode_FAST;
     runner.cycle = CannedCycle_NONE;
     runner.plane = Plane_XY;
-    runner.offset.x = 0;
-    runner.offset.y = 0;
-    runner.offset.z = 0;
-    runner.position.x = 0;
-    runner.position.y = 0;
-    runner.position.z = 0;
+    runner.position = Coords();
     runner.units = UnitSystem_METRIC;
     memset(&runner.csd, 0, sizeof(runner.csd));
     coordsInited = false;
