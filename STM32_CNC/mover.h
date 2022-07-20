@@ -5,6 +5,8 @@
 #include "sys_timer.h"
 #include "led.h"
 #include "math.h"
+#include "spindle.h"
+#include "feed.h"
 
 void send_packet(char *packet, int size);
 void preprocess_command(PacketCommon *p);
@@ -238,14 +240,14 @@ public:
 	MoveMode interpolation;
 	bool needPause;           //сбросить скорость до 0
 	char breakState;          //сбросить очередь команд
-	float feedMult;         //заданная из интерфейса скорость движения
+	FeedModifier feedModifier;//управление подачей
 
 	//данные, отвечающие за раздельное движение по осям (концевики и ручное управление)
 	char limitSwitchMin[MAX_AXES]; //концевики
 	char limitSwitchMax[MAX_AXES];
 	char activeSwitch[MAX_AXES]; //концевики, в сторону которых сейчас едем
 	int  activeSwitchCount;      //количество активных концевиков
-	
+
 	char homeSwitch[MAX_AXES]; //датчики дома
 	float axeVelocity[MAX_AXES]; //скорость оси во время попадания в концевик
 	int timeActivate[MAX_AXES]; //время начала остановки
@@ -616,10 +618,8 @@ bool canLog;
 		float length = linearData.invProj * virtualAxe._position;
 		length += 0.001f * current_track_length();
 
-		float currentFeed = linearData.maxFeedVelocity * feedMult;
-#ifdef USE_ADC_FEED
-		currentFeed *= adc.value() * (1.0f/(1<<12)); //на максимальном напряжении   *= 0.99999
-#endif
+		float currentFeed = linearData.maxFeedVelocity;
+		feedModifier.modify(currentFeed, linearData.velocity, linearData.acceleration, coord, stepLength, linearData.velCoef);
 
 		int lastState = linearData.state;
 		//v^2 = 2g*h; //сначала проверяем, что не врежемся с разгона
@@ -773,17 +773,19 @@ bool canLog;
 		handler = &Mover::wait;
 	}
 
-	void updateSlowPwms()
+	//=====================================================================================================
+	void updateSlowPwms(int time)
 	{
-		int delta = timer.get() - lastPwmUpdate;
+		int delta = time - lastPwmUpdate;
 		if (delta >= pwmSlowPeriod)
 		{
-			lastPwmUpdate = timer.get();
+			lastPwmUpdate = time;
 			delta = 0;
 		}
 		for (int i = 0; i < MAX_SLOW_PWMS; ++i)
 			set_pwm_pin(i, delta < pwmSizes[i]);
 	}
+
 
 	//=====================================================================================================
 	void process_packet_move(PacketMove *packet)
@@ -940,7 +942,10 @@ bool canLog;
 			}
 		}
 
-		updateSlowPwms();
+		int time = timer.get();
+		updateSlowPwms(time);
+		spindle.update(time);
+		feedModifier.update(time);
 	}
 
 
@@ -973,7 +978,8 @@ bool canLog;
 		}*/
 		interpolation = MoveMode_LINEAR;
 		//feedVelocity = maxVelocity[0]; //для обычной подачи задержка больше
-		feedMult = 1;
+		feedModifier = FeedModifier();
+		spindle = Spindle();
 
 		pwmSlowPeriod = PWM_SLOW_SIZE;
 		for(int i = 0; i < MAX_SLOW_PWMS; i++)
@@ -1100,8 +1106,8 @@ void on_packet_received(char * __restrict packet, int size)
 			if (receiver.packet_received2(common))
 			{
 				PacketSetFeedMult *packet = (PacketSetFeedMult*)common;
-				mover.feedMult = packet->feedMult;
-				log_console("feedMult %d%%\n", int(mover.feedMult*100));
+				mover.feedModifier.feedMult = packet->feedMult;
+				log_console("feedMult %d%%\n", int(mover.feedModifier.feedMult*100));
 			}
 			break;
 		}

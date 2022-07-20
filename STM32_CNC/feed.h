@@ -1,0 +1,145 @@
+//ǁ
+#include "common.h"
+
+//===============================================================
+/*
+Модификатор подачи. Умеет регулировать подачу в зависимости от запросов.
+*/
+
+struct FeedModifier
+{
+	float feedMult;             //заданная из интерфейса скорость движения
+	bool useAdcMult;            //умножать подачу на значение АЦП
+
+	bool useThrottling;         //умножать подачу на ШИМ (подача короткими рывками)
+	int throttlingSize;         //процент времени, когда движение разрешено
+	int throttlingPeriod;       //частота прерывания движения по осям
+	int lastThrottlingUpdate;   //время с начала периода
+	bool throttling;            //запрещена ли подача
+
+	bool useFeedStable;         //подача со стабилизацией оборотов
+	bool stablePause;           //регулятор замедления/ускорения
+	float stableFrequency;      //целевая частота оборотов (об/тик)
+
+	bool useFeedPerRev;         //подача со стабилизацией нагрузки на фрезу (подача на зуб)
+	float feedPerRev;           //целевое значение подачи (мм/об)
+
+	bool useFeedSync;           //подача с синхронизацией шпинделя
+	float syncStep;             //шаг витка (мм/об), нужно точное значение, т.к. ошибка суммируется
+	int syncAxeIndex;           //номер оси, с которой синхронизируемся
+	int syncPos;                //позиция начала витка
+
+	//=========================================================
+	FeedModifier()
+	{
+		feedMult = 1;
+		useAdcMult = false;
+		useThrottling = false;
+		useFeedSync = false;
+	}
+
+	//=========================================================
+	void update_throttling(int time)
+	{
+		int delta = time - lastThrottlingUpdate;
+		if (delta >= throttlingPeriod)
+		{
+			lastThrottlingUpdate = time;
+			delta = 0;
+		}
+		throttling = (delta >= throttlingSize);
+	}
+
+	//=========================================================
+	void modify_feed_sync(float& feed, float currentFeed, float acceleration, int* coord, float* stepLength, float* invProj)
+	{
+		if (spindle.freeze)
+			feed = 0;
+		else
+		{
+			int index = syncAxeIndex; //для удобства
+			float spindleFeed = spindle.velocity * syncStep; //скорость движения резьбы
+			spindleFeed *= invProj[index]; //сравниваем полные скорости, а не проекцию на шпиндель
+			//на начальном участке просто разгоняемся
+			if (currentFeed > spindleFeed * 0.8f)
+			{
+				//пытаемся попасть в ближайший виток
+				float position = (coord[index] - syncPos) * stepLength[index]; //текущий отступ от начала витков
+				float fraction = position / syncStep; //пройдено витков
+				fraction -= floorf(fraction); //пройденная часть витка
+				float delta = fraction - spindle.position; //на какую часть витка отклонились
+				if (delta < 0) //убираем лишний оборот:(-1, 1) в (0, 1)
+					delta += 1.f;
+				
+				float deltaFeed = currentFeed - spindleFeed;
+				//известны s - расстояние, a - ускорение, v - скорость
+				//надо понять, пора тормозить или ускоряться
+				//s = v*v/2a - тормозное расстояние
+				delta -= 0.5f;
+				if (delta < 0) //если отстаём
+				{
+					//но оставшееся расстояние меньше тормозного пути
+					if (-2 * delta * acceleration < deltaFeed * deltaFeed)
+						feed = 0;
+				}
+				else //если опережаем
+				{
+					// и тормозного расстояния хватает, тогда ещё притормозим
+					if (2 * delta * acceleration > deltaFeed * deltaFeed)
+						feed = 0;
+				}
+			}
+		}
+	}
+
+	//=========================================================
+	void modify_stable_frequence(float& feed)
+	{
+		if (spindle.velocity < stableFrequency)
+			feed = 0;
+	}
+
+	//=========================================================
+	void modify_feed_per_rev(float& feed)
+	{
+		//подача в мм/тик, скорость в оборотах/тик
+		float targetFeed = spindle.velocity * feedPerRev;
+		
+		if (feed > targetFeed)
+			feed = targetFeed;
+	}
+
+	//=========================================================
+	void update(int time)
+	{
+		if (useThrottling)
+			update_throttling(time);
+	}
+
+	//=========================================================
+	void modify(float& feed, float currentFeed, float acceleration, int* coord, float* stepLength, float* invProj)
+	{
+		feed *= feedMult;
+
+		//различные способы модификации подачи
+		//управление скоростью через напряжение
+		if (useAdcMult)
+			feed *= adc.value() * (1.0f/(1<<12)); //на максимальном напряжении   *= 0.99999
+
+		//движение рывками
+		if (useThrottling && throttling)
+			feed = 0;
+
+		//поддержание постоянных оборотов шпинделя
+		if (useFeedStable)
+			modify_stable_frequence(feed);
+
+		//постоянная подача на зуб
+		if (useFeedPerRev)
+			modify_feed_per_rev(feed);
+
+		//попадание в витки резьбы
+		if (useFeedSync)
+			modify_feed_sync(feed, currentFeed, acceleration, coord, stepLength, invProj);
+	}
+};
