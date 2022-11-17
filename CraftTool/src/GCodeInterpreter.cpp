@@ -597,14 +597,13 @@ InterError GCodeInterpreter::run_modal_groups()
             if(readedFrame.have_value('R'))
                 return InterError(InterError::WRONG_VALUE, "conflict parameter R with I,J,K offset");
 
-			centerPos.x = centerPos.y = centerPos.z = 0;
+            //изначально координаты нулевые centerPos.x = centerPos.y = centerPos.z = 0;
             get_readed_coord('I', centerPos.x); //читаем центр круга
             get_readed_coord('J', centerPos.y);
             get_readed_coord('K', centerPos.z);
 
-            centerPos.x += runner.position.x;
-            centerPos.y += runner.position.y;
-            centerPos.z += runner.position.z;
+            for(int i = 0; i < NUM_COORDS; ++i)
+                centerPos.r[i] += runner.position.r[i];
 
             Coords pos = runner.position;            //читаем, докуда двигаться
             get_new_position(pos);
@@ -778,7 +777,7 @@ void GCodeInterpreter::draw_screw(Coords center, double radius, double ellipseCo
     if(runner.motionMode == MotionMode_CW_ARC)
         aScale = -1;
 
-    Coords curPos;
+    Coords curPos = center;
 	auto moveTo = [&] (double angle)
 	{
 		curPos.r[ix] = center.r[ix] + radius * cos(angleStart + angle * aScale);
