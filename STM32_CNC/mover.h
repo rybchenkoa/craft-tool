@@ -891,6 +891,11 @@ bool canLog;
 						log_console("feed %d\n", int(linearData.feedVelocity));*/
 						break;
 					}
+				case DeviceCommand_SET_FEED_MODE:
+				{
+					feedModifier.set_mode((PacketSetFeedMode*)common);
+					break;
+				}
 				case DeviceCommand_SET_STEP_SIZE:
 					{
 						PacketSetStepSize *packet = (PacketSetStepSize*)common;

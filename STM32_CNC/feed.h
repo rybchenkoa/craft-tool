@@ -9,6 +9,7 @@
 struct FeedModifier
 {
 	float feedMult;             //заданная из интерфейса скорость движения
+
 	bool useAdcMult;            //умножать подачу на значение АЦП
 
 	bool useThrottling;         //умножать подачу на ШИМ (подача короткими рывками)
@@ -141,5 +142,64 @@ struct FeedModifier
 		//попадание в витки резьбы
 		if (useFeedSync)
 			modify_feed_sync(feed, currentFeed, acceleration, coord, stepLength, invProj);
+	}
+
+	//=========================================================
+	void clear_flags()
+	{
+		useFeedStable = false;
+		useFeedPerRev = false;
+		useFeedSync = false;
+	}
+
+	//=========================================================
+	void set_mode(PacketSetFeedMode *pack)
+	{
+		switch(pack->mode)
+		{
+			case FeedType_ADC:
+			{
+				auto p = (PacketSetFeedAdc*)pack;
+				useAdcMult = p->enable;
+				break;
+			}
+			case FeedType_THROTTLING:
+			{
+				auto p = (PacketSetFeedThrottling*)pack;
+				useThrottling = p->enable;
+				throttlingPeriod = p->period;
+				throttlingSize = p->size;
+				break;
+			}
+			//эти друг друга выключают
+			case FeedType_NORMAL:
+			{
+				clear_flags();
+				break;
+			}
+			case FeedType_STABLE_REV:
+			{
+				clear_flags();
+				useFeedStable = true;
+				stableFrequency = ((PacketSetFeedStable*)pack)->frequency;
+				break;
+			}
+			case FeedType_PER_REV:
+			{
+				clear_flags();
+				useFeedPerRev = true;
+				feedPerRev = ((PacketSetFeedPerRev*)pack)->feedPerRev;
+				break;
+			}
+			case FeedType_SYNC:
+			{
+				clear_flags();
+				useFeedSync = true;
+				syncAxeIndex = ((PacketSetFeedSync*)pack)->axeIndex;
+				syncPos = ((PacketSetFeedSync*)pack)->pos;
+				syncStep = ((PacketSetFeedSync*)pack)->step;
+				break;
+			}
+		}
 	}
 };

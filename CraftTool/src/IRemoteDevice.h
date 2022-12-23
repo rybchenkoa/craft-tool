@@ -46,6 +46,7 @@ enum DeviceCommand:char //какие команды получает устро�
 	DeviceCommand_SET_COORDS,
     DeviceCommand_SET_FEED, //выпилить?
     DeviceCommand_SET_FEED_MULT,
+	DeviceCommand_SET_FEED_MODE,
 	DeviceCommand_SET_PWM,
 	DeviceCommand_SET_PWM_FREQ,
     DeviceCommand_SET_STEP_SIZE,
@@ -68,6 +69,15 @@ enum SwitchGroup:char
 	SwitchGroup_MIN = 0,
 	SwitchGroup_MAX,
 	SwitchGroup_HOME,
+};
+enum FeedType:char
+{
+	FeedType_NORMAL = 0, //движение с заданной скоростью
+	FeedType_ADC, //управление скоростью через АЦП
+	FeedType_PER_REV, //стабилизация подачи на оборот (стабильный размер стружки/нагрузка на фрезу)
+	FeedType_STABLE_REV, //стабилизация частоты оборотов (ограничение нагрева фрезы/стабильный кпд шпинделя)
+	FeedType_SYNC, //синхронизация шпинделя с осью (нарезание резьбы и т.п.)
+	FeedType_THROTTLING, //паузы при движении
 };
 #pragma pack(push, 1)
 struct PacketCommon
@@ -120,6 +130,43 @@ struct PacketSetFeed : public PacketCommon //задать подачу
 struct PacketSetFeedMult : public PacketCommon //задать подачу
 {
     float feedMult;
+    int crc;
+};
+struct PacketSetFeedMode : public PacketCommon //настройки подачи
+{
+    FeedType mode;
+};
+struct PacketSetFeedNormal : public PacketSetFeedMode
+{
+    int crc;
+};
+struct PacketSetFeedPerRev : public PacketSetFeedMode
+{
+    float feedPerRev;
+    int crc;
+};
+struct PacketSetFeedStable : public PacketSetFeedMode
+{
+    float frequency;
+    int crc;
+};
+struct PacketSetFeedSync : public PacketSetFeedMode
+{
+    float step;
+    int axeIndex;
+    int pos;
+    int crc;
+};
+struct PacketSetFeedThrottling : public PacketSetFeedMode
+{
+    bool enable;
+    int period;
+    int size;
+    int crc;
+};
+struct PacketSetFeedAdc : public PacketSetFeedMode
+{
+    bool enable;
     int crc;
 };
 struct PacketSetPWM : public PacketCommon //управление шим выходами
@@ -213,6 +260,13 @@ public:
     virtual double get_max_acceleration(int coord)=0;
     virtual void set_feed(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_feed_multiplier(double multiplier)=0; //множитель скорости подачи
+    virtual void set_feed_normal()=0; //подача в мм/сек
+    virtual void set_feed_per_rev(double feed)=0; //подача в мм/оборот
+    virtual void set_feed_stable(double frequency)=0; //стабилизация оборотов шпинделя
+    virtual void set_feed_sync(double step, double pos, int axe)=0; //синхронизация оси со шпинделем
+    virtual void set_feed_throttling(bool enable, int period, int size)=0; //движение рывками
+    virtual void set_feed_adc(bool enable)=0; //управление подачей через напряжение
+	
 	virtual void set_spindle_vel(double feed)=0; //скорость подачи (скорость движения при резке)
     virtual void set_step_size(double stepSize[MAX_AXES])=0; //длина одного шага
     virtual void pause_moving(bool needStop)=0; //временная остановка движения
@@ -245,6 +299,12 @@ public:
     double get_max_acceleration(int coord) override;
     void set_feed(double feed) override;
     void set_feed_multiplier(double multiplier) override;
+    void set_feed_normal() override;
+    void set_feed_per_rev(double feed) override;
+    void set_feed_stable(double frequency) override;
+    void set_feed_sync(double step, double pos, int axe) override;
+    void set_feed_throttling(bool enable, int period, int size) override;
+    void set_feed_adc(bool enable) override;
     void set_step_size(double stepSize[MAX_AXES]) override;
 	void set_spindle_vel(double feed) override;
     void pause_moving(bool needStop) override;

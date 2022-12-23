@@ -19,6 +19,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_SET_COORDS,       //in
 	DeviceCommand_SET_FEED,         //in
 	DeviceCommand_SET_FEED_MULT,    //in
+	DeviceCommand_SET_FEED_MODE,    //in
 	DeviceCommand_SET_PWM,          //in
 	DeviceCommand_SET_PWM_FREQ,     //in
 	DeviceCommand_SET_STEP_SIZE,    //in
@@ -39,6 +40,15 @@ enum SwitchGroup //:char
 	SwitchGroup_MIN = 0,
 	SwitchGroup_MAX,
 	SwitchGroup_HOME,
+};
+enum FeedType //:char
+{
+	FeedType_NORMAL = 0, //движение с заданной скоростью
+	FeedType_ADC, //управление скоростью через АЦП
+	FeedType_PER_REV, //стабилизация подачи на оборот (стабильный размер стружки/нагрузка на фрезу)
+	FeedType_STABLE_REV, //стабилизация частоты оборотов (ограничение нагрева фрезы/стабильный кпд шпинделя)
+	FeedType_SYNC, //синхронизация шпинделя с осью (нарезание резьбы и т.п.)
+	FeedType_THROTTLING, //паузы при движении
 };
 
 //--------------------------------------------------------------------
@@ -82,6 +92,34 @@ struct PacketSetFeed : public PacketCommon
 struct PacketSetFeedMult : public PacketCommon
 {
 	float feedMult;
+};
+struct PacketSetFeedMode : public PacketCommon
+{
+	FeedType mode;
+};
+struct PacketSetFeedStable : public PacketSetFeedMode
+{
+	float frequency;
+};
+struct PacketSetFeedPerRev : public PacketSetFeedMode
+{
+	float feedPerRev;
+};
+struct PacketSetFeedSync : public PacketSetFeedMode
+{
+	float step;
+	int axeIndex;
+	int pos;
+};
+struct PacketSetFeedThrottling : public PacketSetFeedMode
+{
+	bool enable;
+	int period;
+	int size;
+};
+struct PacketSetFeedAdc : public PacketSetFeedMode
+{
+	bool enable;
 };
 struct PacketSetPWM : public PacketCommon
 {

@@ -609,6 +609,70 @@ void CRemoteDevice::set_feed_multiplier(double multiplier)
 }
 
 //============================================================
+//сбрасывает управление скоростью к обычному режиму
+void CRemoteDevice::set_feed_normal()
+{
+	auto packet = new PacketSetFeedNormal;
+	packet->command = DeviceCommand_SET_FEED_MODE;
+	packet->mode = FeedType_NORMAL;
+	push_packet_common(packet);
+}
+
+//============================================================
+void CRemoteDevice::set_feed_per_rev(double feed)
+{
+	auto packet = new PacketSetFeedPerRev;
+	packet->command = DeviceCommand_SET_FEED_MODE;
+	packet->mode = FeedType_PER_REV;
+	packet->feedPerRev = feed;
+	push_packet_common(packet);
+}
+
+//============================================================
+void CRemoteDevice::set_feed_stable(double frequency)
+{
+	auto packet = new PacketSetFeedStable;
+	packet->command = DeviceCommand_SET_FEED_MODE;
+	packet->mode = FeedType_STABLE_REV;
+	packet->frequency = frequency;
+	push_packet_common(packet);
+}
+
+//============================================================
+void CRemoteDevice::set_feed_sync(double step, double pos, int axe)
+{
+	auto packet = new PacketSetFeedSync;
+	packet->command = DeviceCommand_SET_FEED_MODE;
+	packet->mode = FeedType_SYNC;
+	packet->step = step;
+	packet->pos = pos;
+	packet->axeIndex = axe;
+	push_packet_common(packet);
+}
+
+//============================================================
+void CRemoteDevice::set_feed_throttling(bool enable, int period, int size)
+{
+	auto packet = new PacketSetFeedThrottling;
+	packet->command = DeviceCommand_SET_FEED_MODE;
+	packet->mode = FeedType_THROTTLING;
+	packet->enable = enable;
+	packet->period = period;
+	packet->size = size;
+	push_packet_common(packet);
+}
+
+//============================================================
+void CRemoteDevice::set_feed_adc(bool enable)
+{
+	auto packet = new PacketSetFeedAdc;
+	packet->command = DeviceCommand_SET_FEED_MODE;
+	packet->mode = FeedType_ADC;
+	packet->enable = enable;
+	push_packet_common(packet);
+}
+
+//============================================================
 //от 0 до 1?
 void CRemoteDevice::set_spindle_vel(double value)
 {
