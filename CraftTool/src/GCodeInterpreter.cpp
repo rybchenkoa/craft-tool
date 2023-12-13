@@ -1,6 +1,7 @@
 ﻿#include <math.h>
 #include "GCodeInterpreter.h"
 #include "log.h"
+#include "config_defines.h"
 
 using namespace Interpreter;
 
@@ -415,7 +416,8 @@ InterError GCodeInterpreter::run_modal_groups()
             runner.cycleLowLevel = value;
 
             get_readed_coord('Z', value);
-            if(runner.incremental)
+            //где-то это глубина от R, где-то конечная координата, можно флагом выбирать поведение
+            if (runner.incremental || runner.cycle == CannedCycle_SINGLE_DRILL && runner.cycle81Incremental)
                 value += runner.cycleLowLevel;
             runner.cycleDeepLevel = value;
 
@@ -1129,6 +1131,7 @@ void GCodeInterpreter::init()
     runner.motionMode = MotionMode_FAST;
     runner.deviceMoveMode = MoveMode_FAST;
     runner.cycle = CannedCycle_NONE;
+    runner.cycle81Incremental = g_config->get_int_def(CFG_G81_INCREMENTAL, 0);
     runner.plane = Plane_XY;
     runner.position = Coords();
     runner.units = UnitSystem_METRIC;

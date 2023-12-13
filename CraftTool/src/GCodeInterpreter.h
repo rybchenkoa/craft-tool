@@ -175,6 +175,7 @@ struct Runner
 
     CannedCycle cycle;       //текущий цикл
     bool   cycleUseLowLevel; //использовать R вместо стартовой точки
+    bool   cycle81Incremental; //в g81 Z вместо конечной координаты задаёт смещение от R
     double cycleLowLevel;    //плоскость отвода (задаётся в R)
     double cycleHiLevel;     //исходная плоскость задаётся в стартовом Z
     double cycleDeepLevel;   //глубина сверления задаётся в Z

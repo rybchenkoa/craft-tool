@@ -12,6 +12,8 @@ public:
     bool get_float(const char *key, float &value);
     bool get_string(const char *key, std::string &value);
 
+    int get_int_def(const char *key, int def);
+
     void set_int(const char *key, int value);
     void set_float(const char *key, float value);
     void set_string(const char *key, std::string &value);

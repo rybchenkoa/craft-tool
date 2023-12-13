@@ -22,3 +22,4 @@ extern Config *g_config;
 #define CFG_FRACT_VALUE        "fractValue"
 #define CFG_SLOW_PWM_FREQ      "slowPWMFreq"
 #define CFG_PWM_FREQ           "PWMFreq"
+#define CFG_G81_INCREMENTAL    "g81Incremental"

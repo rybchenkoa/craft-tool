@@ -131,6 +131,17 @@ bool Config::get_string(const char *key, std::string &value)
     return true;
 }
 
+int Config::get_int_def(const char *key, int def)
+{
+    auto iter = positions.find(key);
+    if(iter != positions.end()) {
+        std::string text = iter->second->get_value();
+        sscanf(text.c_str(), "%d", &def);
+    }
+
+    return def;
+}
+
 void Config::set_int(const char *key, int value)
 {
     auto iter = positions.find(key);
