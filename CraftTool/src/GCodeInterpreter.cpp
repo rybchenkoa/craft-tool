@@ -456,270 +456,297 @@ InterError GCodeInterpreter::run_modal_groups()
 
     if(runner.cycle != CannedCycle_NONE) //включен постоянный цикл
     {
-        if(readedFrame.have_value('Z'))    //в нём нельзя двигаться по Z
-            return InterError(InterError::WRONG_VALUE, "unexpected Z parameter");
-
-        Coords pos;
-		auto moveTo = [&](Coords pos)
-		{
-			to_global(pos);
-            move_to(pos);
-		};
-
-        if(get_new_position(pos))
-        {
-			to_local(pos);
-            if(runner.cycleUseLowLevel)
-                pos.z = runner.cycleLowLevel;
-            else
-                pos.z = runner.cycleHiLevel;
-
-            set_move_mode(MoveMode_FAST);
-			moveTo(pos);    //двигаемся к следующему отверстию
-
-            auto pos2 = pos;
-
-            if(!runner.cycleUseLowLevel)
-            {
-                pos2.z = runner.cycleLowLevel;
-                moveTo(pos2);  //двигаемся к безопасной плоскости
-            }
-
-            switch(runner.cycle)
-            {
-                case CannedCycle_NONE: //assume(0);
-                case CannedCycle_RESET: //assume(0);
-                case CannedCycle_SINGLE_DRILL:
-                {
-                    set_move_mode(MoveMode_LINEAR);
-                    pos2.z = runner.cycleDeepLevel;
-                    moveTo(pos2);
-                    set_move_mode(MoveMode_FAST);
-                    moveTo(pos);
-                    break;
-                }
-                case CannedCycle_DRILL_AND_PAUSE:
-                {
-                    set_move_mode(MoveMode_LINEAR);
-                    pos2.z = runner.cycleDeepLevel;
-                    moveTo(pos2);
-                    if (!trajectory)
-                        remoteDevice->wait(runner.cycleWait);
-                    set_move_mode(MoveMode_FAST);
-
-                    moveTo(pos);
-                    break;
-                }
-                case CannedCycle_DEEP_DRILL:
-                {
-                    coord curZ = pos.z - runner.cycleStep;
-                    for(; curZ > runner.cycleDeepLevel; curZ -= runner.cycleStep)
-                    {
-                        set_move_mode(MoveMode_FAST);
-                        pos2.z = curZ + runner.cycleStep;
-                        moveTo(pos2);
-                        set_move_mode(MoveMode_LINEAR);
-                        pos2.z = curZ;
-                        moveTo(pos2);
-                        if(runner.cycleWait != 0.0)
-                            if (!trajectory)
-                                remoteDevice->wait(runner.cycleWait);
-                        set_move_mode(MoveMode_FAST);
-                        pos2.z = runner.cycleLowLevel;
-                        moveTo(pos2);
-                    }
-                    if(curZ != runner.cycleDeepLevel)
-                    {
-                        set_move_mode(MoveMode_FAST);
-                        pos2.z = curZ + runner.cycleStep;
-                        moveTo(pos2);
-                        set_move_mode(MoveMode_LINEAR);
-                        pos2.z = curZ;
-                        moveTo(pos2);
-                        if(runner.cycleWait != 0.0)
-                            if (!trajectory)
-                                remoteDevice->wait(runner.cycleWait);
-                        set_move_mode(MoveMode_FAST);
-                        pos2.z = runner.cycleLowLevel;
-                        moveTo(pos2);
-                    }
-
-                    set_move_mode(MoveMode_FAST);
-                    moveTo(pos);
-
-                    break;
-                }
-            }
-
-			to_global(pos);
-            runner.position = pos;
-        }
+		return run_modal_group_cycles();
     }
     else if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //движение по прямой
     {
-        Coords pos;
-        if(readedFrame.absoluteSet)
-        {
-            pos = runner.position;
-            get_readed_coord('X', pos.x);
-            get_readed_coord('Y', pos.y);
-            get_readed_coord('Z', pos.z);
-			get_readed_coord('A', pos.a);
-			get_readed_coord('B', pos.b);
-
-            runner.position = pos;
-            move_to(pos);
-        }
-        else if(get_new_position(pos))
-        {
-            runner.position = pos;
-            move_to(pos);
-        }
+		return run_modal_group_linear();
     }
     else if(runner.motionMode == MotionMode_CW_ARC || runner.motionMode == MotionMode_CCW_ARC)
     {
-        if(readedFrame.absoluteSet)
-            return InterError(InterError::WRONG_VALUE, "use absolute system G53 with arc");
-
-        int ix, iy, iz;
-        switch(runner.plane)
-        {
-            case Plane_NONE: //assume(0);
-            case Plane_XY: ix = 0; iy = 1; iz = 2; break;
-            case Plane_YZ: ix = 1; iy = 2; iz = 0; break;
-            case Plane_ZX: ix = 2; iy = 0; iz = 1; break;
-        }
-
-        Coords centerPos;
-
-        if(readedFrame.have_value('I') ||  //если задан центр круга
-           readedFrame.have_value('J') ||
-           readedFrame.have_value('K'))
-        {
-            if(readedFrame.have_value('R'))
-                return InterError(InterError::WRONG_VALUE, "conflict parameter R with I,J,K offset");
-
-            //изначально координаты нулевые centerPos.x = centerPos.y = centerPos.z = 0;
-            get_readed_coord('I', centerPos.x); //читаем центр круга
-            get_readed_coord('J', centerPos.y);
-            get_readed_coord('K', centerPos.z);
-
-            for(int i = 0; i < NUM_COORDS; ++i)
-                centerPos.r[i] += runner.position.r[i];
-
-            Coords pos = runner.position;            //читаем, докуда двигаться
-            get_new_position(pos);
-
-            coord pitch = centerPos.r[iz] - runner.position.r[iz];//шаг винта
-            centerPos.r[iz] = pos.r[iz];      //третий параметр означает нечто другое
-            Coords planeCenter = centerPos;
-            planeCenter.r[iz] = runner.position.r[iz];
-            double radius = length(runner.position, planeCenter);
-
-			auto len = length(pos, centerPos);
-            if(fabs(radius - len) > remoteDevice->get_min_step(ix, iy)*2)//растяжение пока не поддерживается
-                return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable, start and endpoint have difference radius");
-
-            double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
-            coord height = pos.r[iz] - runner.position.r[iz]; //длина винта
-
-            if(is_screw(centerPos) && pitch != 0) //винтовая интерполяция
-            {
-                if(pitch < 0.0)
-                    return InterError(InterError::WRONG_VALUE, "screw with negative pitch");
-                else
-                {
-                    double countTurns = height / pitch;
-                    double angleMax = fabs(countTurns * 2 * PI);
-                    double zScale = height / angleMax;
-
-                    draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
-                }
-                if(length(runner.position, pos) > remoteDevice->get_min_step(ix, iy)*2)
-                    return InterError(InterError::WRONG_VALUE, "unexpected fail to reach arc end point");
-
-                runner.position = pos;
-            }
-            else
-            {
-                double angleMax = atan2(pos.r[iy] - planeCenter.r[iy], pos.r[ix] - planeCenter.r[ix]);
-                angleMax -= angleStart;
-                if(runner.motionMode == MotionMode_CCW_ARC)
-                {
-                    if(angleMax <= 0)
-                        angleMax += 2 * PI;
-                }
-                else
-                {
-                    angleMax *= -1;
-                    if(angleMax <= 0)
-                        angleMax += 2 * PI;
-                }
-
-                double zScale = height / angleMax;
-
-                draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
-
-                if(length(runner.position, pos) > remoteDevice->get_min_step(ix, iy)*2)
-                    return InterError(InterError::WRONG_VALUE, "unexpected fail to reach arc end point");
-
-                runner.position = pos;
-            }
-        }
-        else if(readedFrame.have_value('R'))
-        {
-            coord radius;
-            get_readed_coord('R', radius);
-
-            Coords pos = runner.position;            //читаем, докуда двигаться
-            get_new_position(pos);
-
-            double distance = length(runner.position, pos);
-            if(fabs(distance / radius) < 0.01)       //плохо вычисляемая окружность
-                return InterError(InterError::WRONG_VALUE, "poorly calculated arc");
-
-            if(distance > fabs(radius * 2))              //неверный радиус
-                return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable");
-
-            if(is_screw(pos)) //винтовая интерполяция пока не поддерживается
-                return InterError(InterError::WRONG_VALUE, "screw with R parameter not supported"); //TODO хорошо бы поддержать
-
-            //используется теорема Пифагора
-            Coords toCenter; //находим направление от центра отрезка к центру окружности
-            double length = sqrt(std::max(0.0, radius * radius - distance * distance / 4)); //длина перпендикуляра
-            if((radius < 0) == (runner.motionMode == MotionMode_CCW_ARC))
-                length *= -1;
-            for(int i = 0; i < NUM_COORDS; ++i)
-                toCenter.r[i] = (runner.position.r[i] - pos.r[i]) * length / distance;
-
-            std::swap(toCenter.r[ix], toCenter.r[iy]);
-            toCenter.r[iy] = -toCenter.r[iy];
-
-            for(int i = 0; i < NUM_COORDS; ++i)
-                centerPos.r[i] = (runner.position.r[i] + pos.r[i]) / 2 + toCenter.r[i];
-
-            double angleStart = atan2(runner.position.r[iy] - centerPos.r[iy], runner.position.r[ix] - centerPos.r[ix]);
-            double angleMax = atan2(pos.r[iy] - centerPos.r[iy], pos.r[ix] - centerPos.r[ix]);
-            angleMax -= angleStart;
-            if(runner.motionMode == MotionMode_CCW_ARC)
-            {
-                if(angleMax <= 0)
-                    angleMax += 2 * PI;
-            }
-            else
-            {
-                angleMax *= -1;
-                if(angleMax <= 0)
-                    angleMax += 2 * PI;
-            }
-
-            draw_screw(centerPos, fabs(radius), 1.0, angleStart, angleMax, 0, ix, iy, iz);
-
-            runner.position = pos;
-        }
+		return run_modal_group_arc();
     }
 
     return InterError();
+}
+
+//====================================================================================================
+//исполняет линейное движение текущего фрейма
+InterError GCodeInterpreter::run_modal_group_linear()
+{
+	Coords pos;
+	if(readedFrame.absoluteSet)
+	{
+		pos = runner.position;
+		get_readed_coord('X', pos.x);
+		get_readed_coord('Y', pos.y);
+		get_readed_coord('Z', pos.z);
+		get_readed_coord('A', pos.a);
+		get_readed_coord('B', pos.b);
+
+		runner.position = pos;
+		move_to(pos);
+	}
+	else if(get_new_position(pos))
+	{
+		runner.position = pos;
+		move_to(pos);
+	}
+
+	return InterError();
+}
+
+//====================================================================================================
+//исполняет круговое движение текущего фрейма
+InterError GCodeInterpreter::run_modal_group_arc()
+{
+	if(readedFrame.absoluteSet)
+		return InterError(InterError::WRONG_VALUE, "use absolute system G53 with arc");
+
+	int ix, iy, iz;
+	switch(runner.plane)
+	{
+		case Plane_NONE: //assume(0);
+		case Plane_XY: ix = 0; iy = 1; iz = 2; break;
+		case Plane_YZ: ix = 1; iy = 2; iz = 0; break;
+		case Plane_ZX: ix = 2; iy = 0; iz = 1; break;
+	}
+
+	Coords centerPos;
+
+	if(readedFrame.have_value('I') ||  //если задан центр круга
+		readedFrame.have_value('J') ||
+		readedFrame.have_value('K'))
+	{
+		if(readedFrame.have_value('R'))
+			return InterError(InterError::WRONG_VALUE, "conflict parameter R with I,J,K offset");
+
+		//изначально координаты нулевые centerPos.x = centerPos.y = centerPos.z = 0;
+		get_readed_coord('I', centerPos.x); //читаем центр круга
+		get_readed_coord('J', centerPos.y);
+		get_readed_coord('K', centerPos.z);
+
+		for(int i = 0; i < NUM_COORDS; ++i)
+			centerPos.r[i] += runner.position.r[i];
+
+		Coords pos = runner.position;            //читаем, докуда двигаться
+		get_new_position(pos);
+
+		coord pitch = centerPos.r[iz] - runner.position.r[iz];//шаг винта
+		centerPos.r[iz] = pos.r[iz];      //третий параметр означает нечто другое
+		Coords planeCenter = centerPos;
+		planeCenter.r[iz] = runner.position.r[iz];
+		double radius = length(runner.position, planeCenter);
+
+		auto len = length(pos, centerPos);
+		if(fabs(radius - len) > remoteDevice->get_min_step(ix, iy)*2)//растяжение пока не поддерживается
+			return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable, start and endpoint have difference radius");
+
+		double angleStart = atan2(runner.position.r[iy] - planeCenter.r[iy], runner.position.r[ix] - planeCenter.r[ix]);
+		coord height = pos.r[iz] - runner.position.r[iz]; //длина винта
+
+		if(is_screw(centerPos) && pitch != 0) //винтовая интерполяция
+		{
+			if(pitch < 0.0)
+				return InterError(InterError::WRONG_VALUE, "screw with negative pitch");
+			else
+			{
+				double countTurns = height / pitch;
+				double angleMax = fabs(countTurns * 2 * PI);
+				double zScale = height / angleMax;
+
+				draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
+			}
+			if(length(runner.position, pos) > remoteDevice->get_min_step(ix, iy)*2)
+				return InterError(InterError::WRONG_VALUE, "unexpected fail to reach arc end point");
+
+			runner.position = pos;
+		}
+		else
+		{
+			double angleMax = atan2(pos.r[iy] - planeCenter.r[iy], pos.r[ix] - planeCenter.r[ix]);
+			angleMax -= angleStart;
+			if(runner.motionMode == MotionMode_CCW_ARC)
+			{
+				if(angleMax <= 0)
+					angleMax += 2 * PI;
+			}
+			else
+			{
+				angleMax *= -1;
+				if(angleMax <= 0)
+					angleMax += 2 * PI;
+			}
+
+			double zScale = height / angleMax;
+
+			draw_screw(planeCenter, radius, 1.0, angleStart, angleMax, zScale, ix, iy, iz);
+
+			if(length(runner.position, pos) > remoteDevice->get_min_step(ix, iy)*2)
+				return InterError(InterError::WRONG_VALUE, "unexpected fail to reach arc end point");
+
+			runner.position = pos;
+		}
+	}
+	else if(readedFrame.have_value('R'))
+	{
+		coord radius;
+		get_readed_coord('R', radius);
+
+		Coords pos = runner.position;            //читаем, докуда двигаться
+		get_new_position(pos);
+
+		double distance = length(runner.position, pos);
+		if(fabs(distance / radius) < 0.01)       //плохо вычисляемая окружность
+			return InterError(InterError::WRONG_VALUE, "poorly calculated arc");
+
+		if(distance > fabs(radius * 2))              //неверный радиус
+			return InterError(InterError::WRONG_VALUE, "arc endpoint unreachable");
+
+		if(is_screw(pos)) //винтовая интерполяция пока не поддерживается
+			return InterError(InterError::WRONG_VALUE, "screw with R parameter not supported"); //TODO хорошо бы поддержать
+
+		//используется теорема Пифагора
+		Coords toCenter; //находим направление от центра отрезка к центру окружности
+		double length = sqrt(std::max(0.0, radius * radius - distance * distance / 4)); //длина перпендикуляра
+		if((radius < 0) == (runner.motionMode == MotionMode_CCW_ARC))
+			length *= -1;
+		for(int i = 0; i < NUM_COORDS; ++i)
+			toCenter.r[i] = (runner.position.r[i] - pos.r[i]) * length / distance;
+
+		std::swap(toCenter.r[ix], toCenter.r[iy]);
+		toCenter.r[iy] = -toCenter.r[iy];
+
+		for(int i = 0; i < NUM_COORDS; ++i)
+			centerPos.r[i] = (runner.position.r[i] + pos.r[i]) / 2 + toCenter.r[i];
+
+		double angleStart = atan2(runner.position.r[iy] - centerPos.r[iy], runner.position.r[ix] - centerPos.r[ix]);
+		double angleMax = atan2(pos.r[iy] - centerPos.r[iy], pos.r[ix] - centerPos.r[ix]);
+		angleMax -= angleStart;
+		if(runner.motionMode == MotionMode_CCW_ARC)
+		{
+			if(angleMax <= 0)
+				angleMax += 2 * PI;
+		}
+		else
+		{
+			angleMax *= -1;
+			if(angleMax <= 0)
+				angleMax += 2 * PI;
+		}
+
+		draw_screw(centerPos, fabs(radius), 1.0, angleStart, angleMax, 0, ix, iy, iz);
+
+		runner.position = pos;
+	}
+
+	return InterError();
+}
+
+//====================================================================================================
+//исполняет цикл текущего фрейма
+InterError GCodeInterpreter::run_modal_group_cycles()
+{
+	if(readedFrame.have_value('Z'))    //в нём нельзя двигаться по Z
+		return InterError(InterError::WRONG_VALUE, "unexpected Z parameter");
+
+	Coords pos;
+	auto moveTo = [&](Coords pos)
+	{
+		to_global(pos);
+		move_to(pos);
+	};
+
+	if(get_new_position(pos))
+	{
+		to_local(pos);
+		if(runner.cycleUseLowLevel)
+			pos.z = runner.cycleLowLevel;
+		else
+			pos.z = runner.cycleHiLevel;
+
+		set_move_mode(MoveMode_FAST);
+		moveTo(pos);    //двигаемся к следующему отверстию
+
+		auto pos2 = pos;
+
+		if(!runner.cycleUseLowLevel)
+		{
+			pos2.z = runner.cycleLowLevel;
+			moveTo(pos2);  //двигаемся к безопасной плоскости
+		}
+
+		switch(runner.cycle)
+		{
+			case CannedCycle_NONE: //assume(0);
+			case CannedCycle_RESET: //assume(0);
+			case CannedCycle_SINGLE_DRILL:
+			{
+				set_move_mode(MoveMode_LINEAR);
+				pos2.z = runner.cycleDeepLevel;
+				moveTo(pos2);
+				set_move_mode(MoveMode_FAST);
+				moveTo(pos);
+				break;
+			}
+			case CannedCycle_DRILL_AND_PAUSE:
+			{
+				set_move_mode(MoveMode_LINEAR);
+				pos2.z = runner.cycleDeepLevel;
+				moveTo(pos2);
+				if (!trajectory)
+					remoteDevice->wait(runner.cycleWait);
+				set_move_mode(MoveMode_FAST);
+
+				moveTo(pos);
+				break;
+			}
+			case CannedCycle_DEEP_DRILL:
+			{
+				coord curZ = pos.z - runner.cycleStep;
+				for(; curZ > runner.cycleDeepLevel; curZ -= runner.cycleStep)
+				{
+					set_move_mode(MoveMode_FAST);
+					pos2.z = curZ + runner.cycleStep;
+					moveTo(pos2);
+					set_move_mode(MoveMode_LINEAR);
+					pos2.z = curZ;
+					moveTo(pos2);
+					if(runner.cycleWait != 0.0)
+						if (!trajectory)
+							remoteDevice->wait(runner.cycleWait);
+					set_move_mode(MoveMode_FAST);
+					pos2.z = runner.cycleLowLevel;
+					moveTo(pos2);
+				}
+				if(curZ != runner.cycleDeepLevel)
+				{
+					set_move_mode(MoveMode_FAST);
+					pos2.z = curZ + runner.cycleStep;
+					moveTo(pos2);
+					set_move_mode(MoveMode_LINEAR);
+					pos2.z = curZ;
+					moveTo(pos2);
+					if(runner.cycleWait != 0.0)
+						if (!trajectory)
+							remoteDevice->wait(runner.cycleWait);
+					set_move_mode(MoveMode_FAST);
+					pos2.z = runner.cycleLowLevel;
+					moveTo(pos2);
+				}
+
+				set_move_mode(MoveMode_FAST);
+				moveTo(pos);
+
+				break;
+			}
+		}
+
+		to_global(pos);
+		runner.position = pos;
+	}
+
+	return InterError();
 }
 
 //====================================================================================================

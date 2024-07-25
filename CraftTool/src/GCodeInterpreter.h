@@ -287,6 +287,9 @@ public:
     InterError make_new_state();            //чтение команд из строки
     InterError run_modal_groups();          //запуск команд
     ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
+    InterError run_modal_group_linear();    //обработка линейного движения
+    InterError run_modal_group_arc();       //обработка движения по дуге
+    InterError run_modal_group_cycles();    //обработка цикла
     void set_move_mode(MoveMode mode);      //изменение режима перемещения
     void local_deform(Coords &coords);      //преобразование масштаба, поворот в локальной системе координат
     void to_global(Coords &coords);         //сдвиг в глобальные координаты
