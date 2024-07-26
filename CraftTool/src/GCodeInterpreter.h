@@ -43,6 +43,7 @@ enum MotionMode //режимы перемещения
     MotionMode_LINEAR,    //линейная интерполяция
     MotionMode_CW_ARC,    //круговая интерполяция
     MotionMode_CCW_ARC,
+    MotionMode_LINEAR_SYNC, //нарезание резьбы
 };
 
 enum CannedCycle
@@ -168,6 +169,9 @@ struct Runner
     MoveMode deviceMoveMode; //режим перемещения устройства
     Plane plane;             //текущая плоскость интерполяции
     double feed;             //подача в мм/мин
+	double spindleAngle;     //угол поворота шпинделя (в оборотах)
+	double threadPitch;      //шаг витка (мм/оборот)
+	int threadIndex;         //координата, с которой синхронизирован шпиндель
     double cutterRadius;     //радиус фрезы
     double cutterLength;     //длина фрезы
     int coordSystemNumber;   //номер выбранной координатной системы
@@ -290,6 +294,7 @@ public:
     InterError run_modal_group_linear();    //обработка линейного движения
     InterError run_modal_group_arc();       //обработка движения по дуге
     InterError run_modal_group_cycles();    //обработка цикла
+	InterError run_linear_sync(Coords& pos); //задаёт параметры линейной синхронизации
     void set_move_mode(MoveMode mode);      //изменение режима перемещения
     void local_deform(Coords &coords);      //преобразование масштаба, поворот в локальной системе координат
     void to_global(Coords &coords);         //сдвиг в глобальные координаты

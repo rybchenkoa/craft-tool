@@ -190,6 +190,7 @@ InterError GCodeInterpreter::make_new_state()
                     case 1: readedFrame.motionMode = MotionMode_LINEAR; break;
                     case 2: readedFrame.motionMode = MotionMode_CW_ARC; break;
                     case 3: readedFrame.motionMode = MotionMode_CCW_ARC; break;
+					case 32: readedFrame.motionMode = MotionMode_LINEAR_SYNC; break;
 
                     case 4: readedFrame.sendWait = true; break;
                     case 17: readedFrame.plane = Plane_XY; break;
@@ -272,6 +273,7 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
         switch(num)
         {
         case 0: case 1: case 2: case 3:
+        case 32:
         case 80: case 81: case 82: case 83: case 84: case 85: case 86: case 87: case 88: case 89:
             return ModalGroup_MOVE;
 
@@ -364,6 +366,7 @@ InterError GCodeInterpreter::run_modal_groups()
         case MotionMode_CW_ARC:
         case MotionMode_FAST:
         case MotionMode_LINEAR:
+        case MotionMode_LINEAR_SYNC:
             runner.motionMode = readedFrame.motionMode;
             break;
     }
@@ -376,6 +379,7 @@ InterError GCodeInterpreter::run_modal_groups()
         case MotionMode_LINEAR:  set_move_mode(MoveMode_LINEAR); break;
         case MotionMode_CCW_ARC: set_move_mode(MoveMode_LINEAR); break;
         case MotionMode_CW_ARC:  set_move_mode(MoveMode_LINEAR); break;
+        case MotionMode_LINEAR_SYNC: set_move_mode(MoveMode_LINEAR); break;
     }
 
     switch(readedFrame.cycle)
@@ -458,10 +462,12 @@ InterError GCodeInterpreter::run_modal_groups()
     {
 		return run_modal_group_cycles();
     }
-    else if(runner.motionMode == MotionMode_FAST || runner.motionMode == MotionMode_LINEAR) //движение по прямой
-    {
+	else if(runner.motionMode == MotionMode_FAST ||
+			runner.motionMode == MotionMode_LINEAR ||
+			runner.motionMode == MotionMode_LINEAR_SYNC) //движение по прямой
+	{
 		return run_modal_group_linear();
-    }
+	}
     else if(runner.motionMode == MotionMode_CW_ARC || runner.motionMode == MotionMode_CCW_ARC)
     {
 		return run_modal_group_arc();
@@ -474,24 +480,69 @@ InterError GCodeInterpreter::run_modal_groups()
 //исполняет линейное движение текущего фрейма
 InterError GCodeInterpreter::run_modal_group_linear()
 {
-	Coords pos;
+	Coords pos = runner.position;
+	bool coordsSet = false;
 	if(readedFrame.absoluteSet)
 	{
-		pos = runner.position;
 		get_readed_coord('X', pos.x);
 		get_readed_coord('Y', pos.y);
 		get_readed_coord('Z', pos.z);
 		get_readed_coord('A', pos.a);
 		get_readed_coord('B', pos.b);
+		coordsSet = true;
+	}
+	else if (get_new_position(pos)) {
+		coordsSet = true;
+	}
 
+	if(runner.motionMode == MotionMode_LINEAR_SYNC) { //TODO проверить выключение синхронизации
+		auto error = run_linear_sync(pos);
+		if (error.code != error.ALL_OK)
+			return error;
+	}
+
+	if (coordsSet) {
 		runner.position = pos;
 		move_to(pos);
 	}
-	else if(get_new_position(pos))
-	{
-		runner.position = pos;
-		move_to(pos);
+
+	return InterError();
+}
+
+//====================================================================================================
+//исполняет круговое движение текущего фрейма
+InterError GCodeInterpreter::run_linear_sync(Coords& pos)
+{
+	//дополнительная инициализация на старте
+	if(readedFrame.motionMode == MotionMode_LINEAR_SYNC) {
+		runner.spindleAngle = 0; //прочитаем дальше, если будет
+		if(!readedFrame.have_value('K')) //шаг резьбы обязательно задаём на старте, дальше опционально
+			return InterError(InterError::NO_VALUE, "expected F parameter");
+		//выбираем самую длинную ось в качестве синхронной
+		int index = 0;
+		coord delta = abs(pos.r[0] - runner.position.r[0]);
+		for (int i = 1; i < NUM_COORDS; ++i) {
+			coord newDelta = abs(pos.r[i] - runner.position.r[i]);
+			if (newDelta > delta) {
+				index = i;
+				delta = newDelta;
+			}
+		}
+		runner.threadIndex = index;
 	}
+
+	if(readedFrame.get_value('Q', runner.spindleAngle)) //угол захода при нарезании резьбы, в градусах
+		runner.spindleAngle = runner.spindleAngle / 360;
+	readedFrame.get_value('K', runner.threadPitch); //шаг витка, в оборотах
+
+	//координата места, где угол нулевой
+	coord base = runner.position.r[runner.threadIndex] - runner.threadPitch * runner.spindleAngle;
+	if (!trajectory)
+		remoteDevice->set_feed_sync(runner.threadPitch, base, runner.threadIndex); //TODO задать правильные координаты (глобальные)
+
+	//после отсылки команды пересчитываем угол
+	coord delta = abs(pos.r[runner.threadIndex] - runner.position.r[runner.threadIndex]);
+	runner.spindleAngle += delta / runner.threadPitch;
 
 	return InterError();
 }
@@ -1154,6 +1205,9 @@ void GCodeInterpreter::init()
     runner.cutterLength = 0;
     runner.cutterRadius = 0;
     runner.feed = 100; //отфига
+	runner.spindleAngle = 0;
+	runner.threadPitch = 0;
+	runner.threadIndex = 0;
     runner.incremental = false;
     runner.motionMode = MotionMode_FAST;
     runner.deviceMoveMode = MoveMode_FAST;
