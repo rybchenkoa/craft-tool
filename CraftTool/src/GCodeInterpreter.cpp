@@ -751,35 +751,30 @@ InterError GCodeInterpreter::run_modal_group_cycles()
 			case CannedCycle_DEEP_DRILL:
 			{
 				coord curZ = pos.z - runner.cycleStep;
-				for(; curZ > runner.cycleDeepLevel; curZ -= runner.cycleStep)
+				while(curZ >= runner.cycleDeepLevel)
 				{
 					set_move_mode(MoveMode_FAST);
 					pos2.z = curZ + runner.cycleStep;
 					moveTo(pos2);
+
 					set_move_mode(MoveMode_LINEAR);
 					pos2.z = curZ;
 					moveTo(pos2);
+
 					if(runner.cycleWait != 0.0)
 						if (!trajectory)
 							remoteDevice->wait(runner.cycleWait);
+
 					set_move_mode(MoveMode_FAST);
 					pos2.z = runner.cycleLowLevel;
 					moveTo(pos2);
-				}
-				if(curZ != runner.cycleDeepLevel)
-				{
-					set_move_mode(MoveMode_FAST);
-					pos2.z = curZ + runner.cycleStep;
-					moveTo(pos2);
-					set_move_mode(MoveMode_LINEAR);
-					pos2.z = curZ;
-					moveTo(pos2);
-					if(runner.cycleWait != 0.0)
-						if (!trajectory)
-							remoteDevice->wait(runner.cycleWait);
-					set_move_mode(MoveMode_FAST);
-					pos2.z = runner.cycleLowLevel;
-					moveTo(pos2);
+
+					if(curZ == runner.cycleDeepLevel)
+						break;
+
+					curZ -= runner.cycleStep;
+					if(curZ < runner.cycleDeepLevel)
+						curZ = runner.cycleDeepLevel;
 				}
 
 				set_move_mode(MoveMode_FAST);
