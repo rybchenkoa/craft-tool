@@ -358,18 +358,14 @@ InterError GCodeInterpreter::run_modal_groups()
         if (!trajectory)
             remoteDevice->set_feed(value / 60);
 
-    switch (readedFrame.motionMode)
-    {
-        case MotionMode_NONE: break;
-
-        case MotionMode_CCW_ARC:
-        case MotionMode_CW_ARC:
-        case MotionMode_FAST:
-        case MotionMode_LINEAR:
-        case MotionMode_LINEAR_SYNC:
-            runner.motionMode = readedFrame.motionMode;
-            break;
-    }
+	//обработка смены режима перемещения
+	if (readedFrame.motionMode != MotionMode_NONE && readedFrame.motionMode != runner.motionMode) {
+		if (runner.motionMode == MotionMode_LINEAR_SYNC) {
+			if (!trajectory) //TODO возможно надо возвращать стабилизацию оборотов
+				remoteDevice->set_feed_normal(); //выключаем синхронизацию со шпинделем
+		}
+		runner.motionMode = readedFrame.motionMode;
+	}
 
     switch (readedFrame.motionMode)
     {
@@ -538,7 +534,7 @@ InterError GCodeInterpreter::run_linear_sync(Coords& pos)
 	//координата места, где угол нулевой
 	coord base = runner.position.r[runner.threadIndex] - runner.threadPitch * runner.spindleAngle;
 	if (!trajectory)
-		remoteDevice->set_feed_sync(runner.threadPitch, base, runner.threadIndex); //TODO задать правильные координаты (глобальные)
+		remoteDevice->set_feed_sync(runner.threadPitch, base, runner.threadIndex);
 
 	//после отсылки команды пересчитываем угол
 	coord delta = abs(pos.r[runner.threadIndex] - runner.position.r[runner.threadIndex]);

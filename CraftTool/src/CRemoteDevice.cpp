@@ -645,8 +645,8 @@ void CRemoteDevice::set_feed_sync(double step, double pos, int axe)
 	packet->command = DeviceCommand_SET_FEED_MODE;
 	packet->mode = FeedType_SYNC;
 	packet->step = step;
-	packet->pos = pos;
-	packet->axeIndex = axe;
+	packet->pos = (int)floor(pos * scale[axe] + 0.5);
+	packet->axeIndex = toDeviceIndex[axe];
 	push_packet_common(packet);
 }
 
@@ -1041,6 +1041,7 @@ void CRemoteDevice::init()
     set_step_size(stepSize);
     set_fract();
 	set_pwm_freq(try_get_float(CFG_PWM_FREQ), try_get_float(CFG_SLOW_PWM_FREQ));
+	set_feed_normal();
 
 	inited = true;
 }
