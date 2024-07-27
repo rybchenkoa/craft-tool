@@ -542,10 +542,6 @@ void CRemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 	packet->command = DeviceCommand_SET_COORDS;
 
 	Coords pos = posIn;
-	for (int i = 0; i < MAX_AXES; ++i) //заполняем подчиненные оси
-		if (slaveAxes[i] >= 0)
-			pos.r[slaveAxes[i]] = pos.r[i];
-
 	int usedBit = 0;
 	//сначала задаем используемые координаты
     for (int i = 0; i < MAX_AXES; ++i)
