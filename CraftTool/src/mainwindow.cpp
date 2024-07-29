@@ -109,8 +109,7 @@ void MainWindow::update_state()
 
     Coords coords = g_device->currentCoords;
 	if (!ui->c_machineCoordsButton->isChecked())
-		for (int i = 0; i < MAX_AXES; ++i)
-			coords.r[i] -= g_inter->runner.csd[0].pos0.r[i];
+		coords -= g_inter->runner.csd[0].pos0;
 	for (int i = 0; i < MAX_AXES; ++i)
 		textCoord[i]->setText(QString::number(coords.r[i]));
 }

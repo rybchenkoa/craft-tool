@@ -573,8 +573,7 @@ InterError GCodeInterpreter::run_modal_group_arc()
 		get_readed_coord('J', centerPos.y);
 		get_readed_coord('K', centerPos.z);
 
-		for(int i = 0; i < NUM_COORDS; ++i)
-			centerPos.r[i] += runner.position.r[i];
+		centerPos += runner.position;
 
 		Coords pos = runner.position;            //читаем, докуда двигаться
 		get_new_position(pos);
@@ -894,8 +893,7 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
 
         if(runner.incremental)
         {
-            for(int i = 0; i < NUM_COORDS; ++i)
-                pos.r[i] += runner.position.r[i];
+            pos += runner.position;
         }
         else
             to_global(pos);
@@ -913,9 +911,7 @@ void GCodeInterpreter::to_global(Coords &coords)
     if(runner.coordSystemNumber == -1)
         return;
 
-    auto &cs = runner.csd[runner.coordSystemNumber];
-    for(int i = 0; i < NUM_COORDS; ++i)
-        coords.r[i] += cs.pos0.r[i];
+    coords += runner.csd[runner.coordSystemNumber].pos0;
 }
 
 //====================================================================================================
@@ -925,9 +921,7 @@ void GCodeInterpreter::to_local(Coords &coords)
     if(runner.coordSystemNumber == -1)
         return;
 
-    auto &cs = runner.csd[runner.coordSystemNumber];
-    for(int i = 0; i < NUM_COORDS; ++i)
-        coords.r[i] -= cs.pos0.r[i];
+    coords -= runner.csd[runner.coordSystemNumber].pos0;
 }
 
 //====================================================================================================

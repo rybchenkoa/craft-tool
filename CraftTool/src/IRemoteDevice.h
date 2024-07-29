@@ -27,6 +27,40 @@ struct Coords   //все координаты устройства
     };
 
 	Coords() { for (int i = 0; i < MAX_AXES; ++i) r[i] = 0; };
+
+	Coords operator+(const Coords& right) const
+	{
+		Coords result;
+		for (int i = 0; i < MAX_AXES; ++i) {
+			result.r[i] = r[i] + right.r[i];
+		}
+		return result;
+	}
+
+	Coords operator-(const Coords& right) const
+	{
+		Coords result;
+		for (int i = 0; i < MAX_AXES; ++i) {
+			result.r[i] = r[i] - right.r[i];
+		}
+		return result;
+	}
+
+	Coords& operator+=(const Coords& right)
+	{
+		for (int i = 0; i < MAX_AXES; ++i) {
+			r[i] += right.r[i];
+		}
+		return *this;
+	}
+
+	Coords& operator-=(const Coords& right)
+	{
+		for (int i = 0; i < MAX_AXES; ++i) {
+			r[i] -= right.r[i];
+		}
+		return *this;
+	}
 };
 
 typedef char PacketCount;
