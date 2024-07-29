@@ -378,85 +378,9 @@ void CRemoteDevice::set_fract()
 }
 
 //============================================================
-void CRemoteDevice::set_position(Coords posIn)
+//проверка изменения направления, посылка сообщения при необходимости
+void CRemoteDevice::try_set_fract(const Coords& delta)
 {
-    //emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
-
-	//переводит чистые координаты в машинные
-	auto to_hard = [&](Coords pos) -> Coords
-	{
-		for (int i = 0; i < MAX_AXES; ++i) //заполняем подчиненные оси
-			if (slaveAxes[i] >= 0)
-				pos.r[slaveAxes[i]] = pos.r[i];
-
-		for (int i = 0; i < MAX_AXES; ++i) //инвертируем, если нужно
-			if (invertAxe[i])
-				pos.r[i] *= -1;
-		return pos;
-	};
-
-    if(lastPosition.r[0] == HUGE_VAL) //если шлём в первый раз
-        lastPosition = to_hard(currentCoords); //то последними посланными считаем текущие реальные
-
-    auto packet = new PacketMove;
-    packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
-
-	Coords pos = to_hard(posIn);
-
-	//сначала задаем используемые координаты
-    for (int i = 0; i < MAX_AXES; ++i)
-	{
-		int index = toDeviceIndex[i];
-		if (usedAxes[i])
-			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
-		else
-			packet->coord[index] = 0;
-	}
-
-    Coords delta;
-    int referenceLen = 0; //максимальное число шагов по координате
-    int reference = 0;    //номер самой длинной по шагам координаты
-
-    for(int i = 0; i < MAX_AXES; ++i)
-    {
-		if (!usedAxes[i])
-			continue;
-
-		if (moveMode != MoveMode_HOME)
-			delta.r[i] = pos.r[i] - lastPosition.r[i];
-		else
-			delta.r[i] = pos.r[i];
-
-        int steps = abs(int(delta.r[i] * scale[i]));
-        if(steps > referenceLen)
-        {
-            referenceLen = steps;
-            reference = i;
-        }
-    }
-
-    lastPosition = pos;
-
-    if(referenceLen == 0)
-    {
-        delete packet;
-        return;
-    }
-
-    double length = 0;
-    for(int i = 0; i < NUM_COORDS; ++i) //TODO для поворотной оси неизвестно как считать
-        length += pow2(delta.r[i]);
-
-    length = sqrt(length);
-
-    double lengths[NUM_COORDS]; //у подчиненных осей те же параметры, поэтому смотрим только на главные
-    for(int i = 0; i < NUM_COORDS; ++i)
-        lengths[i] = fabs(delta.r[i]);
-
-    packet->refCoord = toDeviceIndex[reference];
-    packet->length = float(length);
-    packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
-
     if(lastDelta.r[0] != HUGE_VAL)
     {
         double scalar = 0;
@@ -474,35 +398,136 @@ void CRemoteDevice::set_position(Coords posIn)
     }
 
     lastDelta = delta;
+}
 
-    //находим максимальное время движения по отдельной координате
-    double timeMove = lengths[0] / velocity[0];
-    for(int i = 1; i < NUM_COORDS; ++i)
-    {
-        double time = lengths[i] / velocity[i];
-        if(timeMove < time)
-            timeMove = time;
-    }
-    double velValue = length / timeMove; //максимальная скорость движения в заданном направлении
+//============================================================
+//расчёт смещения относительно предыдущего положения
+int CRemoteDevice::calculate_new_delta(Coords& delta, const Coords& pos)
+{
+	int referenceLen = 0; //максимальное число шагов по координате
+	int reference = -1;    //номер самой длинной по шагам координаты
 
-    //ограничиваем скорость подачей
-    if(moveMode != MoveMode_FAST)
-        if(velValue > feed)
-            velValue = feed;
+	if(lastPosition.r[0] == HUGE_VAL) //если шлём в первый раз
+		lastPosition = to_hard(currentCoords); //то последними посланными считаем текущие реальные
 
+	for(int i = 0; i < MAX_AXES; ++i)
+	{
+		if (!usedAxes[i])
+			continue;
+
+		if (moveMode != MoveMode_HOME)
+			delta.r[i] = pos.r[i] - lastPosition.r[i];
+		else
+			delta.r[i] = pos.r[i];
+
+		int steps = abs(int(delta.r[i] * scale[i]));
+		if(steps > referenceLen)
+		{
+			referenceLen = steps;
+			reference = i;
+		}
+	}
+
+	if (reference >= 0)
+		lastPosition = pos;
+
+	return reference;
+}
+
+//============================================================
+//рассчитывает максимальные скорость и ускорение в заданном направлении
+void CRemoteDevice::calculate_moving_params(const Coords& delta, double& length, double& maxVelocity, double& maxAcceleration) const
+{
+	length = 0;
+	for(int i = 0; i < NUM_COORDS; ++i) //TODO для поворотной оси неизвестно как считать
+		length += pow2(delta.r[i]);
+
+	length = sqrt(length);
+
+	double lengths[NUM_COORDS]; //у подчиненных осей те же параметры, поэтому смотрим только на главные
+	for(int i = 0; i < NUM_COORDS; ++i)
+		lengths[i] = fabs(delta.r[i]);
+
+	//находим максимальное время движения по отдельной координате
+	double timeMove = lengths[0] / velocity[0];
+	for(int i = 1; i < NUM_COORDS; ++i)
+	{
+		double time = lengths[i] / velocity[i];
+		if(timeMove < time)
+			timeMove = time;
+	}
+	maxVelocity = length / timeMove; //максимальная скорость движения в заданном направлении
+
+	//ограничиваем скорость подачей
+	if(moveMode != MoveMode_FAST)
+		if(maxVelocity > feed)
+			maxVelocity = feed;
+
+	//находим максимальное ускорение по опорной координате
+	timeMove = lengths[0] / acceleration[0]; // в данном случае это не время, но всё равно это 1/проекция
+	for(int i = 1; i < NUM_COORDS; ++i)
+	{
+		double time = lengths[i] / acceleration[i];
+		if(timeMove < time)
+			timeMove = time;
+	}
+	maxAcceleration = length / timeMove; //максимальное ускорение в заданном направлении
+}
+
+//============================================================
+//переводит чистые координаты в машинные
+Coords CRemoteDevice::to_hard(const Coords& pos) const
+{
+	Coords result = pos;
+
+	for (int i = 0; i < MAX_AXES; ++i) {
+		if (slaveAxes[i] >= 0) //заполняем подчиненные оси
+			result.r[slaveAxes[i]] = pos.r[i];
+
+		if (invertAxe[i]) //инвертируем, если нужно
+			result.r[i] *= -1;
+	}
+
+	return result;
+}
+
+//============================================================
+void CRemoteDevice::set_position(Coords posIn)
+{
+    //emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
+
+	Coords pos = to_hard(posIn);
+	Coords delta;
+	int reference = calculate_new_delta(delta, pos);    //номер самой длинной по шагам координаты
+
+	if(reference < 0)
+		return;
+
+    auto packet = new PacketMove;
+    packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
+
+	//сначала задаем используемые координаты
+    for (int i = 0; i < MAX_AXES; ++i)
+	{
+		int index = toDeviceIndex[i];
+		if (usedAxes[i])
+			packet->coord[index] = (int)floor(pos.r[i] * scale[i] + 0.5);    //переводим мм в шаги
+		else
+			packet->coord[index] = 0;
+	}
+
+	double length;   //расстояние от предыдущей точки
+	double velValue; //максимальная скорость движения в заданном направлении
+	double accValue; //максимальное ускорение в заданном направлении
+	calculate_moving_params(delta, length, velValue, accValue);
+
+    packet->refCoord = toDeviceIndex[reference];
+    packet->length = float(length);
+    packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
     packet->velocity = float(velValue / secToTick);
-
-    //находим максимальное ускорение по опорной координате
-    timeMove = lengths[0] / acceleration[0];
-    for(int i = 1; i < NUM_COORDS; ++i)
-    {
-        double time = lengths[i] / acceleration[i];
-        if(timeMove < time)
-            timeMove = time;
-    }
-    double accValue = length / timeMove; //максимальное ускорение в заданном направлении
     packet->acceleration = float(accValue / (secToTick * secToTick));
 
+	try_set_fract(delta);
     //log_message("   GO TO %d, %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2], packet->coord[3]);
     push_packet_common(packet);
 

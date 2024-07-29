@@ -346,6 +346,10 @@ public:
 	void homing() override;
 
     void set_fract();
+	void try_set_fract(const Coords& delta);
+	int calculate_new_delta(Coords& delta, const Coords& pos);
+	void calculate_moving_params(const Coords& delta, double& length, double& velocity, double& acceleration) const;
+	Coords to_hard(const Coords& pos) const;
 
     int  queue_size() override;
 
