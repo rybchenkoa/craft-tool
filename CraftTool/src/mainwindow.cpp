@@ -42,8 +42,8 @@ MainWindow::MainWindow(QWidget *parent) :
 		});
 	}
 
-	coord stp[] = {1, 0.5, 0.1, 0.05, 0.01}; //TODO сделать чтение из конфига
-	steps.assign(stp, stp+5);
+	coord stp[] = {1, 0.5, 0.1, 0.05, 0.01, 0.001}; //TODO сделать чтение из конфига
+	steps.assign(stp, stp+6);
 	for(int i = 0; i < steps.size(); ++i){
 		ui->c_stepSwitch->insertItem(i, QString::number(steps[i]));
 	}
@@ -204,44 +204,44 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
     if (object == ui->c_3dView && event->type() == QEvent::KeyPress) {
         QKeyEvent *ke = static_cast<QKeyEvent *>(event);
         //log_warning("key %d, v %d, s %d\n", ke->key(), ke->nativeVirtualKey(), ke->nativeScanCode());
-		coord step = 0.1;
+		coord step = ke->modifiers().testFlag(Qt::ControlModifier)? 10:1;
         bool fast = ke->modifiers().testFlag(Qt::ShiftModifier);
 
         switch(ke->nativeVirtualKey())
         {
         case VK_RIGHT:
-			manual_move(0, 1, fast);
+			manual_move(0, step, fast);
             return true;
         case VK_LEFT:
-			manual_move(0, -1, fast);
+			manual_move(0, -step, fast);
             return true;
 
         case VK_UP:
-            manual_move(1, 1, fast);
+            manual_move(1, step, fast);
             return true;
         case VK_DOWN:
-            manual_move(1, -1, fast);
+            manual_move(1, -step, fast);
             return true;
 
         case Qt::Key_W:
-            manual_move(2, 1, fast);
+            manual_move(2, step, fast);
             return true;
         case Qt::Key_S:
-            manual_move(2, -1, fast);
+            manual_move(2, -step, fast);
             return true;
 
 		case Qt::Key_R:
-            manual_move(3, 1, fast);
+            manual_move(3, step, fast);
             return true;
         case Qt::Key_F:
-            manual_move(3, -1, fast);
+            manual_move(3, -step, fast);
             return true;
 
 		case Qt::Key_T:
-            manual_move(4, 1, fast);
+            manual_move(4, step, fast);
             return true;
         case Qt::Key_G:
-            manual_move(4, -1, fast);
+            manual_move(4, -step, fast);
             return true;
         }
     }

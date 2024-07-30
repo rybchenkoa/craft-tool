@@ -984,7 +984,7 @@ void GCodeInterpreter::move(int coordNumber, coord add, bool fast)
       runner.position.r[coordNumber] += add;
     else
     {
-      const double LATENCY = 0.2; //0.2 секунд на остановку после отпускания кнопки
+      const double LATENCY = 0.3; //0.3 секунд на остановку после отпускания кнопки
       double vel = remoteDevice->get_max_velocity(coordNumber);
       double acc = remoteDevice->get_max_acceleration(coordNumber);
       double maxLen = move_length(LATENCY, vel, acc);
