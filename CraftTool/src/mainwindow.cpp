@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		buttonMinusCoord.push_back(findChild<QAbstractButton*>(QString("ButtonMinus") + axes[i]));
 	}
 
-	char* views[] = {"Top", "Bottom", "Left", "Right", "Front", "Back"};
+	const char* views[] = {"Top", "Bottom", "Left", "Right", "Front", "Back"};
 	for(int i = 0; i < 6; ++i) {
 		auto button = findChild<QAbstractButton*>(QString("ButtonView") + views[i]);
 		connect(button, &QAbstractButton::clicked, [i, this]() {

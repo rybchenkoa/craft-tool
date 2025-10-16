@@ -90,7 +90,7 @@ struct CRemoteDevice::ConnectData
 
         if (LOG_CONNECT)
         {
-            char *re = p.sendCount > 1? "re" : "";
+            const char *re = p.sendCount > 1? "re" : "";
             log_message("[%d] connect: %ssend pack %d, time %d\n", get_timestamp(), re, packet->packetNumber, p.timestamp);
         }
     }

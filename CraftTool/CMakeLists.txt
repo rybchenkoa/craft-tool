@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.12)
 project(CraftTool)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
-#set(CXX_STANDARD 20)
-#set(CXX_STANDARD_REQUIRED ON)
+set(CXX_STANDARD 20)
+set(CXX_STANDARD_REQUIRED ON)
 
 # выбираем файлы для сборки
 file(GLOB_RECURSE CT_SOURCE ./src/*.cpp)

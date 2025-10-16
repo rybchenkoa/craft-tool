@@ -6,7 +6,7 @@
 #include "log.h"
 //#include "ui_mainwindow.h"
 
-QTime time;
+QTime g_time;
 //--------------------------------------------------------------------
 Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
 {
@@ -35,7 +35,7 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
       realTrack.push_back(val);
     }
 
-    time.start();
+    g_time.start();
     _drawCalls = 0;
     _fps = 0;
 
@@ -198,11 +198,11 @@ void Scene3d::paintGL()
 void Scene3d::draw_fps()
 {
     ++_drawCalls;
-    if (time.elapsed() > 1000)
+    if (g_time.elapsed() > 1000)
     {
         _fps = _drawCalls;
         _drawCalls = 0;
-        time.restart();
+        g_time.restart();
     }
 
     QString text = QString::number(_fps);
