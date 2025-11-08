@@ -1,4 +1,6 @@
-﻿#include <QtOpenGL/QGLWidget>
+﻿#pragma once
+
+#include <QtOpenGL/QGLWidget>
 #include <QPoint>
 #include <QTimer>
 #include <QTime>

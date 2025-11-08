@@ -1,6 +1,4 @@
-﻿#include <map>
-#include <string>
-#include <list>
+﻿#pragma once
 
 class Config
 {

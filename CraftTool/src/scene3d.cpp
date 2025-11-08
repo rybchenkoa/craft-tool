@@ -3,7 +3,6 @@
 #include <QCursor>
 #include <QApplication>
 #include "log.h"
-//#include "ui_mainwindow.h"
 
 //--------------------------------------------------------------------
 Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)

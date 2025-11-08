@@ -1,12 +1,5 @@
 ﻿#pragma once
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <vector>
-#include <list>
-#include <string>
-#include <iostream>
-#include <fstream>
+
 #include "IRemoteDevice.h"
 
 namespace Interpreter

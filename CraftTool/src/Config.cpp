@@ -1,5 +1,4 @@
-﻿#include <fstream>
-
+﻿#include <algorithm>
 #include "Config.h"
 
 bool Config::read_from_file(const char *fileName)

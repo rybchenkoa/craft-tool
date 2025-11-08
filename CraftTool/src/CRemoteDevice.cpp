@@ -1,12 +1,5 @@
-﻿#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <math.h>
-#include <float.h>
-#include <ctime>
-#include "IRemoteDevice.h"
+﻿#include "IRemoteDevice.h"
 #include "log.h"
-#include "AutoLockCS.h"
 #include "config_defines.h"
 
 static const bool LOG_CONNECT = false;

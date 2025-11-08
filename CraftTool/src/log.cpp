@@ -1,6 +1,4 @@
-#include <fstream>
 #include "main.h"
-#include "ui_mainwindow.h"
 #include "log.h"
 
 #define MAX_MESSAGE_SIZE 16000

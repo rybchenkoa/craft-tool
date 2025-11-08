@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "winerror.h"
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include "windows.h"
-#include <string>
-#include <assert.h>
-#include <fstream>
 
 class ComPortConnect
 {

@@ -1,5 +1,4 @@
-﻿#include <math.h>
-#include "GCodeInterpreter.h"
+﻿#include "GCodeInterpreter.h"
 #include "log.h"
 #include "config_defines.h"
 
@@ -107,9 +106,6 @@ GCodeInterpreter::~GCodeInterpreter(void)
 //====================================================================================================
 InterError GCodeInterpreter::execute_frame(const char *frame)
 {
-    //char letter;
-    //double value;
-
     InterError state;
 
     state = reader.parse_codes(frame); //проверяем строку на валидность, читаем значения в массив

@@ -1,4 +1,3 @@
-#include <sstream>
 #include <iomanip>
 #include <QTimerEvent>
 #include "StatusBar.h"

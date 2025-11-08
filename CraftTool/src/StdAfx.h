@@ -1,6 +1,3 @@
-//#include <GL\GLU.h>
-//#include <Math.h>
-
 #define GLM_FORCE_RADIANS
 #include "..\glm\glm.hpp"
 #include "..\glm\gtc\matrix_transform.hpp"
@@ -9,8 +6,13 @@
 #include "..\glm\gtx\transform.hpp"
 
 #include <vector>
+#include <list>
 #include <deque>
+#include <map>
+#include <string>
 #include <sstream>
+#include <iostream>
+#include <fstream>
 #include <functional>
 #include <thread>
 #include <mutex>

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <QApplication>
 #include "mainwindow.h"
 #include "GCodeInterpreter.h"

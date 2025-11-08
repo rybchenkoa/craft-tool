@@ -1,5 +1,7 @@
 #pragma once
+
 #include "Config.h"
+
 extern Config *g_config;
 #define CFG_CONFIG_NAME        "config.cfg"
 

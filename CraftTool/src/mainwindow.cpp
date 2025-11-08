@@ -1,11 +1,11 @@
-﻿#include <QFileDialog>
+#include <QFileDialog>
 #include <QAction>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "log.h"
 #include "config_defines.h"
-
 #include "GCodeInterpreter.h"
+
 extern Interpreter::GCodeInterpreter *g_inter;
 extern CRemoteDevice *g_device;
 

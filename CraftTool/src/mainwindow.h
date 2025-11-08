@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 #include <QTimer>
@@ -48,5 +47,3 @@ public slots:
     void on_c_pauseButton_clicked();
     void on_c_breakButton_clicked();
 };
-
-#endif // MAINWINDOW_H
