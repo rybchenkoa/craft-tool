@@ -164,23 +164,23 @@ InterError GCodeInterpreter::make_new_state()
 {
     readedFrame.reset();
 
-    for(auto iter = reader.codes.begin(); iter != reader.codes.end(); ++iter)
+    for(const auto& code : reader.codes)
     {
-        int intValue = int(iter->value);
+        int intValue = int(code.value);
 
-        ModalGroup group = get_modal_group(iter->letter, iter->value);
+        ModalGroup group = get_modal_group(code.letter, code.value);
         if (group > 0)
         {
             if(readedFrame.flagModal.get(group))   //встретили два оператора из одной группы
             {
-                reader.position = iter->position;
+                reader.position = code.position;
                 return InterError(InterError::DOUBLE_DEFINITION, 
-					std::string("conflict modal group for ") + iter->letter + to_string(iter->value));
+					std::string("conflict modal group for ") + code.letter + to_string(code.value));
             }
             readedFrame.flagModal.set(group, true);
         }
 
-        switch(iter->letter)
+        switch(code.letter)
         {
             case 'G':
             {
@@ -250,13 +250,13 @@ InterError GCodeInterpreter::make_new_state()
             case 'R':
             case 'D':
             case 'L':
-                readedFrame.set_value(iter->letter, iter->value);
+                readedFrame.set_value(code.letter, code.value);
                 break;
 
             case 'N':
                 break;
 
-			default: return InterError(InterError::INVALID_STATEMENT, std::string("invalid letter: ") + iter->letter);
+			default: return InterError(InterError::INVALID_STATEMENT, std::string("invalid letter: ") + code.letter);
         }
     }
 
@@ -1156,11 +1156,11 @@ void GCodeInterpreter::execute_file(Trajectory *trajectory)
     if (trajectory)
         runnerDump = runner;
     int lineNumber = 0;
-    for(auto iter = inputFile.begin(); iter != inputFile.end(); ++iter)
+    for(const auto& line : inputFile)
     {
         if (!trajectory)
             remoteDevice->set_current_line(lineNumber);
-        auto result = execute_frame(iter->c_str());
+        auto result = execute_frame(line.c_str());
         if(result.code)
             log_warning("[E] line %d, %s\n", lineNumber + 1, result.description.c_str());
         ++lineNumber;
@@ -1189,7 +1189,7 @@ void GCodeInterpreter::init()
     runner.coordSystemNumber = 0;
     runner.cutterLength = 0;
     runner.cutterRadius = 0;
-    runner.feed = 100; //отфига
+    runner.feed = 100; // на всякий случай медленно
 	runner.spindleAngle = 0;
 	runner.threadPitch = 0;
 	runner.threadIndex = 0;

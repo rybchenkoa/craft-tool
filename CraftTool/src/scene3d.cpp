@@ -2,11 +2,9 @@
 #include <QWheelEvent>
 #include <QCursor>
 #include <QApplication>
-#include <QTime>
 #include "log.h"
 //#include "ui_mainwindow.h"
 
-QTime g_time;
 //--------------------------------------------------------------------
 Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
 {
@@ -29,13 +27,8 @@ Scene3d::Scene3d(QWidget *parent) : QGLWidget(parent)
     m_windowHeight = 0;
 
     make_tool_simple(tool); //делаем квадратное сверло )
-    for(int i = 0; i < 90000;++i)
-    {
-      glm::vec3 val(5,5,5);
-      realTrack.push_back(val);
-    }
 
-    g_time.start();
+    _time.start();
     _drawCalls = 0;
     _fps = 0;
 
@@ -198,11 +191,11 @@ void Scene3d::paintGL()
 void Scene3d::draw_fps()
 {
     ++_drawCalls;
-    if (g_time.elapsed() > 1000)
+    if (_time.elapsed() > 1000)
     {
         _fps = _drawCalls;
         _drawCalls = 0;
-        g_time.restart();
+        _time.restart();
     }
 
     QString text = QString::number(_fps);
@@ -396,14 +389,14 @@ void Scene3d::draw_grid()
 	QString text;
 	switch (exp)
 	{
-		case -3: text = QString::fromLocal8Bit("1 мкм"); break;
-		case -2: text = QString::fromLocal8Bit("10 мкм"); break;
-		case -1: text = QString::fromLocal8Bit("100 мкм"); break;
-		case 0: text = QString::fromLocal8Bit("1 мм"); break;
-		case 1: text = QString::fromLocal8Bit("1 см"); break;
-		case 2: text = QString::fromLocal8Bit("10 см"); break;
-		case 3: text = QString::fromLocal8Bit("1 м"); break;
-		case 4: text = QString::fromLocal8Bit("10 м"); break;
+		case -3: text = QString::fromUtf8(u8"1 мкм"); break;
+		case -2: text = QString::fromUtf8(u8"10 мкм"); break;
+		case -1: text = QString::fromUtf8(u8"100 мкм"); break;
+		case 0: text = QString::fromUtf8(u8"1 мм"); break;
+		case 1: text = QString::fromUtf8(u8"1 см"); break;
+		case 2: text = QString::fromUtf8(u8"10 см"); break;
+		case 3: text = QString::fromUtf8(u8"1 м"); break;
+		case 4: text = QString::fromUtf8(u8"10 м"); break;
 		default: text = "undef"; break;
 	}
 

@@ -14,7 +14,7 @@ bool Config::read_from_file(const char *fileName)
 
     while(file) //пока он не закончился
     {
-        records.emplace_back(KeyData());
+        records.emplace_back();
         KeyData &value = records.back();
         std::getline(file, value.record); //читаем строку
         size_t pos = 0;
@@ -86,8 +86,8 @@ bool Config::save_to_file(const char *fileName)
     if(!file)
         return false;
 
-    for(auto iter = records.begin(); iter != records.end(); ++iter)
-        file << iter->record << std::endl;
+    for(const auto& value: records)
+        file << value.record << std::endl;
 
     return true;
 }
@@ -194,17 +194,17 @@ void Config::set_string(const char *key, std::string &value)
         data.record = key;
         data.record += ' ';
         data.valueStart = data.record.size();
-        data.record += '\"';
+        data.record += '"';
         data.record += value;
-        data.record += '\"';
+        data.record += '"';
         data.valueEnd = data.record.size();
         return;
     }
     auto &data = *iter->second;
     auto prevRecord = data.record;
     data.record = prevRecord.substr(0, data.valueStart);
-    data.record += '\"';
+    data.record += '"';
     data.record += value;
-    data.record += '\"';
+    data.record += '"';
     data.record += prevRecord.substr(data.valueEnd);
 }

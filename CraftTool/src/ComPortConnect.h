@@ -13,10 +13,11 @@ public:
 
     int init_port(int portNumber);                       //подключается к порту
     void send_data(char *buffer, int count);             //шлёт данные
-    static DWORD WINAPI receive_thread( LPVOID lpParam );//принимает данные
+    void receive_data();            //принимает данные
 
-    HANDLE hThread;    //поток чтения
-    HANDLE hCom;       //хэндл порта
+    std::thread receiveThread;            //поток чтения
+    bool stop_token = false;
+    HANDLE hCom = INVALID_HANDLE_VALUE;   //хэндл порта
     OVERLAPPED ovRead; //переменные для одновременной работы с портом
     OVERLAPPED ovWrite;
 
@@ -26,15 +27,15 @@ public:
 
     static const int RECEIVE_SIZE = 100;
     char receiveBuffer[RECEIVE_SIZE]; //текущий принимаемый пакет
-    int receivedSize;                 //принято байт текущего пакета
+    int receivedSize = 0;             //принято байт текущего пакета
 
     std::function<bool(char *data, int size)> on_packet_received;      //устройство, принимающее пакеты
 
 private:
-    enum States
+    enum class State
     {
-		STATES_NORMAL,  //приём пакета
-        STATES_CODE,    //принят управляющий символ
+		NORMAL,  //приём пакета
+        CODE,    //принят управляющий символ
     };
 
     enum Tags
@@ -43,7 +44,7 @@ private:
         OP_STOP = 'n',  //конец пакета
     };
 
-    States receiveState;
+    State receiveState = State::NORMAL; // состояние парсинга пакета
 
     void process_bytes(char *buffer, int count);   //формирует пакет из принятых данных
 };

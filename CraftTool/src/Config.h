@@ -21,10 +21,9 @@ public:
 private:
     struct KeyData
     {
-        int valueStart;    //первый символ значения
-        int valueEnd;      //последний символ значения
-        std::string record;//прочитанная из файла строка
-        KeyData():valueStart(0), valueEnd(0){}
+        int valueStart = 0;  // первый символ значения
+        int valueEnd = 0;    // последний символ значения
+        std::string record;  // прочитанная из файла строка
         std::string get_value();
     };
 

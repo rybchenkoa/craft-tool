@@ -63,9 +63,7 @@ int ComPortConnect::init_port(int portNumber)
     if(!SetCommTimeouts(hCom, &timeouts))
         throw("cant write port timeouts");
 
-    DWORD   threadId;
-    hThread = CreateThread(NULL, 0, receive_thread, this, 0, &threadId);
-    SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
+    receiveThread = std::thread(&ComPortConnect::receive_data, this);
 
     receiveBPS = 0;
     transmitBPS = 0;
@@ -129,10 +127,10 @@ void ComPortConnect::process_bytes(char *buffer, int count)
         */
         switch (receiveState)
         {
-			case STATES_NORMAL:
+			case State::NORMAL:
 			{
 				if (data == OP_CODE)
-					receiveState = STATES_CODE;
+					receiveState = State::CODE;
 				else
 				{
 					if(receivedSize < RECEIVE_SIZE)
@@ -146,9 +144,9 @@ void ComPortConnect::process_bytes(char *buffer, int count)
 				break;
 			}
 
-            case STATES_CODE:
+            case State::CODE:
             {
-				receiveState = STATES_NORMAL;
+				receiveState = State::NORMAL;
                 switch (data)
                 {
                     case OP_CODE:                 //в пересылаемом пакете случайно был байт '\'
@@ -177,10 +175,9 @@ void ComPortConnect::process_bytes(char *buffer, int count)
 }
 
 
-DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
+void ComPortConnect::receive_data()
 {
-    ComPortConnect *_this = (ComPortConnect*)lpParam;
-
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
     DWORD eventMask = 0;
     DWORD readed = 0;
 
@@ -188,15 +185,15 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
     char inData[bufferSize+2];
     memset(inData, 0, sizeof(inData));
 
-    _this->ovRead.hEvent=CreateEvent(NULL, TRUE, TRUE, NULL);
+    ovRead.hEvent=CreateEvent(NULL, TRUE, TRUE, NULL);
 
     do
     {
-        int retcode = WaitCommEvent(_this->hCom, &eventMask, &_this->ovRead);
+        int retcode = WaitCommEvent(hCom, &eventMask, &ovRead);
         if ( ( !retcode ) && (GetLastError()==ERROR_IO_PENDING) )
         {
             //printf("COM: wait event\n");
-            WaitForSingleObject(_this->ovRead.hEvent, 1);
+            WaitForSingleObject(ovRead.hEvent, 1);
         }
 
         //printf("COM: event %d\n", eventMask);
@@ -207,7 +204,7 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
             DWORD ErrorMask = 0; // сюда будет занесен код ошибки порта, если таковая была
             COMSTAT CStat;
 
-            ClearCommError(_this->hCom, &ErrorMask, &CStat);
+            ClearCommError(hCom, &ErrorMask, &CStat);
 
             //DWORD quelen = CStat.cbInQue; //размер буфера порта
         }
@@ -217,22 +214,22 @@ DWORD WINAPI ComPortConnect::receive_thread( LPVOID lpParam )
             while(true)
             {
                 memset(inData, 0, sizeof(inData));
-                retcode = ReadFile(_this->hCom, inData, bufferSize, &readed, &_this->ovRead);
+                retcode = ReadFile(hCom, inData, bufferSize, &readed, &ovRead);
 //receiveBPS += readed;
 
                 if( retcode == 0 && GetLastError() == ERROR_IO_PENDING ) //не успели прочитать
                 {
-                    WaitForSingleObject(_this->ovRead.hEvent, INFINITE);
-                    retcode = GetOverlappedResult(_this->hCom, &_this->ovRead, &readed, FALSE) ;
+                    WaitForSingleObject(ovRead.hEvent, INFINITE);
+                    retcode = GetOverlappedResult(hCom, &ovRead, &readed, FALSE) ;
                 }
 
-_this->receiveBPS += readed;
+receiveBPS += readed;
 
                 if (readed > 0) //если прочитали данные
                 {
                     //printf("%d байт прочитано: '%s'\n", readed, inData);
                     //printf(inData);
-                    _this->process_bytes(inData, readed);
+                    process_bytes(inData, readed);
                 }
                 else
                     break;
@@ -247,33 +244,26 @@ _this->receiveBPS += readed;
 
 
         eventMask=0;
-        ResetEvent(_this->ovRead.hEvent);
+        ResetEvent(ovRead.hEvent);
     }
-    while(true);
+    while(!stop_token);
 
-    BOOL bSuccess = CloseHandle(_this->hCom);
-    _this->hCom = INVALID_HANDLE_VALUE;
-
-    return 0;
+    CloseHandle(hCom);
+    hCom = INVALID_HANDLE_VALUE;
 }
 
 
 ComPortConnect::ComPortConnect(void)
 {
-    hThread = 0;
-    hCom = 0;
     memset(&ovRead,0,sizeof(ovRead));
     memset(&ovWrite,0,sizeof(ovWrite));
 	ovWrite.hEvent = CreateEvent(NULL, TRUE, TRUE, NULL);
-    receiveState = STATES_NORMAL;
-    receivedSize = 0;
-    on_packet_received = nullptr;
 }
 
 
 ComPortConnect::~ComPortConnect(void)
 {
-    //WaitForSingleObject(hThread)
-    TerminateThread(hThread, 0);   //если прервать, когда не до конца доработала обработка пакета, что будет?
     CloseHandle(hCom);
+    stop_token = true;
+    receiveThread.join();
 }

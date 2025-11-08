@@ -170,11 +170,11 @@ void MainWindow::on_c_refreshTrajectory_clicked()
     g_inter->execute_file(&trajectory); //формируем траекторию
     ui->c_3dView->track.clear();
     ui->c_3dView->track.reserve(trajectory.size());
-    for (unsigned i = 0; i < trajectory.size(); ++i)
+    for (const auto& tPoint: trajectory)
     {
         TrackPoint point;
-        point.isFast = trajectory[i].isFast;
-        point.position = glm::vec3(trajectory[i].position.x, trajectory[i].position.y, trajectory[i].position.z);
+        point.isFast = tPoint.isFast;
+        point.position = glm::vec3(tPoint.position.x, tPoint.position.y, tPoint.position.z);
         ui->c_3dView->track.push_back(point);
     }
     ui->c_3dView->realTrack.clear();
@@ -185,9 +185,9 @@ void MainWindow::load_file(QString fileName)
     g_inter->read_file(fileName.toLocal8Bit().data()); //читаем данные из файла
 
     ui->c_commandList->clear();
-	int line = 1;
-    for(auto i = g_inter->inputFile.begin(); i != g_inter->inputFile.end(); ++i, ++line)
-        ui->c_commandList->addItem((to_string(line) + ": " + *i).c_str());
+	int index = 1;
+    for(const auto& line : g_inter->inputFile)
+        ui->c_commandList->addItem((to_string(index++) + ": " + line).c_str());
 
     on_c_refreshTrajectory_clicked();
     setWindowTitle(fileName);

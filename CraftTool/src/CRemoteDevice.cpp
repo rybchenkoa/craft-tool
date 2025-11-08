@@ -17,12 +17,12 @@ void make_crc(char *packet);
 unsigned crc32_stm32(unsigned init_crc, unsigned *buf, int len);
 
 //====================================================================================================
-namespace Queue { enum
+enum class Queue
 {
     None = -1,
     Default,
     High,
-}; }
+};
 
 //====================================================================================================
 int get_timestamp()
@@ -240,22 +240,17 @@ CRemoteDevice::CRemoteDevice()
     moveMode = MoveMode_LINEAR;
     fractSended = false;
 
-    InitializeCriticalSectionAndSpinCount(&queueCS, 5000);
-    eventQueueAdd = CreateEvent(nullptr, false, false, nullptr);
-    eventPacketReceived = CreateEvent(nullptr, false, false, nullptr);
-    DWORD   threadId;
-    hThread = CreateThread(NULL, 0, send_thread, this, 0, &threadId);
-    SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
+    sendThread = std::thread(&CRemoteDevice::send_thread, this);
     comPort = nullptr;
 }
 
 //============================================================
 CRemoteDevice::~CRemoteDevice()
 {
-    TerminateThread(hThread, 0);
-    CloseHandle(eventPacketReceived);
-    CloseHandle(eventQueueAdd);
-    DeleteCriticalSection(&queueCS);
+    stop_token = true;
+    eventPacketReceived.notify_all();
+    eventQueueAdd.notify_all();
+    sendThread.join();
 }
 
 //============================================================
@@ -319,11 +314,13 @@ void CRemoteDevice::push_packet_common(T *packet)
     element.sendCount = 0;
     element.data.reset(packet);
 
-    AutoLockCS lock(queueCS);
-    packet->packetNumber = commands[0]->packetNumber++;
-    commands[0]->commands.push_back(element);
+	{
+		std::unique_lock<std::mutex> lock(queueMutex);
+		packet->packetNumber = commands[0]->packetNumber++;
+		commands[0]->commands.push_back(element);
+	}
 
-    SetEvent(eventQueueAdd);
+    eventQueueAdd.notify_all();
 }
 
 //============================================================
@@ -337,11 +334,13 @@ void CRemoteDevice::push_packet_modal(T *packet)
     element.sendCount = 0;
     element.data.reset(packet);
 
-    AutoLockCS lock(queueCS);
-    packet->packetNumber = commands[1]->packetNumber++;
-    commands[1]->commands.push_back(element);
+	{
+		std::unique_lock<std::mutex> lock(queueMutex);
+		packet->packetNumber = commands[1]->packetNumber++;
+		commands[1]->commands.push_back(element);
+	}
 
-    SetEvent(eventQueueAdd);
+    eventQueueAdd.notify_all();
 }
 
 //============================================================
@@ -740,8 +739,10 @@ void CRemoteDevice::pause_moving(bool needStop)
 //============================================================
 void CRemoteDevice::break_queue()
 {
-    AutoLockCS lock(queueCS);
-    commands[0]->reset();
+	{ // чтобы не было двойного захвата мьютекса
+		std::unique_lock<std::mutex> lock(queueMutex);
+		commands[0]->reset();
+	}
 
     auto packet = new PacketBreak;
     packet->command = DeviceCommand_BREAK;
@@ -820,25 +821,25 @@ void CRemoteDevice::homing()
 	double feed = 600; //по умолчанию сантиметр в секунду
 	auto lastMode = moveMode;
 	set_move_mode(MoveMode_HOME);
-	for (auto str = moves.begin(); str != moves.end(); ++str)
+	for (const auto& str : moves)
 	{
 		Coords pos; //по умолчанию везде смещения нулевые
-		for (int i = 0; i < str->length(); )
+		for (int i = 0; i < str.length(); )
 		{
-			char symbol = (*str)[i++];
+			char symbol = str[i++];
 			if (symbol == ' ')
 				continue;
 
 			int coordNum = letter_to_axe(symbol);
 			if (coordNum != -1)
-				if (!read_double(*str, i, pos.r[coordNum])) //координаты задаются инкрементально
+				if (!read_double(str, i, pos.r[coordNum])) //координаты задаются инкрементально
 				{
 					log_warning("invalid homing string");
 					return;
 				}
 
 			if (symbol == 'f' || symbol == 'F')
-				if (!read_double(*str, i, feed) || feed < 0) //мм/мин
+				if (!read_double(str, i, feed) || feed < 0) //мм/мин
 				{
 					log_warning("invalid homing string");
 					return;
@@ -1106,7 +1107,7 @@ double CRemoteDevice::get_min_step(int axis1, int axis2)
 //============================================================
 int CRemoteDevice::queue_size()
 {
-    AutoLockCS lock(queueCS);
+    std::unique_lock<std::mutex> lock(queueMutex);
     return commands[0]->commands.size();
 }
 
@@ -1130,7 +1131,7 @@ bool CRemoteDevice::process_packet(char *data, int size)
     case DeviceCommand_SERVICE_COMMAND:
     {
         PacketServiceCommand *packet = (PacketServiceCommand*) data; //находим строку, которая сейчас исполняется
-        AutoLockCS lock(queueCS);
+        std::unique_lock<std::mutex> lock(queueMutex);
         if (!commands[0]->packet_executed(packet->packetNumber, workLine))
             log_warning("executed undefined packet %d\n", packet->packetNumber);
         return true;
@@ -1173,15 +1174,17 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
             else
                 log_message("[%d] connect: repeat pack %d\n", get_timestamp(), p->packetNumber);
         
-        AutoLockCS lock(queueCS);
+        std::unique_lock<std::mutex> lock(queueMutex);
         if ((size_t)p->queue < 2 && commands[p->queue]->packet_received(p))
         {
-            SetEvent(eventPacketReceived);
+            lock.unlock();
+            eventPacketReceived.notify_all();
             return true;
         }
         if (LOG_CONNECT)
             log_message("[%d] connect: err pack %d\n", get_timestamp(), p->packetNumber);
-        SetEvent(eventPacketReceived);
+        lock.unlock();
+        eventPacketReceived.notify_all();
         return false;
     }
 
@@ -1195,7 +1198,7 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
         missedHalfSend++;
         if (LOG_CONNECT)
             log_message("[%d] connect: error crc\n", get_timestamp());
-        SetEvent(eventPacketReceived);
+        eventPacketReceived.notify_all();
         return true;
 
     case DeviceCommand_ERROR_PACKET_NUMBER:
@@ -1213,38 +1216,36 @@ bool CRemoteDevice::on_packet_received(char *data, int size)
 
 
 //============================================================
-DWORD WINAPI CRemoteDevice::send_thread(void *__this)
+void CRemoteDevice::send_thread()
 {
-    CRemoteDevice *_this = (CRemoteDevice*)__this;
-
-    while(true)
+	std::mutex dummyMutex;
+    std::unique_lock<std::mutex> lock(dummyMutex);
+    while(!stop_token)
     {
-        WaitForSingleObject(_this->eventQueueAdd, INFINITE);
-        while(true)
+        eventQueueAdd.wait(lock);
+        while(!stop_token)
         {
             {
-                AutoLockCS lock(_this->queueCS);
+                std::unique_lock<std::mutex> lockQueue(queueMutex);
                 bool empty = true;
-                _this->missedSends = 0;
+                missedSends = 0;
                 for (int i = 1 ; i >= 0; --i)
                 {
-                    _this->packSends += _this->commands[i]->send(_this->comPort);
-                    _this->missedSends += _this->commands[i]->missedSends;
-                    empty = empty && _this->commands[i]->empty();
+                    packSends += commands[i]->send(comPort);
+                    missedSends += commands[i]->missedSends;
+                    empty = empty && commands[i]->empty();
                 }
                 if (empty)
                     break;
             }
 
-            DWORD result = WaitForSingleObject(_this->eventPacketReceived, 100);
-            if(result == WAIT_TIMEOUT)
+            auto result = eventPacketReceived.wait_for(lock, std::chrono::milliseconds(100));
+            if(result == std::cv_status::timeout)
             {
 				//log_message("send timeout\n");
-                ResetEvent(_this->eventPacketReceived);
             }
-            //Sleep(500);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     }
-    return 0;
 }
 

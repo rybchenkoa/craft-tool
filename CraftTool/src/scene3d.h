@@ -1,7 +1,7 @@
 ﻿#include <QtOpenGL/QGLWidget>
 #include <QPoint>
 #include <QTimer>
-#include "StdAfx.h"
+#include <QTime>
 
 namespace Ui
 {
@@ -14,7 +14,7 @@ struct TrackPoint
     glm::vec3 position;
 };
 
-enum View
+enum class View
 {
 	TOP,
 	BOTTOM,
@@ -108,6 +108,8 @@ public:
 
     int _drawCalls; //вызовов отрисовки за последнюю секунду
     int _fps;
+	QTime _time;
+
     QTimer updateTimer;
 
 public slots:

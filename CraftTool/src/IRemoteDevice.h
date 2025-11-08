@@ -411,14 +411,15 @@ protected:
     template<typename T>
     void push_packet_modal(T *packet);
 
-    static DWORD WINAPI send_thread(void* _this);
-    HANDLE hThread;
+    void send_thread();
+    std::thread sendThread;
+    bool stop_token = false;
 
     struct ConnectData;
     std::unique_ptr<ConnectData> commands[2]; //очередь для g-кода и для сервисных команд
-    CRITICAL_SECTION queueCS;     //защита очереди от порчи
-    HANDLE eventQueueAdd;         //в очередь добавлен пакет
-    HANDLE eventPacketReceived;   //сообщение о принятии пакета
+    std::mutex queueMutex;             //защита очереди от порчи
+    std::condition_variable eventQueueAdd;   //в очередь добавлен пакет
+    std::condition_variable eventPacketReceived;   //сообщение о принятии пакета
 
     int pushLine;                 //строка, из которой читаются команды
     int workLine;                 //строка, команда которой сейчас выполняется
