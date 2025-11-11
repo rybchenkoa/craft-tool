@@ -4,15 +4,18 @@
 #define NOMINMAX
 #endif
 #include "windows.h"
+#include "UniversalConnection.h"
 
-class ComPortConnect
+
+class ComPortConnect: public BaseConnect
 {
 public:
     ComPortConnect(void); //обнуляет всё
     ~ComPortConnect(void);
 
-    int init_port(int portNumber);                       //подключается к порту
-    void send_data(char *buffer, int count);             //шлёт данные
+    void init() override;                //подключается к порту
+	bool connected() override;
+    void send_data(char *buffer, int count) override; //шлёт данные
     void receive_data();            //принимает данные
 
     std::thread receiveThread;            //поток чтения
@@ -20,32 +23,4 @@ public:
     HANDLE hCom = INVALID_HANDLE_VALUE;   //хэндл порта
     OVERLAPPED ovRead; //переменные для одновременной работы с портом
     OVERLAPPED ovWrite;
-
-    int receiveBPS;    //число прочитанных байт
-    int transmitBPS;   //число записанных байт
-    int errs;          //ошибки разбиения на пакеты
-
-    static const int RECEIVE_SIZE = 100;
-    char receiveBuffer[RECEIVE_SIZE]; //текущий принимаемый пакет
-    int receivedSize = 0;             //принято байт текущего пакета
-
-    std::function<bool(char *data, int size)> on_packet_received;      //устройство, принимающее пакеты
-
-private:
-    enum class State
-    {
-		NORMAL,  //приём пакета
-        CODE,    //принят управляющий символ
-    };
-
-    enum Tags
-    {
-        OP_CODE = '\\', //признак, что дальше идёт управляющий код, если надо послать 100, надо послать его 2 раза
-        OP_STOP = 'n',  //конец пакета
-    };
-
-    State receiveState = State::NORMAL; // состояние парсинга пакета
-
-    void process_bytes(char *buffer, int count);   //формирует пакет из принятых данных
 };
-

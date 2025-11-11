@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <QObject>
-#include "ComPortConnect.h"
+#include "UniversalConnection.h"
 
 #define NUM_COORDS 4 //сколько координат задаем в G-коде
 #define MAX_AXES   5 //сколько всего есть осей на контроллере
@@ -360,7 +360,7 @@ public:
     bool process_packet(char *data, int size);
 
 	bool inited;                       //порт нужен для инициализации, но до инициализации нельзя принимать с него лишних данных
-    ComPortConnect *comPort;           //подключение к удалённому устройству
+	UniversalConnection *connection;   //подключение к удалённому устройству
     int missedSends;                   //пакет послан, ответ не получен
     int missedReceives;                //принят битый пакет
     int missedHalfSend;                //принято сообщение о битом пакете

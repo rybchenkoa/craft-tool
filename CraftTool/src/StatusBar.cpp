@@ -15,8 +15,8 @@ void StatusBar::timerEvent(QTimerEvent *event)
         CRemoteDevice *device = (CRemoteDevice*)g_inter->remoteDevice;
         if(device == 0)
             return;
-        auto port = device->comPort;
-        if(port == 0)
+        auto connection = device->connection;
+        if(connection == 0)
             return;
 
         int elapsedSec = g_mainWindow->time.elapsed() / 1000;
@@ -30,9 +30,9 @@ void StatusBar::timerEvent(QTimerEvent *event)
           << ", recv crc err: " << device->missedReceives
           << ", T: " << device->send_lag_ms()
           << ", missed: " << device->missedSends
-          << ", pack err: " << port->errs
-          << ", read: " << port->receiveBPS
-          << ", write: " << port->transmitBPS
+          << ", pack err: " << connection->errs
+          << ", read: " << connection->receiveBPS
+          << ", write: " << connection->transmitBPS
           << ", spack: " << device->packSends
           << ", line " << device->get_current_line()
           << " time " << elapsedHour << ":" << std::setw(2) << std::setfill('0') << elapsedMin << ":" << std::setw(2) << elapsedSec;

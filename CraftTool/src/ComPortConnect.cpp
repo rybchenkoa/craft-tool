@@ -1,9 +1,13 @@
 ﻿#include "ComPortConnect.h"
 #include "log.h"
+#include "config_defines.h"
 //здесь описана связь по com порту пакетами
 
-int ComPortConnect::init_port(int portNumber)
+void ComPortConnect::init()
 {
+	int portNumber = 1;
+	g_config->get_int(CFG_COM_PORT_NUMBER, portNumber);
+
     char portName[30];
     sprintf(portName, "\\\\.\\COM%d", portNumber);
 
@@ -64,34 +68,19 @@ int ComPortConnect::init_port(int portNumber)
         throw("cant write port timeouts");
 
     receiveThread = std::thread(&ComPortConnect::receive_data, this);
-
-    receiveBPS = 0;
-    transmitBPS = 0;
-    errs = 0;
-    return 0;
 }
+
+
+bool ComPortConnect::connected()
+{
+	return hCom != INVALID_HANDLE_VALUE;
+}
+
 
 void ComPortConnect::send_data(char *buffer, int count)
 {
-	if (hCom == INVALID_HANDLE_VALUE)
-		return;
-    char data[1000];
-    char *pointer = data;
-    for(int i=0;i<count;i++)
-    {
-        if(buffer[i] == OP_CODE)
-        {
-            *(pointer++) = OP_CODE;
-            *(pointer++) = OP_CODE;
-        }
-        else
-            *(pointer++) = buffer[i];
-    }
-    *(pointer++) = OP_CODE;
-    *(pointer++) = OP_STOP;
-
     DWORD write;
-	BOOL result = WriteFile(hCom, data, pointer-data, &write, &ovWrite);
+	BOOL result = WriteFile(hCom, buffer, count, &write, &ovWrite);
     if (!result)
 	{
 		auto err = GetLastError();
@@ -104,74 +93,6 @@ void ComPortConnect::send_data(char *buffer, int count)
 				err = GetLastError();
 		}
 	}
-    transmitBPS += pointer-data;
-}
-
-void ComPortConnect::process_bytes(char *buffer, int count)
-{
-    for(int i=0;i<count;i++)
-    {
-        char data = buffer[i];
-        //log_message("%c", int(data));
-        /*
-        extern std::string appDir;
-        extern int get_timestamp();
-        std::ofstream f;
-        f.open(appDir +  "/message2.log", std::ios::app);
-        f << int(data) << " ";
-        if (data == OP_STOP)
-        {
-          int ts = get_timestamp();
-          f << "\n[" << ts << "] ";
-        }
-        */
-        switch (receiveState)
-        {
-			case State::NORMAL:
-			{
-				if (data == OP_CODE)
-					receiveState = State::CODE;
-				else
-				{
-					if(receivedSize < RECEIVE_SIZE)
-                        receiveBuffer[receivedSize++] = data;
-                    else
-                    {
-                        receivedSize = 0;
-                        ++errs;
-                    }
-				}
-				break;
-			}
-
-            case State::CODE:
-            {
-				receiveState = State::NORMAL;
-                switch (data)
-                {
-                    case OP_CODE:                 //в пересылаемом пакете случайно был байт '\'
-                        if(receivedSize < RECEIVE_SIZE)
-                            receiveBuffer[receivedSize++] = data;   //и мы его переслали таким образом
-                        else
-                        {
-                            receivedSize = 0;
-                            ++errs;
-                        }
-                        break;
-
-                    case OP_STOP:
-                        on_packet_received(receiveBuffer, receivedSize); //пакет наконец принят
-						receivedSize = 0;
-                        break;
-
-                    default:
-						receivedSize = 0;
-                        ++errs;
-                }
-                break;
-            }
-        }
-    }
 }
 
 
@@ -215,7 +136,6 @@ void ComPortConnect::receive_data()
             {
                 memset(inData, 0, sizeof(inData));
                 retcode = ReadFile(hCom, inData, bufferSize, &readed, &ovRead);
-//receiveBPS += readed;
 
                 if( retcode == 0 && GetLastError() == ERROR_IO_PENDING ) //не успели прочитать
                 {
@@ -223,13 +143,11 @@ void ComPortConnect::receive_data()
                     retcode = GetOverlappedResult(hCom, &ovRead, &readed, FALSE) ;
                 }
 
-receiveBPS += readed;
-
                 if (readed > 0) //если прочитали данные
                 {
                     //printf("%d байт прочитано: '%s'\n", readed, inData);
                     //printf(inData);
-                    process_bytes(inData, readed);
+					on_bytes_received(inData, readed);
                 }
                 else
                     break;

@@ -24,18 +24,16 @@ static DWORD WINAPI execute( LPVOID lpParam )
     QObject::connect(remoteDevice, SIGNAL(coords_changed(float, float, float)),
                      g_mainWindow->ui->c_3dView, SLOT(update_tool_coords(float, float, float)));
 
-    ComPortConnect *comPort = new ComPortConnect;    //устройство доводит данные до реального устройтва через порт
+	UniversalConnection *connection = new UniversalConnection; //устройство доводит данные до реального устройтва через подключение
 
-    remoteDevice->comPort = comPort; //говорим устройству, через что слать
-    comPort->on_packet_received = std::bind(&CRemoteDevice::on_packet_received, remoteDevice, std::placeholders::_1, std::placeholders::_2); //порту говорим, кто принимает
+    remoteDevice->connection = connection; //говорим устройству, через что слать
+    connection->on_packet_received = std::bind(&CRemoteDevice::on_packet_received, remoteDevice, std::placeholders::_1, std::placeholders::_2); //порту говорим, кто принимает
 
     g_device = remoteDevice;
 
     try
     {
-        int port = 1;
-        g_config->get_int(CFG_COM_PORT_NUMBER, port);
-        comPort->init_port(port);           //открываем порт
+        connection->init(); //открываем порт
     }
     catch(const char *message)
     {

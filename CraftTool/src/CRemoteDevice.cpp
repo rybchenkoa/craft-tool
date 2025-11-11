@@ -1,4 +1,9 @@
-﻿#include "IRemoteDevice.h"
+﻿#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include "windows.h"
+
+#include "IRemoteDevice.h"
 #include "log.h"
 #include "config_defines.h"
 
@@ -75,11 +80,11 @@ struct CRemoteDevice::ConnectData
         forwarded.clear();
     }
 
-    void send_packet(ComPortConnect *port, PacketQueued& p)
+    void send_packet(UniversalConnection *connection, PacketQueued& p)
     {
         PacketCommon *packet = p.data.get();
         make_crc((char*)packet);
-        port->send_data(&packet->size + 1, packet->size - 1);
+        connection->send_data(&packet->size + 1, packet->size - 1);
 
         if (LOG_CONNECT)
         {
@@ -88,7 +93,7 @@ struct CRemoteDevice::ConnectData
         }
     }
 
-    int send(ComPortConnect *port)
+    int send(UniversalConnection *connection)
     {
         int baudRate = 230400/8;
         float timeFactor = baudRate/1000;
@@ -105,7 +110,7 @@ struct CRemoteDevice::ConnectData
                 
                 it->timestamp = timestamp + timeInc;
                 ++it->sendCount;
-                send_packet(port, *it);
+                send_packet(connection, *it);
                 timeInc += it->data->size / timeFactor;
                 ++packSends;
             }
@@ -234,7 +239,7 @@ CRemoteDevice::CRemoteDevice()
     fractSended = false;
 
     sendThread = std::thread(&CRemoteDevice::send_thread, this);
-    comPort = nullptr;
+    connection = nullptr;
 }
 
 //============================================================
@@ -1224,7 +1229,7 @@ void CRemoteDevice::send_thread()
                 missedSends = 0;
                 for (int i = 1 ; i >= 0; --i)
                 {
-                    packSends += commands[i]->send(comPort);
+                    packSends += commands[i]->send(connection);
                     missedSends += commands[i]->missedSends;
                     empty = empty && commands[i]->empty();
                 }
