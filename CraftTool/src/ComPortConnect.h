@@ -13,7 +13,7 @@ public:
     ComPortConnect(void); //обнуляет всё
     ~ComPortConnect(void);
 
-    void init() override;                //подключается к порту
+    void init(int portNumber, int baudRate);          //подключается к порту
 	bool connected() override;
     void send_data(char *buffer, int count) override; //шлёт данные
     void receive_data();            //принимает данные

@@ -8,7 +8,8 @@ public:
 
     bool get_int(const char *key, int &value);
     bool get_float(const char *key, float &value);
-    bool get_string(const char *key, std::string &value);
+	bool get_string(const char *key, std::string &value);
+	bool get_array(const char *key, std::vector<std::string> &value);
 
     int get_int_def(const char *key, int def);
 
@@ -28,3 +29,5 @@ private:
     std::list<KeyData> records; //все строки файла
     std::map<std::string, std::list<KeyData>::iterator> positions;
 };
+
+std::vector<std::string> split_string(std::string& value, char delimiter);

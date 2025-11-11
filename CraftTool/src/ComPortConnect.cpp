@@ -3,11 +3,8 @@
 #include "config_defines.h"
 //здесь описана связь по com порту пакетами
 
-void ComPortConnect::init()
+void ComPortConnect::init(int portNumber, int baudRate)
 {
-	int portNumber = 1;
-	g_config->get_int(CFG_COM_PORT_NUMBER, portNumber);
-
     char portName[30];
     sprintf(portName, "\\\\.\\COM%d", portNumber);
 
@@ -26,7 +23,7 @@ void ComPortConnect::init()
     if (!GetCommState(hCom, &dcb))
         throw("cant read port params");
 
-    dcb.BaudRate = 1000000; //115200 230400 460800 500000
+    dcb.BaudRate = baudRate;
     dcb.ByteSize = 8;
     dcb.Parity = NOPARITY;
     dcb.StopBits = ONESTOPBIT;

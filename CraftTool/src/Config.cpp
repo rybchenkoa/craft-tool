@@ -120,6 +120,7 @@ bool Config::get_float(const char *key, float &value)
 
     return true;
 }
+
 bool Config::get_string(const char *key, std::string &value)
 {
     auto iter = positions.find(key);
@@ -128,6 +129,17 @@ bool Config::get_string(const char *key, std::string &value)
     value = iter->second->get_value();
 
     return true;
+}
+
+bool Config::get_array(const char *key, std::vector<std::string> &value)
+{
+	std::string params;
+	if (get_string(key, params)) {
+		value = split_string(params, ' ');
+		value.erase(std::remove_if(value.begin(), value.end(), [](const std::string& s) {return s.empty(); }), value.end());
+		return true;
+	}
+	return false;
 }
 
 int Config::get_int_def(const char *key, int def)
@@ -206,4 +218,15 @@ void Config::set_string(const char *key, std::string &value)
     data.record += value;
     data.record += '"';
     data.record += prevRecord.substr(data.valueEnd);
+}
+
+std::vector<std::string> split_string(std::string& str, char delimiter)
+{
+	std::vector<std::string> result;
+	std::stringstream ss(str);
+	std::string value;
+	while (std::getline(ss, value, delimiter)) {
+		result.push_back(value);
+	}
+	return result;
 }
