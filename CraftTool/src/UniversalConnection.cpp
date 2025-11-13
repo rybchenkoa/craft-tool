@@ -21,7 +21,7 @@ void UniversalConnection::init()
 		if (params[0] == "com") // com portNumber baudRate
 		{
 			if (params.size() != 3)
-				throw "invalid connection format, need 'com portNumber baudrate'";
+				throw std::string("invalid connection format, need 'com portNumber baudrate'");
 
 			int portNumber = std::stoi(params[1]);
 			int baudRate = std::stoi(params[2]);
@@ -30,11 +30,12 @@ void UniversalConnection::init()
 			connect.reset(port);
 			connect->on_bytes_received = [this](char* data, int size) { receive_data(data, size); };
 			port->init(portNumber, baudRate);
+			throw port->get_state();
 		}
 	}
 
 	if (connect.get() == defaultConnection)
-		throw "invalid connection in config";
+		throw std::string("invalid connection type in config");
 }
 
 

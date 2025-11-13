@@ -6,12 +6,14 @@ class BaseConnect
 public:
 	virtual ~BaseConnect() {};
 
-	virtual void send_data(char *buffer, int count) {};
+	virtual void send_data(char *buffer, int count) {}
 	std::function<void(char *data, int size)> on_bytes_received;
 
 	virtual bool connected() {
 		return false;
-	};
+	}
+
+	virtual std::string get_state() { return ""; }
 };
 
 // заворачивает разные способы подключения в общий поток пакетов

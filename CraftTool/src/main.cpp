@@ -35,12 +35,9 @@ static DWORD WINAPI execute( LPVOID lpParam )
     {
         connection->init(); //открываем порт
     }
-    catch(const char *message)
+    catch(std::string message)
     {
-        qWarning(message);
-        log_warning(message);
-        //return 0;
-        //exit(1);
+        log_warning(message.c_str());
     }
 
     g_inter->remoteDevice = remoteDevice;
@@ -52,7 +49,6 @@ static DWORD WINAPI execute( LPVOID lpParam )
 	}
 	catch(std::string message)
     {
-        qWarning(message.c_str());
         log_warning(message.c_str());
     }
 
