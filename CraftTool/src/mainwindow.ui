@@ -435,7 +435,6 @@
           <property name="focusPolicy">
            <enum>Qt::StrongFocus</enum>
           </property>
-          <zorder>ButtonViewTop</zorder>
          </widget>
         </item>
         <item>
@@ -667,7 +666,7 @@
           <bool>true</bool>
          </property>
         </widget>
-        <widget class="QWidget" name="">
+        <widget class="QWidget" name="layoutWidget_1">
          <property name="geometry">
           <rect>
            <x>10</x>
@@ -1024,6 +1023,9 @@ X0 Y0</string>
          </property>
         </widget>
         <widget class="QPushButton" name="ButtonToSafeZ">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="geometry">
           <rect>
            <x>190</x>
@@ -1050,6 +1052,9 @@ Safe Z</string>
          </property>
         </widget>
         <widget class="QPushButton" name="ButtonSetSafeZ">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="geometry">
           <rect>
            <x>240</x>

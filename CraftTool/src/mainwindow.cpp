@@ -91,9 +91,9 @@ void MainWindow::on_c_refHomeButton_clicked()
 	g_device->homing();
 }
 
-void MainWindow::on_c_toZeroButton_clicked()
+void MainWindow::on_ButtonToX0Y0_clicked()
 {
-	g_inter->execute_line("G0 X0 Y0 Z0");
+	g_inter->execute_line("G0 X0 Y0");
 }
 
 void MainWindow::on_c_feedSlider_valueChanged(int value)

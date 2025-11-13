@@ -39,7 +39,7 @@ public slots:
     void menu_open_program();
     void update_state();
     void on_c_refHomeButton_clicked();
-    void on_c_toZeroButton_clicked();
+    void on_ButtonToX0Y0_clicked();
     void on_c_feedSlider_valueChanged(int value);
     void on_c_startButton_clicked();
 	void on_c_runLineButton_clicked();
