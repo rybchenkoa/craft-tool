@@ -1055,6 +1055,10 @@ void CRemoteDevice::init()
 	set_switches(SwitchGroup_MIN, switchMin);
 	set_switches(SwitchGroup_MAX, switchMax);
 	set_switches(SwitchGroup_HOME, switchHome);
+	
+	int feedAdc = 0;
+	g_config->get_int(CFG_DEFAULT_ADC_USE, feedAdc);
+	set_feed_adc(feedAdc);
 
     set_velocity_and_acceleration(velocity, acceleration);
     set_feed(feed);
