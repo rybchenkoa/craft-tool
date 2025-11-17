@@ -27,7 +27,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/${CMAKE_OUT_BI
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/${CMAKE_OUT_BIN}_Release")
 
 # собираем exe
-add_executable(${PROJECT_NAME} ${CT_SOURCE} ${CT_HEADER} ${CT_RES} resources/qt_res.qrc)
+add_executable(${PROJECT_NAME} ${CT_SOURCE} ${CT_HEADER} ${CT_RES}
+	resources/qt_res.qrc
+	resources/version.rc
+)
 
 # убираем окно консоли
 set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE ON)

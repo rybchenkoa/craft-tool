@@ -1,0 +1,22 @@
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION 0,9,0,0
+    PRODUCTVERSION 0,9,0,0
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "041904b0"
+        {
+            VALUE "FileDescription", "Программа для управления ЧПУ станком."
+            VALUE "FileVersion", "0.9.0.0"
+            VALUE "OriginalFilename", "CraftTool.exe"
+            VALUE "ProductName", "Самопал ЧПУ"
+            VALUE "ProductVersion", "0.9.0.0"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x419, 1200
+    }
+}
