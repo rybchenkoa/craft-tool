@@ -42,3 +42,12 @@ DIR  [D10, D11, G2,  G3,  G6] <br/>
 ШИМ аппаратный     [E9, E11, E13, E14] <br/>
 входы [C11, C12, D0, D1, D2, D3, D4, D5] <br/>
 ADC   [F3] <br/>
+
+## Ручное управление
+- <kbd>←</kbd><kbd>→</kbd> - X
+- <kbd>↑</kbd><kbd>↓</kbd> - Y
+- <kbd>W</kbd><kbd>S</kbd> - Z
+- <kbd>R</kbd><kbd>F</kbd> - A
+- <kbd>T</kbd><kbd>G</kbd> - B
+- <kbd>Ctrl</kbd> - шаг*10
+- <kbd>Shift</kbd> - быстрое перемещение со страховкой
