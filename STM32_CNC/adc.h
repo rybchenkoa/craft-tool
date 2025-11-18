@@ -5,7 +5,7 @@ class Adc
 	public:
 	inline uint32_t value()
 	{
-		return ADC1->DR;
+		return ADC3->DR;
 	}
 	
 	void init()
