@@ -1141,6 +1141,7 @@ Safe Z</string>
      <string>Файл</string>
     </property>
     <addaction name="menuOpenProgram"/>
+    <addaction name="menuCloseProgram"/>
     <addaction name="separator"/>
    </widget>
    <addaction name="menu"/>
@@ -1149,6 +1150,11 @@ Safe Z</string>
   <action name="menuOpenProgram">
    <property name="text">
     <string>Открыть...</string>
+   </property>
+  </action>
+  <action name="menuCloseProgram">
+   <property name="text">
+    <string>Закрыть</string>
    </property>
   </action>
  </widget>

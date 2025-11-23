@@ -37,6 +37,7 @@ public:
 
 public slots:
     void menu_open_program();
+    void menu_close_program();
     void update_state();
     void on_c_refHomeButton_clicked();
     void on_ButtonToX0Y0_clicked();

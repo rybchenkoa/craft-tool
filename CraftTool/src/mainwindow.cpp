@@ -64,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	}
 
     connect(ui->menuOpenProgram, SIGNAL(triggered()), this, SLOT(menu_open_program()));
+    connect(ui->menuCloseProgram, SIGNAL(triggered()), this, SLOT(menu_close_program()));
     connect(&updateTimer, SIGNAL(timeout()), this, SLOT(update_state()));
 
     ui->c_3dView->installEventFilter(this);
@@ -80,7 +81,14 @@ MainWindow::~MainWindow()
 void MainWindow::menu_open_program()
 {
     QString str = QFileDialog::getOpenFileName(0, "Open Dialog", "", "*.*");
-    load_file(str);
+	if (!str.isEmpty()) {
+		load_file(str);
+	}
+}
+
+void MainWindow::menu_close_program()
+{
+	load_file("");
 }
 
 void MainWindow::on_c_refHomeButton_clicked()
