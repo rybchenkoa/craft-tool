@@ -220,14 +220,16 @@ void Scene3d::draw_track()
     }
     glEnd();
 
+	glDisable(GL_DEPTH_TEST);
+	glPointSize(1.0f);
 	glBegin(GL_POINTS);
 	glColor3f(0.7f, 0.2f, 0.9f);
-	glPointSize(3.0f);
     for(size_t i = 0; i < track.size(); ++i)
     {
         glVertex3f(track[i].position.x, track[i].position.y, track[i].position.z);
     }
     glEnd();
+	glEnable(GL_DEPTH_TEST);
 }
 
 //--------------------------------------------------------------------
