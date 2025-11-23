@@ -37,7 +37,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
     }
     catch(std::string message)
     {
-        log_warning(message.c_str());
+        log_warning("%s\n", message.c_str());
     }
 
     g_inter->remoteDevice = remoteDevice;
@@ -49,7 +49,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
 	}
 	catch(std::string message)
     {
-        log_warning(message.c_str());
+        log_warning("%s\n", message.c_str());
     }
 
     return 0;

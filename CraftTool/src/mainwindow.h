@@ -24,6 +24,8 @@ public:
 	void manual_move(int axe, int dir, bool fast);
 
     bool eventFilter(QObject *object, QEvent *event);
+	void dragEnterEvent(QDragEnterEvent* event);
+	void dropEvent(QDropEvent* event);
 
 public:
     Ui::MainWindow *ui;

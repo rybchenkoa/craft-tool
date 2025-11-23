@@ -1,5 +1,6 @@
 #include <QFileDialog>
 #include <QAction>
+#include <QMimeData>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "log.h"
@@ -89,6 +90,20 @@ void MainWindow::menu_open_program()
 void MainWindow::menu_close_program()
 {
 	load_file("");
+}
+
+void MainWindow::dragEnterEvent( QDragEnterEvent* event )
+{
+	if (event->mimeData()->hasUrls()) {
+		event->acceptProposedAction();
+	}
+}
+
+void MainWindow::dropEvent( QDropEvent* event )
+{
+	QString fileName = event->mimeData()->urls()[0].toLocalFile();
+	load_file(event->mimeData()->urls()[0].toLocalFile());
+	event->acceptProposedAction();
 }
 
 void MainWindow::on_c_refHomeButton_clicked()

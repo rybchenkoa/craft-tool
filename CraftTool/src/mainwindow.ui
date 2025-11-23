@@ -10,6 +10,9 @@
     <height>576</height>
    </rect>
   </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
   <property name="windowTitle">
    <string>Самопал ЧПУ</string>
   </property>
@@ -350,6 +353,9 @@
            </colorrole>
           </disabled>
          </palette>
+        </property>
+        <property name="acceptDrops">
+         <bool>false</bool>
         </property>
        </widget>
       </widget>
