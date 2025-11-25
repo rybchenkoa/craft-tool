@@ -5,62 +5,61 @@
 namespace Interpreter
 {
 
-enum UnitSystem //система единиц
+enum class UnitSystem //система единиц
 {
-    UnitSystem_METRIC, //метричекая
-    UnitSystem_INCHES, //дюймовая
+	METRIC, //метричекая
+	INCHES, //дюймовая
 };
 
-enum MotionMode //режимы перемещения
+enum class MotionMode //режимы перемещения
 {
-    MotionMode_NONE = 0,
-    MotionMode_FAST,      //быстрое позиционирование
-    MotionMode_LINEAR,    //линейная интерполяция
-    MotionMode_CW_ARC,    //круговая интерполяция
-    MotionMode_CCW_ARC,
-    MotionMode_LINEAR_SYNC, //нарезание резьбы
+	NONE = 0,
+	FAST,      //быстрое позиционирование
+	LINEAR,    //линейная интерполяция
+	CW_ARC,    //круговая интерполяция
+	CCW_ARC,
+	LINEAR_SYNC, //нарезание резьбы
 };
 
-enum CannedCycle
+enum class CannedCycle
 {
-    CannedCycle_NONE = 0,
-    CannedCycle_RESET,           //отмена цикла, G80
-    CannedCycle_SINGLE_DRILL,    //простое сверление, G81
-    CannedCycle_DRILL_AND_PAUSE, //сверление с задержкой на дне, G82
-    CannedCycle_DEEP_DRILL,      //сверление итерациями, G83
+	NONE = 0,
+	RESET,           //отмена цикла, G80
+	SINGLE_DRILL,    //простое сверление, G81
+	DRILL_AND_PAUSE, //сверление с задержкой на дне, G82
+	DEEP_DRILL,      //сверление итерациями, G83
 };
 
-enum CannedLevel
+enum class CannedLevel
 {
-    CannedLevel_NONE = 0,
-    CannedLevel_HIGH,   //отвод к исходной плоскости, G98
-    CannedLevel_LOW,    //отвод к плоскости обработки, G99
+	NONE = 0,
+	HIGH,   //отвод к исходной плоскости, G98
+	LOW,    //отвод к плоскости обработки, G99
 };
 
-enum ModalGroup //некоторые операторы не могут одновременно содержаться в одном фрейме
+enum class ModalGroup //некоторые операторы не могут одновременно содержаться в одном фрейме
 {
-    ModalGroup_NONE = 0, //g4,g10,g28,g30,g53,g92.[0-3]
-    ModalGroup_MOVE,                 //g0..g3 //G38.2, G80..G89
-    ModalGroup_INCREMENTAL, //g90..g91
-    ModalGroup_UNITS, //g20..g21
-    //ModalGroup_CYCLE, //g80..g85
-    ModalGroup_COORD_SYSTEM, //g54..g58
-    ModalGroup_TOOL_LENGTH_CORRECTION, //g43,g44,g49
-    ModalGroup_TOOL_RADIUS_CORRECTION, //g40..g42
-    ModalGroup_CYCLE_RETURN, //g98, g99
-    ModalGroup_ACTIVE_PLANE, //g17..g19
-    ModalGroup_STOP, //M0, M1, M2, M30, M60
-    ModalGroup_TOOL_CHANGE, //M6
-    ModalGroup_TURN_TOOL, //M3, M4, M5
-    ModalGroup_GREASER, //M7, M8, M9
+	NONE = 0, //g4,g10,g28,g30,g53,g92.[0-3]
+	MOVE,                 //g0..g3 //G38.2, G80..G89
+	INCREMENTAL, //g90..g91
+	UNITS, //g20..g21
+	COORD_SYSTEM, //g54..g58
+	TOOL_LENGTH_CORRECTION, //g43,g44,g49
+	TOOL_RADIUS_CORRECTION, //g40..g42
+	CYCLE_RETURN, //g98, g99
+	ACTIVE_PLANE, //g17..g19
+	STOP, //M0, M1, M2, M30, M60
+	TOOL_CHANGE, //M6
+	TURN_TOOL, //M3, M4, M5
+	GREASER, //M7, M8, M9
 };
 
-enum Plane
+enum class Plane
 {
-    Plane_NONE = 0,
-    Plane_XY,
-    Plane_ZX,
-    Plane_YZ,
+	NONE = 0,
+	XY,
+	ZX,
+	YZ,
 };
 
 struct InterError
@@ -152,13 +151,13 @@ struct Reader
     bool parse_value(double &value); //считывает число
 };
 
-enum BitPos
+enum class BitPos
 {
-    BitPos_ERR = -1,
-    BitPos_X=0,BitPos_Y,BitPos_Z,
-    BitPos_A,BitPos_B,BitPos_C,
-    BitPos_I,BitPos_J,BitPos_K,
-    BitPos_F,BitPos_P,BitPos_Q,BitPos_S,BitPos_R,BitPos_D,BitPos_L,
+    ERR = -1,
+    X=0, Y, Z,
+    A, B, C,
+    I, J, K,
+    F, P, Q, S, R, D, L,
 };
 
 struct Flags

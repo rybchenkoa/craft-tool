@@ -28,25 +28,25 @@ BitPos FrameParams::get_bit_pos(char letter)
 {
     switch (letter)
     {
-        case 'X': return BitPos_X;
-        case 'Y': return BitPos_Y;
-        case 'Z': return BitPos_Z;
-		case 'A': return BitPos_A;
-		case 'B': return BitPos_B;
+		case 'X': return BitPos::X;
+		case 'Y': return BitPos::Y;
+		case 'Z': return BitPos::Z;
+		case 'A': return BitPos::A;
+		case 'B': return BitPos::B;
 
-        case 'I': return BitPos_I;
-        case 'J': return BitPos_J;
-        case 'K': return BitPos_K;
+		case 'I': return BitPos::I;
+		case 'J': return BitPos::J;
+		case 'K': return BitPos::K;
 
-        case 'F': return BitPos_F;
-        case 'P': return BitPos_P;
-        case 'Q': return BitPos_Q;
-        case 'S': return BitPos_S;
-        case 'R': return BitPos_R;
-        case 'D': return BitPos_D;
-        case 'L': return BitPos_L;
+		case 'F': return BitPos::F;
+		case 'P': return BitPos::P;
+		case 'Q': return BitPos::Q;
+		case 'S': return BitPos::S;
+		case 'R': return BitPos::R;
+		case 'D': return BitPos::D;
+		case 'L': return BitPos::L;
 
-        default: return BitPos_ERR;
+		default: return BitPos::ERR;
     }
 }
 
@@ -54,13 +54,13 @@ BitPos FrameParams::get_bit_pos(char letter)
 InterError FrameParams::set_value(char letter, double value)
 {
     BitPos index = get_bit_pos(letter);
-    if (index == BitPos_ERR)
+	if (index == BitPos::ERR)
         return InterError(InterError::INVALID_STATEMENT, std::string("invalid letter: ") + letter);
 
-    if(flagValue.get(index))
+	if(flagValue.get((int)index))
         return InterError(InterError::DOUBLE_DEFINITION, std::string("duplicate letter: ") + letter);
 
-    flagValue.set(index, true);
+	flagValue.set((int)index, true);
     this->value[int(index)] = value;
 
     return InterError();
@@ -70,13 +70,13 @@ InterError FrameParams::set_value(char letter, double value)
 bool FrameParams::get_value(char letter, double &value)
 {
     BitPos index = get_bit_pos(letter);
-    if (index == BitPos_ERR)
+	if (index == BitPos::ERR)
         return false;
 
-    if(!flagValue.get(index))
+	if(!flagValue.get((int)index))
         return false;
 
-    flagValue.set(index, false);
+	flagValue.set((int)index, false);
     value = this->value[int(index)];
 
     return true;
@@ -86,10 +86,10 @@ bool FrameParams::get_value(char letter, double &value)
 bool FrameParams::have_value(char letter)
 {
     BitPos index = get_bit_pos(letter);
-    if (index == BitPos_ERR)
+	if (index == BitPos::ERR)
         return false;
 
-    return flagValue.get(index);
+	return flagValue.get((int)index);
 }
 
 //====================================================================================================
@@ -147,11 +147,11 @@ void FrameParams::reset()
     flagValue.reset();
     flagModal.reset();
     sendWait = false; //G4 readed
-    plane = Plane_NONE;    //G17
+	plane = Plane::NONE;    //G17
     absoluteSet = false; //G53
-    motionMode = MotionMode_NONE;
-    cycle = CannedCycle_NONE;
-    cycleLevel = CannedLevel_NONE;
+	motionMode = MotionMode::NONE;
+	cycle = CannedCycle::NONE;
+	cycleLevel = CannedLevel::NONE;
 }
 
 //====================================================================================================
@@ -165,15 +165,15 @@ InterError GCodeInterpreter::make_new_state()
         int intValue = int(code.value);
 
         ModalGroup group = get_modal_group(code.letter, code.value);
-        if (group > 0)
+		if ((int)group > 0)
         {
-            if(readedFrame.flagModal.get(group))   //встретили два оператора из одной группы
+			if(readedFrame.flagModal.get((int)group))   //встретили два оператора из одной группы
             {
                 reader.position = code.position;
                 return InterError(InterError::DOUBLE_DEFINITION, 
 					std::string("conflict modal group for ") + code.letter + to_string(code.value));
             }
-            readedFrame.flagModal.set(group, true);
+			readedFrame.flagModal.set((int)group, true);
         }
 
         switch(code.letter)
@@ -182,35 +182,35 @@ InterError GCodeInterpreter::make_new_state()
             {
                 switch (intValue)
                 {
-                    case 0: readedFrame.motionMode = MotionMode_FAST; break;
-                    case 1: readedFrame.motionMode = MotionMode_LINEAR; break;
-                    case 2: readedFrame.motionMode = MotionMode_CW_ARC; break;
-                    case 3: readedFrame.motionMode = MotionMode_CCW_ARC; break;
-					case 32: readedFrame.motionMode = MotionMode_LINEAR_SYNC; break;
+					case 0: readedFrame.motionMode = MotionMode::FAST; break;
+					case 1: readedFrame.motionMode = MotionMode::LINEAR; break;
+					case 2: readedFrame.motionMode = MotionMode::CW_ARC; break;
+					case 3: readedFrame.motionMode = MotionMode::CCW_ARC; break;
+					case 32: readedFrame.motionMode = MotionMode::LINEAR_SYNC; break;
 
                     case 4: readedFrame.sendWait = true; break;
-                    case 17: readedFrame.plane = Plane_XY; break;
-                    case 18: readedFrame.plane = Plane_ZX; break;
-                    case 19: readedFrame.plane = Plane_YZ; break;
+					case 17: readedFrame.plane = Plane::XY; break;
+					case 18: readedFrame.plane = Plane::ZX; break;
+					case 19: readedFrame.plane = Plane::YZ; break;
 
-                    case 20: runner.units = UnitSystem_INCHES; break;
-                    case 21: runner.units = UnitSystem_METRIC; break;
+					case 20: runner.units = UnitSystem::INCHES; break;
+					case 21: runner.units = UnitSystem::METRIC; break;
 
                     case 53: readedFrame.absoluteSet = true; break;
 
                     case 54: case 55: case 56: case 57: case 58:
                         runner.coordSystemNumber = intValue - 54; break;
 
-                    case 80: readedFrame.cycle = CannedCycle_RESET; break;
-                    case 81: readedFrame.cycle = CannedCycle_SINGLE_DRILL; break;
-                    case 82: readedFrame.cycle = CannedCycle_DRILL_AND_PAUSE; break;
-                    case 83: readedFrame.cycle = CannedCycle_DEEP_DRILL; break;
+					case 80: readedFrame.cycle = CannedCycle::RESET; break;
+					case 81: readedFrame.cycle = CannedCycle::SINGLE_DRILL; break;
+					case 82: readedFrame.cycle = CannedCycle::DRILL_AND_PAUSE; break;
+					case 83: readedFrame.cycle = CannedCycle::DEEP_DRILL; break;
 
                     case 90: runner.incremental = false; break;
                     case 91: runner.incremental = true; break;
 
-                    case 98: readedFrame.cycleLevel = CannedLevel_HIGH; break;
-                    case 99: readedFrame.cycleLevel = CannedLevel_LOW; break;
+					case 98: readedFrame.cycleLevel = CannedLevel::HIGH; break;
+					case 99: readedFrame.cycleLevel = CannedLevel::LOW; break;
 
 					default: return InterError(InterError::INVALID_STATEMENT, 
 								 std::string("unknown code: G") + to_string(intValue));
@@ -271,31 +271,31 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
         case 0: case 1: case 2: case 3:
         case 32:
         case 80: case 81: case 82: case 83: case 84: case 85: case 86: case 87: case 88: case 89:
-            return ModalGroup_MOVE;
+			return ModalGroup::MOVE;
 
         case 90: case 91:
-            return ModalGroup_INCREMENTAL;
+			return ModalGroup::INCREMENTAL;
 
         case 20: case 21:
-            return ModalGroup_UNITS;
+			return ModalGroup::UNITS;
 
         case 54: case 55: case 56: case 57: case 58:
-            return ModalGroup_COORD_SYSTEM;
+			return ModalGroup::COORD_SYSTEM;
 
         case 43: case 44: case 49:
-            return ModalGroup_TOOL_LENGTH_CORRECTION;
+			return ModalGroup::TOOL_LENGTH_CORRECTION;
 
         case 40: case 41: case 42:
-            return ModalGroup_TOOL_RADIUS_CORRECTION;
+			return ModalGroup::TOOL_RADIUS_CORRECTION;
 
         case 98: case 99:
-            return ModalGroup_CYCLE_RETURN;
+			return ModalGroup::CYCLE_RETURN;
 
         case 17: case 18: case 19:
-            return ModalGroup_ACTIVE_PLANE;
+			return ModalGroup::ACTIVE_PLANE;
 
         default:
-            return ModalGroup_NONE;
+			return ModalGroup::NONE;
         }
     }
     else if (letter == 'M')
@@ -303,23 +303,23 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
         switch (num)
         {
         case 0: case 1: case 2: case 30: case 60:
-            return ModalGroup_STOP;
+			return ModalGroup::STOP;
 
         case 6:
-            return ModalGroup_TOOL_CHANGE;
+			return ModalGroup::TOOL_CHANGE;
 
         case 3: case 4: case 5:
-            return ModalGroup_TURN_TOOL;
+			return ModalGroup::TURN_TOOL;
 
         case 7: case 8: case 9:
-            return ModalGroup_GREASER;
+			return ModalGroup::GREASER;
 
         default:
-            return ModalGroup_NONE;
+			return ModalGroup::NONE;
         }
     }
     else
-        return ModalGroup_NONE;
+		return ModalGroup::NONE;
 }
 
 //====================================================================================================
@@ -330,20 +330,20 @@ InterError GCodeInterpreter::run_modal_groups()
 
     switch (readedFrame.plane) //задаём плоскость обработки
     {
-        case Plane_NONE: break;
+		case Plane::NONE: break;
 
-        case Plane_XY:
-            runner.plane = Plane_XY;
+		case Plane::XY:
+			runner.plane = Plane::XY;
             break;
-        case Plane_ZX:
-            runner.plane = Plane_ZX;
+		case Plane::ZX:
+			runner.plane = Plane::ZX;
             break;
-        case Plane_YZ:
-            runner.plane = Plane_YZ;
+		case Plane::YZ:
+			runner.plane = Plane::YZ;
             break;
 
 		default: return InterError(InterError::WRONG_PLANE, 
-					 std::string("internal error, invalid plane ") + to_string(readedFrame.plane));
+					 std::string("internal error, invalid plane ") + to_string((int)readedFrame.plane));
     }
 
     if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
@@ -355,8 +355,8 @@ InterError GCodeInterpreter::run_modal_groups()
             remoteDevice->set_feed(value / 60);
 
 	//обработка смены режима перемещения
-	if (readedFrame.motionMode != MotionMode_NONE && readedFrame.motionMode != runner.motionMode) {
-		if (runner.motionMode == MotionMode_LINEAR_SYNC) {
+	if (readedFrame.motionMode != MotionMode::NONE && readedFrame.motionMode != runner.motionMode) {
+		if (runner.motionMode == MotionMode::LINEAR_SYNC) {
 			if (!trajectory) //TODO возможно надо возвращать стабилизацию оборотов
 				remoteDevice->set_feed_normal(); //выключаем синхронизацию со шпинделем
 		}
@@ -365,27 +365,27 @@ InterError GCodeInterpreter::run_modal_groups()
 
     switch (readedFrame.motionMode)
     {
-        case MotionMode_NONE: break;
+		case MotionMode::NONE: break;
 
-        case MotionMode_FAST:    set_move_mode(MoveMode_FAST); break;
-        case MotionMode_LINEAR:  set_move_mode(MoveMode_LINEAR); break;
-        case MotionMode_CCW_ARC: set_move_mode(MoveMode_LINEAR); break;
-        case MotionMode_CW_ARC:  set_move_mode(MoveMode_LINEAR); break;
-        case MotionMode_LINEAR_SYNC: set_move_mode(MoveMode_LINEAR); break;
+		case MotionMode::FAST:    set_move_mode(MoveMode_FAST); break;
+		case MotionMode::LINEAR:  set_move_mode(MoveMode_LINEAR); break;
+		case MotionMode::CCW_ARC: set_move_mode(MoveMode_LINEAR); break;
+		case MotionMode::CW_ARC:  set_move_mode(MoveMode_LINEAR); break;
+		case MotionMode::LINEAR_SYNC: set_move_mode(MoveMode_LINEAR); break;
     }
 
     switch(readedFrame.cycle)
     {
-        case CannedCycle_NONE: break;
+		case CannedCycle::NONE: break;
 
-        case CannedCycle_RESET:
-            runner.cycle = CannedCycle_NONE; break;
+		case CannedCycle::RESET:
+			runner.cycle = CannedCycle::NONE; break;
 
-        case CannedCycle_SINGLE_DRILL:
-        case CannedCycle_DRILL_AND_PAUSE:
-        case CannedCycle_DEEP_DRILL:
+		case CannedCycle::SINGLE_DRILL:
+		case CannedCycle::DRILL_AND_PAUSE:
+		case CannedCycle::DEEP_DRILL:
         {
-            if(runner.cycle != CannedCycle_NONE)
+			if(runner.cycle != CannedCycle::NONE)
                 return InterError(InterError::DOUBLE_DEFINITION, "repeat canned cycle call");
 
             runner.cycle = readedFrame.cycle;
@@ -396,10 +396,10 @@ InterError GCodeInterpreter::run_modal_groups()
             if(!readedFrame.have_value('Z'))
                 return InterError(InterError::NO_VALUE, "expected Z parameter");
 
-            if(!readedFrame.have_value('P') && runner.cycle == CannedCycle_DRILL_AND_PAUSE)
+			if(!readedFrame.have_value('P') && runner.cycle == CannedCycle::DRILL_AND_PAUSE)
                 return InterError(InterError::NO_VALUE, "expected P parameter");
 
-            if(!readedFrame.have_value('Q') && runner.cycle == CannedCycle_DEEP_DRILL)
+			if(!readedFrame.have_value('Q') && runner.cycle == CannedCycle::DEEP_DRILL)
                 return InterError(InterError::NO_VALUE, "expected Q parameter");
 
             runner.cycleHiLevel = runner.position.z;
@@ -413,15 +413,15 @@ InterError GCodeInterpreter::run_modal_groups()
 
             get_readed_coord('Z', value);
             //где-то это глубина от R, где-то конечная координата, можно флагом выбирать поведение
-            if (runner.incremental || runner.cycle == CannedCycle_SINGLE_DRILL && runner.cycle81Incremental)
+			if (runner.incremental || runner.cycle == CannedCycle::SINGLE_DRILL && runner.cycle81Incremental)
                 value += runner.cycleLowLevel;
             runner.cycleDeepLevel = value;
 
-            if(runner.cycle == CannedCycle_DEEP_DRILL)
+			if(runner.cycle == CannedCycle::DEEP_DRILL)
                 get_readed_coord('Q', runner.cycleStep);
 
-            if(runner.cycle == CannedCycle_DRILL_AND_PAUSE ||
-               runner.cycle == CannedCycle_DEEP_DRILL)
+			if(runner.cycle == CannedCycle::DRILL_AND_PAUSE ||
+				runner.cycle == CannedCycle::DEEP_DRILL)
             {
                 readedFrame.get_value('P', value);
                 runner.cycleWait = value;
@@ -433,9 +433,9 @@ InterError GCodeInterpreter::run_modal_groups()
 
     switch(readedFrame.cycleLevel)
     {
-        case CannedLevel_NONE: break;
-        case CannedLevel_HIGH: runner.cycleUseLowLevel = false; break;
-        case CannedLevel_LOW: runner.cycleUseLowLevel = true; break;
+		case CannedLevel::NONE: break;
+		case CannedLevel::HIGH: runner.cycleUseLowLevel = false; break;
+		case CannedLevel::LOW: runner.cycleUseLowLevel = true; break;
     }
 
     if(readedFrame.sendWait)
@@ -450,17 +450,17 @@ InterError GCodeInterpreter::run_modal_groups()
             remoteDevice->wait(value);
     }
 
-    if(runner.cycle != CannedCycle_NONE) //включен постоянный цикл
+	if(runner.cycle != CannedCycle::NONE) //включен постоянный цикл
     {
 		return run_modal_group_cycles();
     }
-	else if(runner.motionMode == MotionMode_FAST ||
-			runner.motionMode == MotionMode_LINEAR ||
-			runner.motionMode == MotionMode_LINEAR_SYNC) //движение по прямой
+	else if(runner.motionMode == MotionMode::FAST ||
+			runner.motionMode == MotionMode::LINEAR ||
+			runner.motionMode == MotionMode::LINEAR_SYNC) //движение по прямой
 	{
 		return run_modal_group_linear();
 	}
-    else if(runner.motionMode == MotionMode_CW_ARC || runner.motionMode == MotionMode_CCW_ARC)
+	else if(runner.motionMode == MotionMode::CW_ARC || runner.motionMode == MotionMode::CCW_ARC)
     {
 		return run_modal_group_arc();
     }
@@ -487,7 +487,7 @@ InterError GCodeInterpreter::run_modal_group_linear()
 		coordsSet = true;
 	}
 
-	if(runner.motionMode == MotionMode_LINEAR_SYNC) { //TODO проверить выключение синхронизации
+	if(runner.motionMode == MotionMode::LINEAR_SYNC) { //TODO проверить выключение синхронизации
 		auto error = run_linear_sync(pos);
 		if (error.code != error.ALL_OK)
 			return error;
@@ -506,7 +506,7 @@ InterError GCodeInterpreter::run_modal_group_linear()
 InterError GCodeInterpreter::run_linear_sync(Coords& pos)
 {
 	//дополнительная инициализация на старте
-	if(readedFrame.motionMode == MotionMode_LINEAR_SYNC) {
+	if(readedFrame.motionMode == MotionMode::LINEAR_SYNC) {
 		runner.spindleAngle = 0; //прочитаем дальше, если будет
 		if(!readedFrame.have_value('K')) //шаг резьбы обязательно задаём на старте, дальше опционально
 			return InterError(InterError::NO_VALUE, "expected F parameter");
@@ -549,10 +549,10 @@ InterError GCodeInterpreter::run_modal_group_arc()
 	int ix, iy, iz;
 	switch(runner.plane)
 	{
-		case Plane_NONE: //assume(0);
-		case Plane_XY: ix = 0; iy = 1; iz = 2; break;
-		case Plane_YZ: ix = 1; iy = 2; iz = 0; break;
-		case Plane_ZX: ix = 2; iy = 0; iz = 1; break;
+		case Plane::NONE: //assume(0);
+		case Plane::XY: ix = 0; iy = 1; iz = 2; break;
+		case Plane::YZ: ix = 1; iy = 2; iz = 0; break;
+		case Plane::ZX: ix = 2; iy = 0; iz = 1; break;
 	}
 
 	Coords centerPos;
@@ -608,7 +608,7 @@ InterError GCodeInterpreter::run_modal_group_arc()
 		{
 			double angleMax = atan2(pos.r[iy] - planeCenter.r[iy], pos.r[ix] - planeCenter.r[ix]);
 			angleMax -= angleStart;
-			if(runner.motionMode == MotionMode_CCW_ARC)
+			if(runner.motionMode == MotionMode::CCW_ARC)
 			{
 				if(angleMax <= 0)
 					angleMax += 2 * PI;
@@ -651,7 +651,7 @@ InterError GCodeInterpreter::run_modal_group_arc()
 		//используется теорема Пифагора
 		Coords toCenter; //находим направление от центра отрезка к центру окружности
 		double length = sqrt(std::max(0.0, radius * radius - distance * distance / 4)); //длина перпендикуляра
-		if((radius < 0) == (runner.motionMode == MotionMode_CCW_ARC))
+		if((radius < 0) == (runner.motionMode == MotionMode::CCW_ARC))
 			length *= -1;
 		for(int i = 0; i < NUM_COORDS; ++i)
 			toCenter.r[i] = (runner.position.r[i] - pos.r[i]) * length / distance;
@@ -665,7 +665,7 @@ InterError GCodeInterpreter::run_modal_group_arc()
 		double angleStart = atan2(runner.position.r[iy] - centerPos.r[iy], runner.position.r[ix] - centerPos.r[ix]);
 		double angleMax = atan2(pos.r[iy] - centerPos.r[iy], pos.r[ix] - centerPos.r[ix]);
 		angleMax -= angleStart;
-		if(runner.motionMode == MotionMode_CCW_ARC)
+		if(runner.motionMode == MotionMode::CCW_ARC)
 		{
 			if(angleMax <= 0)
 				angleMax += 2 * PI;
@@ -720,9 +720,9 @@ InterError GCodeInterpreter::run_modal_group_cycles()
 
 		switch(runner.cycle)
 		{
-			case CannedCycle_NONE: //assume(0);
-			case CannedCycle_RESET: //assume(0);
-			case CannedCycle_SINGLE_DRILL:
+			case CannedCycle::NONE: //assume(0);
+			case CannedCycle::RESET: //assume(0);
+			case CannedCycle::SINGLE_DRILL:
 			{
 				set_move_mode(MoveMode_LINEAR);
 				pos2.z = runner.cycleDeepLevel;
@@ -731,7 +731,7 @@ InterError GCodeInterpreter::run_modal_group_cycles()
 				moveTo(pos);
 				break;
 			}
-			case CannedCycle_DRILL_AND_PAUSE:
+			case CannedCycle::DRILL_AND_PAUSE:
 			{
 				set_move_mode(MoveMode_LINEAR);
 				pos2.z = runner.cycleDeepLevel;
@@ -743,7 +743,7 @@ InterError GCodeInterpreter::run_modal_group_cycles()
 				moveTo(pos);
 				break;
 			}
-			case CannedCycle_DEEP_DRILL:
+			case CannedCycle::DEEP_DRILL:
 			{
 				coord curZ = pos.z - runner.cycleStep;
 				while(curZ >= runner.cycleDeepLevel)
@@ -811,11 +811,11 @@ void GCodeInterpreter::move_to(Coords position)
 //====================================================================================================
 bool GCodeInterpreter::is_screw(Coords center)
 {
-    if(center.x != runner.position.x && runner.plane == Plane_YZ)
+	if(center.x != runner.position.x && runner.plane == Plane::YZ)
         return true;
-    if(center.y != runner.position.y && runner.plane == Plane_ZX)
+	if(center.y != runner.position.y && runner.plane == Plane::ZX)
         return true;
-    if(center.z != runner.position.z && runner.plane == Plane_XY)
+	if(center.z != runner.position.z && runner.plane == Plane::XY)
         return true;
 
     return false;
@@ -840,7 +840,7 @@ void GCodeInterpreter::draw_screw(Coords center, double radius, double ellipseCo
     double step = sqrt(1-pow2(1-accuracy/radius));
 
     double aScale = 1;
-    if(runner.motionMode == MotionMode_CW_ARC)
+	if(runner.motionMode == MotionMode::CW_ARC)
         aScale = -1;
 
     Coords curPos = center;
@@ -931,7 +931,7 @@ void GCodeInterpreter::local_deform(Coords &coords)
 //перевод в мм
 coord GCodeInterpreter::to_mm(coord value)
 {
-    if(runner.units == UnitSystem_INCHES)
+    if(runner.units == UnitSystem::INCHES)
         value *= MM_PER_INCHES;
     return value;
 }
@@ -961,7 +961,7 @@ void GCodeInterpreter::move(int coordNumber, coord add, bool fast)
     if(remoteDevice->queue_size() > 0)
         return;
 
-    runner.motionMode = MotionMode_FAST;
+	runner.motionMode = MotionMode::FAST;
     remoteDevice->set_move_mode(MoveMode_FAST);
 
     //если только подключились к устройству, то координаты могут быть очень разными
@@ -1190,13 +1190,13 @@ void GCodeInterpreter::init()
 	runner.threadPitch = 0;
 	runner.threadIndex = 0;
     runner.incremental = false;
-    runner.motionMode = MotionMode_FAST;
+	runner.motionMode = MotionMode::FAST;
     runner.deviceMoveMode = MoveMode_FAST;
-    runner.cycle = CannedCycle_NONE;
+	runner.cycle = CannedCycle::NONE;
     runner.cycle81Incremental = g_config->get_int_def(CFG_G81_INCREMENTAL, 0);
-    runner.plane = Plane_XY;
+	runner.plane = Plane::XY;
     runner.position = Coords();
-    runner.units = UnitSystem_METRIC;
+    runner.units = UnitSystem::METRIC;
     memset(&runner.csd, 0, sizeof(runner.csd));
     coordsInited = false;
 }
