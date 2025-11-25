@@ -11,24 +11,6 @@ enum UnitSystem //система единиц
     UnitSystem_INCHES, //дюймовая
 };
 
-enum CoordIndex //номера координат в массиве
-{
-    X_AXIS = 0,
-    Y_AXIS = 1,
-    Z_AXIS = 2,
-};
-/*
-enum BitPos //позиции битов во флаговых переменных
-{
-    X = 0,
-    Y = 1,
-    Z = 2,
-
-    I = 0,
-    J = 1,
-    K = 2,
-};
-*/
 enum MotionMode //режимы перемещения
 {
     MotionMode_NONE = 0,
@@ -53,39 +35,6 @@ enum CannedLevel
     CannedLevel_NONE = 0,
     CannedLevel_HIGH,   //отвод к исходной плоскости, G98
     CannedLevel_LOW,    //отвод к плоскости обработки, G99
-};
-
-enum OpCode  //распознаваемые коды операций
-{
-    OpCode_NONE = 0,
-    G0_FAST_MOVE,
-    G1_LINEAR,
-    G2_CW_ARC,
-    G3_CCW_ARC,
-    G4_PAUSE,
-    G6_PARABOLIC,
-    G8_ACCELERATE,
-    G9_DECELERATION,
-    G17_XY,
-    G18_ZX,
-    G19_YZ,
-    G20_INCH,
-    G21_METRIC,
-    G27_REFERENCE_POINT,
-    G40_RESET_CORRECTION_RADIUS,
-    G41_CORRECTION_LEFT,  //по часовой
-    G42_CORRECTION_RIGHT,
-    G43_CORRECTION_POSITIVE, //прибавить длину инструмента
-    G44_CORRECTION_NEGATIVE,
-    G49_RESET_CORRECTION_LENGTH,
-    //G50_MIRROR,
-    //G501_MIRROR_RESET,
-    G51_SCALE,
-    G511_SCALE_RESET,
-    G52_LOCAL_SYSTEM,
-    G53_RESET_LOCAL_SYSTEM,
-    G90_ABSOLUTE_MOVES,
-    G91_INCREMENTAL_MOVES,
 };
 
 enum ModalGroup //некоторые операторы не могут одновременно содержаться в одном фрейме
@@ -146,7 +95,7 @@ struct TrajectoryPoint
     Coords position;
 };
 
-typedef std::vector<TrajectoryPoint> Trajectory;
+using Trajectory = std::vector<TrajectoryPoint>;
 //=================================================================================================
 //интерпретатор работает следующим образом
 //читается вся строка, выбираются команды и для них ищутся параметры
@@ -305,21 +254,8 @@ public:
 
     void move(int coordNumber, coord add, bool fast); //ручное перемещение
 
-
-    //функции чтения и исполнения команд с параметрами
-    void run_G0(); //XYZ
-    void run_G1(); //XYZ F
-    void run_G2(); //XYZ IJK
-    void run_G3(); //XYZ IJK
-    void run_G4(); //X
-    void run_G5D1();
-    void run_G6();
-    void run_G41();
-    void run_G42();
-    void run_G43();
-    void run_G44();
     GCodeInterpreter(void);
     ~GCodeInterpreter(void);
 };
 
-};
+}
