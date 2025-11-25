@@ -350,9 +350,11 @@ InterError GCodeInterpreter::run_modal_groups()
         if (!trajectory)
             remoteDevice->set_spindle_vel(value);
 
-    if(readedFrame.get_value('F', value)) //скорость подачи
-        if (!trajectory)
-            remoteDevice->set_feed(value / 60);
+	if (readedFrame.get_value('F', value)) { // скорость подачи
+		if (!trajectory)
+			remoteDevice->set_feed(value / 60);
+		runner.feed = value;
+	}
 
 	//обработка смены режима перемещения
 	if (readedFrame.motionMode != MotionMode::NONE && readedFrame.motionMode != runner.motionMode) {
@@ -1185,7 +1187,7 @@ void GCodeInterpreter::init()
     runner.coordSystemNumber = 0;
     runner.cutterLength = 0;
     runner.cutterRadius = 0;
-    runner.feed = 100; // на всякий случай медленно
+    runner.feed = 600; // сейчас это значение справочное
 	runner.spindleAngle = 0;
 	runner.threadPitch = 0;
 	runner.threadIndex = 0;
@@ -1200,3 +1202,38 @@ void GCodeInterpreter::init()
     memset(&runner.csd, 0, sizeof(runner.csd));
     coordsInited = false;
 }
+
+//====================================================================================================
+std::vector<std::string> GCodeInterpreter::get_active_codes()
+{
+	std::vector<std::string> result;
+
+	int plane = (int)runner.plane - (int)Plane::XY; // G17
+	int cycle = (int)runner.cycle - (int)CannedCycle::SINGLE_DRILL; // G81
+
+	if (runner.cycle != CannedCycle::NONE) {
+		result.push_back("G" + std::to_string(81 + cycle));
+	}
+	else {
+		switch (runner.motionMode) {
+		case MotionMode::FAST: result.push_back("G0"); break;
+		case MotionMode::LINEAR: result.push_back("G1"); break;
+		case MotionMode::CW_ARC: result.push_back("G2"); break;
+		case MotionMode::CCW_ARC: result.push_back("G3"); break;
+		case MotionMode::LINEAR_SYNC: result.push_back("G32"); break;
+		}
+	}
+
+	result.push_back("F" + (runner.feed == int(runner.feed) ?
+		std::to_string(int(runner.feed)) :
+		std::to_string(runner.feed)));
+
+	result.push_back("G" + std::to_string(17 + plane));
+	result.push_back(runner.units == UnitSystem::INCHES ? "G20" : "G21");
+	result.push_back("G" + std::to_string(54 + runner.coordSystemNumber));
+	result.push_back(runner.incremental ? "G91" : "G90");
+	result.push_back(runner.cycleUseLowLevel ? "G99" : "G98");
+
+	return result;
+}
+

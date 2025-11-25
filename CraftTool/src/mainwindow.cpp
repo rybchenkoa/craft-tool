@@ -135,6 +135,17 @@ void MainWindow::update_state()
 		coords -= g_inter->runner.csd[0].pos0;
 	for (int i = 0; i < MAX_AXES; ++i)
 		textCoord[i]->setText(QString::number(coords.r[i]));
+
+	// показываем модальные коды, активные на текущий момент
+	auto activeCodes = g_inter->get_active_codes();
+	std::string codesText; // = activeCodes.join(" ");
+	int index = 0;
+	for (auto& code : activeCodes) {
+		if (index++ != 0) codesText += " ";
+		codesText += code;
+	}
+
+	ui->c_modalCodesLabel->setText(QString(codesText.c_str()));
 }
 
 bool MainWindow::connect_to_device()

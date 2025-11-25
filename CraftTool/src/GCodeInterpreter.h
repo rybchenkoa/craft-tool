@@ -252,6 +252,7 @@ public:
     bool get_new_position(Coords &pos);  //чтение новых координат с учётом модальных кодов
 
     void move(int coordNumber, coord add, bool fast); //ручное перемещение
+	std::vector<std::string> get_active_codes();
 
     GCodeInterpreter(void);
     ~GCodeInterpreter(void);
