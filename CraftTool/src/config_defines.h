@@ -26,3 +26,6 @@ extern Config *g_config;
 #define CFG_PWM_FREQ           "PWMFreq"
 #define CFG_G81_INCREMENTAL    "g81Incremental"
 #define CFG_DEFAULT_ADC_USE    "defaultADCUse"
+#define CFG_SPINDLE_MARKS      "spindleMarks"
+#define CFG_SPINDLE_MARKS_PIN  "spindleMarksPin"
+#define CFG_SPINDLE_MARKS_FREQ "spindleMarksFrequency"

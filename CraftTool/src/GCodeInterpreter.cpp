@@ -511,7 +511,7 @@ InterError GCodeInterpreter::run_linear_sync(Coords& pos)
 	if(readedFrame.motionMode == MotionMode::LINEAR_SYNC) {
 		runner.spindleAngle = 0; //прочитаем дальше, если будет
 		if(!readedFrame.have_value('K')) //шаг резьбы обязательно задаём на старте, дальше опционально
-			return InterError(InterError::NO_VALUE, "expected F parameter");
+			return InterError(InterError::NO_VALUE, "expected K parameter");
 		//выбираем самую длинную ось в качестве синхронной
 		int index = 0;
 		coord delta = abs(pos.r[0] - runner.position.r[0]);

@@ -16,6 +16,7 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_ERROR_PACKET_NUMBER,//out
 	DeviceCommand_SET_VEL_ACC,      //in
 	DeviceCommand_SET_SWITCHES,     //in
+	DeviceCommand_SET_SPINDLE_PARAMS,//in
 	DeviceCommand_SET_COORDS,       //in
 	DeviceCommand_SET_FEED,         //in
 	DeviceCommand_SET_FEED_MULT,    //in
@@ -147,6 +148,12 @@ struct PacketSetSwitches : public PacketCommon
 	char group;
 	char pins[MAX_AXES];
 	int16_t polarity;
+};
+struct PacketSetSpindleParams : public PacketCommon
+{
+	char pin;
+	char marksCount;
+	char frequency;
 };
 struct PacketSetCoords : public PacketCommon
 {

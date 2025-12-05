@@ -557,6 +557,18 @@ void CRemoteDevice::set_switches(SwitchGroup group, int pins[MAX_AXES])
 }
 
 //============================================================
+//задает номера концевиков всех осей
+void CRemoteDevice::set_spindle_params(int spindleMarksCount, int spindleMarksPin, int spindleMarksFrequency)
+{
+	auto packet = new PacketSetSpindleParams;
+	packet->command = DeviceCommand_SET_SPINDLE_PARAMS;
+	packet->pin = spindleMarksPin;
+	packet->marksCount = spindleMarksCount * 2; // чёрных и белых одинаковое количество
+	packet->frequency = spindleMarksFrequency;
+	push_packet_common(packet);
+}
+
+//============================================================
 //записывает аппаратные координаты
 void CRemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 {
@@ -790,7 +802,7 @@ int letter_to_axe(char letter)
 		case 'b': case 'B': return 4;
 		default:  return -1;
 	}
-};
+}
 
 //============================================================
 bool read_double(const std::string &str, int &pos, double &value)
@@ -1056,6 +1068,14 @@ void CRemoteDevice::init()
 	set_switches(SwitchGroup_MAX, switchMax);
 	set_switches(SwitchGroup_HOME, switchHome);
 	
+	int spindleMarksCount = 1; // число меток на шпинделе
+	int spindleMarksPin = -1;  // вход датчика меток
+	int spindleMarksFrequency = 1; // минимальная частота, при которой разрешена автокалибровка
+	g_config->get_int(CFG_SPINDLE_MARKS, spindleMarksCount);
+	g_config->get_int(CFG_SPINDLE_MARKS_PIN, spindleMarksPin);
+	g_config->get_int(CFG_SPINDLE_MARKS_FREQ, spindleMarksFrequency);
+	set_spindle_params(spindleMarksCount, spindleMarksPin, spindleMarksFrequency);
+
 	int feedAdc = 0;
 	g_config->get_int(CFG_DEFAULT_ADC_USE, feedAdc);
 	set_feed_adc(feedAdc);

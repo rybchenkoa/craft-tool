@@ -872,6 +872,14 @@ bool canLog;
 					polarity = packet->polarity;
 					break;
 				}
+				case DeviceCommand_SET_SPINDLE_PARAMS:
+				{
+					PacketSetSpindleParams *packet = (PacketSetSpindleParams*)common;
+					spindle.pinNumber = packet->pin;
+					spindle.marksCount = packet->marksCount;
+					spindle.maxSyncPeriod = 1000000 / packet->frequency; // период оборота в микросекундах
+					break;
+				}
 				case DeviceCommand_SET_COORDS:
 				{
 					PacketSetCoords *packet = (PacketSetCoords*)common;

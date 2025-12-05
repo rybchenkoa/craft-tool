@@ -74,6 +74,7 @@ enum DeviceCommand:char //какие команды получает устро�
     DeviceCommand_ERROR_PACKET_NUMBER, //пришёл пакет с неправильным номером
     DeviceCommand_SET_VEL_ACC,
 	DeviceCommand_SET_SWITCHES,
+	DeviceCommand_SET_SPINDLE_PARAMS,
 	DeviceCommand_SET_COORDS,
     DeviceCommand_SET_FEED, //выпилить?
     DeviceCommand_SET_FEED_MULT,
@@ -235,6 +236,13 @@ struct PacketSetSwitches : public PacketCommon
 	char group;
 	char pins[MAX_AXES];
 	int16_t polarity;
+	int crc;
+};
+struct PacketSetSpindleParams : public PacketCommon
+{
+	char pin;
+	char marksCount;
+	char frequency;
 	int crc;
 };
 struct PacketSetCoords : public PacketCommon
@@ -399,6 +407,7 @@ public:
 
 protected:
 	void set_switches(SwitchGroup group, int pins[MAX_AXES]);
+	void set_spindle_params(int spindleMarksCount, int spindleMarksPin, int spindleMarksFrequency);
 	void set_coord(Coords pos, bool used[MAX_AXES]);
 	void set_pwm_freq(double fast, double slow);
 
