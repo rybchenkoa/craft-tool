@@ -59,8 +59,9 @@ struct FeedModifier
 		else
 		{
 			int index = syncAxeIndex; //для удобства
-			float spindleFeed = spindle.velocity * syncStep; //скорость движения резьбы
-			spindleFeed *= invProj[index]; //сравниваем полные скорости, а не проекцию на шпиндель
+			float spindleFeed = spindle.velocity * syncStep; // скорость движения резьбы, мм/мкс
+			spindleFeed *= invProj[index] / stepLength[index]; // сравниваем полные скорости, а не проекцию на шпиндель
+			spindleFeed *= float(TIMER_FREQUENCY) / CORE_FREQ; // приводим к мм/такт
 			//на начальном участке просто разгоняемся
 			if (currentFeed > spindleFeed * 0.8f)
 			{
@@ -71,22 +72,23 @@ struct FeedModifier
 				float delta = fraction - spindle.position; //на какую часть витка отклонились
 				if (delta < 0) //убираем лишний оборот:(-1, 1) в (0, 1)
 					delta += 1.f;
+				delta -= 0.5f; // получается сдвиг на полвитка относительно датчика
+				delta *= syncStep;
 				
 				float deltaFeed = currentFeed - spindleFeed;
-				//известны s - расстояние, a - ускорение, v - скорость
+				//известны s - расстояние со знаком, a - ускорение, v - скорость
 				//надо понять, пора тормозить или ускоряться
 				//s = v*v/2a - тормозное расстояние
-				delta -= 0.5f;
-				if (delta < 0) //если отстаём
+				if (delta < 0) // если отстаём
 				{
-					//но оставшееся расстояние меньше тормозного пути
-					if (-2 * delta * acceleration < deltaFeed * deltaFeed)
+					// но догоняем, и оставшееся расстояние меньше тормозного пути
+					if (deltaFeed > 0 && -2 * delta * acceleration < deltaFeed * deltaFeed)
 						feed = 0;
 				}
-				else //если опережаем
+				else // если опережаем
 				{
-					// и тормозного расстояния хватает, тогда ещё притормозим
-					if (2 * delta * acceleration > deltaFeed * deltaFeed)
+					// и нас не догоняют или тормозного расстояния хватает, тогда ещё притормозим
+					if (deltaFeed > 0 || 2 * delta * acceleration > deltaFeed * deltaFeed)
 						feed = 0;
 				}
 			}

@@ -14,6 +14,7 @@ const int MAX_SLOW_PWMS = 3;
 const int MAX_STEP_TIME = 1<<30;
 const int MAX_SPINDLE_MARKS = 10; //10 меток, 20 переключений туда/сюда
 const int SPINDLE_FREEZE_TIME = 1000000; //время между метками, после которого считаем, что шпиндель не крутится
+const int TIMER_FREQUENCY = 1000000; // частота системного таймера
 
 //#define log_console(format, ...) {}
 

@@ -300,11 +300,11 @@ bool canLog;
 		int error[MAX_AXES]; //ошибка координат
 		int sign[MAX_AXES];  //изменение координаты при превышении ошибки {-1 || 1}
 		int last[MAX_AXES+1];   //последние координаты, для которых была посчитана ошибка
-		float velCoef[MAX_AXES]; //на что умножить скорость, чтобы получить число тактов на шаг
+		float velCoef[MAX_AXES]; //на что умножить скорость, чтобы получить число тактов на шаг, мм/шаг
 
-		float maxFeedVelocity;	//скорость подачи, мм/тик
-		float acceleration;		//ускорение, мм/тик^2
-		float velocity;			//скорость на прошлом шаге
+		float maxFeedVelocity;	//скорость подачи, мм/такт
+		float acceleration;		//ускорение, мм/такт^2
+		float velocity;			//скорость на прошлом шаге, мм/такт
 		float invProj;			//(длина опорной координаты / полную длину)
 		int state;			//ускорение/замедление/стабильное движение
 		int lastTime;		//предыдущее время, нужно для вычисления разницы
@@ -877,7 +877,7 @@ bool canLog;
 					PacketSetSpindleParams *packet = (PacketSetSpindleParams*)common;
 					spindle.pinNumber = packet->pin;
 					spindle.marksCount = packet->marksCount;
-					spindle.maxSyncPeriod = 1000000 / packet->frequency; // период оборота в микросекундах
+					spindle.maxSyncPeriod = TIMER_FREQUENCY / packet->frequency; // период оборота в микросекундах
 					break;
 				}
 				case DeviceCommand_SET_COORDS:

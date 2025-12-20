@@ -20,7 +20,7 @@ struct Spindle
 	// измерение координаты
 	int lastIndex;            //на какой метке были в последний раз
 	bool lastSensorState;     //что выдавал датчик на предыдущем такте
-	bool lastTime;            //время предыдущего переключения датчика
+	int lastTime;             //время предыдущего переключения датчика
 	bool freeze;              //если долго не переключался, считаем что не крутится
 	float position;           //интерполированная текущая позиция шпинделя
 	float velocity;           //скорость, оборотов/мкс
@@ -107,9 +107,11 @@ struct Spindle
 				float nextPosition = markPositions[nextIndex];
 				float maxDelta = round_diff_pos(prevPosition, nextPosition);
 				float offset = deltaTime * velocity;
-				if (maxDelta > offset)
+				if (maxDelta < offset)
 					offset = maxDelta;
 				position = prevPosition + offset;
+				if (position > 1.f)
+					position -= 1.f;
 			}
 		}
 	}
