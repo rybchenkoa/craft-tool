@@ -20,6 +20,8 @@ struct Spindle
 	// измерение координаты
 	int lastIndex;            //на какой метке были в последний раз
 	bool lastSensorState;     //что выдавал датчик на предыдущем такте
+	int sensorFilterCounter;  //защита от дребезга, сколько раз подряд повторились новые показания
+	int sensorFilterSize;     //сколько отсчётов берёт фильтр
 	int lastTime;             //время предыдущего переключения датчика
 	bool freeze;              //если долго не переключался, считаем что не крутится
 	float position;           //интерполированная текущая позиция шпинделя
@@ -44,6 +46,7 @@ struct Spindle
 	{
 		pinNumber = -1;
 		syncState = Sync::None;
+		sensorFilterSize = 5;
 	}
 
 	int next_index(int index)
@@ -65,13 +68,33 @@ struct Spindle
 		return delta;
 	}
 
+	bool get_filtered_sensor_state()
+	{
+		bool state = get_pin(pinNumber);
+		if (state != lastSensorState)
+		{
+			sensorFilterCounter++;
+			if (sensorFilterCounter >= sensorFilterSize)
+			{
+				sensorFilterCounter = 0;
+				return state;
+			}
+		}
+		else
+		{
+			sensorFilterCounter = 0;
+		}
+
+		return lastSensorState;
+	}
+
 	void update(int time)
 	{
 		if(pinNumber == -1)
 			return;
 		
 		int deltaTime = time - lastTime;
-		bool sensorState = get_pin(pinNumber);
+		bool sensorState = get_filtered_sensor_state();
 
 		if (sensorState != lastSensorState)
 		{
