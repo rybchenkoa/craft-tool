@@ -243,6 +243,7 @@ struct PacketSetSpindleParams : public PacketCommon
 	char pin;
 	char marksCount;
 	char frequency;
+	char filterSize;
 	int crc;
 };
 struct PacketSetCoords : public PacketCommon
@@ -407,7 +408,7 @@ public:
 
 protected:
 	void set_switches(SwitchGroup group, int pins[MAX_AXES]);
-	void set_spindle_params(int spindleMarksCount, int spindleMarksPin, int spindleMarksFrequency);
+	void set_spindle_params(int marksCount, int marksPin, int marksFrequency, int filterSize);
 	void set_coord(Coords pos, bool used[MAX_AXES]);
 	void set_pwm_freq(double fast, double slow);
 

@@ -154,6 +154,7 @@ struct PacketSetSpindleParams : public PacketCommon
 	char pin;
 	char marksCount;
 	char frequency;
+	char filterSize;
 };
 struct PacketSetCoords : public PacketCommon
 {

@@ -878,6 +878,7 @@ bool canLog;
 					spindle.pinNumber = packet->pin;
 					spindle.marksCount = packet->marksCount;
 					spindle.maxSyncPeriod = TIMER_FREQUENCY / packet->frequency; // период оборота в микросекундах
+					spindle.sensorFilterSize = packet->filterSize;
 					break;
 				}
 				case DeviceCommand_SET_COORDS:

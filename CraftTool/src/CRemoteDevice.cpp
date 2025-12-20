@@ -558,13 +558,14 @@ void CRemoteDevice::set_switches(SwitchGroup group, int pins[MAX_AXES])
 
 //============================================================
 //задает номера концевиков всех осей
-void CRemoteDevice::set_spindle_params(int spindleMarksCount, int spindleMarksPin, int spindleMarksFrequency)
+void CRemoteDevice::set_spindle_params(int marksCount, int marksPin, int marksFrequency, int filterSize)
 {
 	auto packet = new PacketSetSpindleParams;
 	packet->command = DeviceCommand_SET_SPINDLE_PARAMS;
-	packet->pin = spindleMarksPin;
-	packet->marksCount = spindleMarksCount * 2; // чёрных и белых одинаковое количество
-	packet->frequency = spindleMarksFrequency;
+	packet->pin = marksPin;
+	packet->marksCount = marksCount * 2; // чёрных и белых одинаковое количество
+	packet->frequency = marksFrequency;
+	packet->filterSize = filterSize;
 	push_packet_common(packet);
 }
 
@@ -1071,10 +1072,12 @@ void CRemoteDevice::init()
 	int spindleMarksCount = 1; // число меток на шпинделе
 	int spindleMarksPin = -1;  // вход датчика меток
 	int spindleMarksFrequency = 1; // минимальная частота, при которой разрешена автокалибровка
+	int spindleFilterSize = 5; // размер фильтра для датчика
 	g_config->get_int(CFG_SPINDLE_MARKS, spindleMarksCount);
 	g_config->get_int(CFG_SPINDLE_MARKS_PIN, spindleMarksPin);
 	g_config->get_int(CFG_SPINDLE_MARKS_FREQ, spindleMarksFrequency);
-	set_spindle_params(spindleMarksCount, spindleMarksPin, spindleMarksFrequency);
+	g_config->get_int(CFG_SPINDLE_FILTER_SIZE, spindleFilterSize);
+	set_spindle_params(spindleMarksCount, spindleMarksPin, spindleMarksFrequency, spindleFilterSize);
 
 	int feedAdc = 0;
 	g_config->get_int(CFG_DEFAULT_ADC_USE, feedAdc);

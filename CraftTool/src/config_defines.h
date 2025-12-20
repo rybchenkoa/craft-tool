@@ -29,3 +29,4 @@ extern Config *g_config;
 #define CFG_SPINDLE_MARKS      "spindleMarks"
 #define CFG_SPINDLE_MARKS_PIN  "spindleMarksPin"
 #define CFG_SPINDLE_MARKS_FREQ "spindleMarksFrequency"
+#define CFG_SPINDLE_FILTER_SIZE "spindleFilterSize"
