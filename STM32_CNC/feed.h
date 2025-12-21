@@ -66,9 +66,9 @@ struct FeedModifier
 			if (currentFeed > spindleFeed * 0.8f)
 			{
 				//пытаемся попасть в ближайший виток
-				float position = (coord[index] - syncPos) * stepLength[index]; //текущий отступ от начала витков
+				float position = fabs(coord[index] - syncPos) * stepLength[index]; //текущий отступ от начала витков
 				float fraction = position / syncStep; //пройдено витков
-				fraction -= floorf(fraction); //пройденная часть витка
+				fraction -= int(fraction); //пройденная часть витка
 				float delta = fraction - spindle.position; //на какую часть витка отклонились
 				if (delta < 0) //убираем лишний оборот:(-1, 1) в (0, 1)
 					delta += 1.f;

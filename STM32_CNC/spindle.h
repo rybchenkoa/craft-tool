@@ -47,6 +47,7 @@ struct Spindle
 		pinNumber = -1;
 		syncState = Sync::None;
 		sensorFilterSize = 5;
+		lastIndex = 0;
 	}
 
 	int next_index(int index)
