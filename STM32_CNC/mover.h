@@ -1089,18 +1089,20 @@ void preprocess_command(PacketCommon *p)
 void on_packet_received(char * __restrict packet, int size)
 {
 	led.flip(1);
-	if(size > (int)sizeof(MaxPacket))
-	{
-		send_wrong_crc();
-		log_console("ERR: rec pack %d, max %d\n", size, sizeof(MaxPacket));
-		return;
-	}
+
 	int crc = calc_crc(packet, size-4);
 	int receivedCrc = *(int*)(packet+size-4);
 	if(crc != receivedCrc)
 	{
 		//log_console("\n0x%X, 0x%X\n", receivedCrc, crc);
 		send_wrong_crc();
+		return;
+	}
+
+	if(size > (int)sizeof(MaxPacket))
+	{
+		send_wrong_crc();
+		log_console("ERR: rec pack %d, max %d\n", size, sizeof(MaxPacket));
 		return;
 	}
 		
