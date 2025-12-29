@@ -351,9 +351,6 @@ void CRemoteDevice::set_move_mode(MoveMode mode)
 	if (mode == MoveMode_LINEAR) //если едем на G1, то не надо замедляться перед G0
 		set_fract(); //а при переходе с быстрых перемещений на силовые скорость надо сбросить заранее
 
-	if (mode == MoveMode_FAST)
-		mode = MoveMode_LINEAR;
-
     auto packet = new PacketInterpolationMode;
     packet->command = DeviceCommand_MOVE_MODE; //сменить режим перемещения
     packet->mode = mode; //новый режим

@@ -319,7 +319,7 @@ bool canLog;
 	bool switch_reached()
 	{
 		//при обычной езде при налете на концевик прекращаем выдавать STEP
-		if (interpolation == MoveMode_LINEAR)
+		if (interpolation != MoveMode_HOME)
 		{
 			for (int i = 0; i < activeSwitchCount; ++i)
 				if (activeSwitch[i] != -1 && get_pin(activeSwitch[i]))
@@ -329,7 +329,7 @@ bool canLog;
 				}
 		}
 		//при поиске дома датчик дома может быть и хард лимитом
-		else if (interpolation == MoveMode_HOME)
+		else
 		{
 			for (int i = 0; i < MAX_AXES; ++i)
 				if (linearData.size[i] != 0)
@@ -619,7 +619,8 @@ bool canLog;
 		length += 0.001f * current_track_length();
 
 		float currentFeed = linearData.maxFeedVelocity;
-		feedModifier.modify(currentFeed, linearData.velocity, linearData.acceleration, coord, stepLength, linearData.velCoef);
+		if (interpolation == MoveMode_LINEAR)
+			feedModifier.modify(currentFeed, linearData.velocity, linearData.acceleration, coord, stepLength, linearData.velCoef);
 
 		int lastState = linearData.state;
 		//v^2 = 2g*h; //сначала проверяем, что не врежемся с разгона
@@ -841,7 +842,7 @@ bool canLog;
 				case DeviceCommand_MOVE_MODE:
 					{
 						interpolation = ((PacketInterpolationMode*)common)->mode;
-						log_console("mode %d\n", interpolation);
+						//log_console("mode %d\n", interpolation);
 
 						break;
 					}
@@ -979,17 +980,6 @@ bool canLog;
 		stopTime = 0;
 		handler = &Mover::empty;
 
-		//это должно задаваться с компьютера
-		/*for(int i = 0; i < MAX_AXES; i++)
-		{
-			const float stepSize = 0.1f; //0.1 мм на шаг
-			const float mmsec = 100; //мм/сек
-			const float delay = 0.000001; //1 тик - 1 микросекунда
-			const float accel = 100;//мм/сек^2
-			
-			maxVelocity[i] = mmsec/stepSize*delay;
-			maxAcceleration[i] = accel/stepSize*delay*delay;
-		}*/
 		interpolation = MoveMode_LINEAR;
 		//feedVelocity = maxVelocity[0]; //для обычной подачи задержка больше
 		feedModifier = FeedModifier();
