@@ -309,6 +309,62 @@ bool canLog;
 		int state;			//ускорение/замедление/стабильное движение
 		int lastTime;		//предыдущее время, нужно для вычисления разницы
 		float lastVelocity; //предыдущая скорость
+
+		//=====================================================================================================
+		void start_acceleration()
+		{
+			lastVelocity = velocity;
+			lastTime = timer.get_ticks();
+		}
+
+		//=====================================================================================================
+		void accelerate(int multiplier)
+		{
+			int currentTime = timer.get_ticks();
+			int delta = currentTime - lastTime;
+			velocity = lastVelocity + delta * multiplier * acceleration;
+			if (delta > 100000)
+			{
+				lastVelocity = velocity;
+				lastTime = currentTime;
+			}
+		}
+
+		//=====================================================================================================
+		// ускоряемся или замедляемся для достижения заданной скорости и с учётом оставшегося расстояния
+		void update_velocity(float targetVelocity, float length)
+		{
+			int lastState = state;
+			//v^2 = 2g*h; //сначала проверяем, что не врежемся с разгона
+			if (pow2(velocity) > (acceleration * length * 2))
+			{
+				state = -2;
+				//v = sqrt(2*g*h)
+				velocity = sqrtf(acceleration * length * 2);
+			}
+			else if (velocity > targetVelocity)
+			{
+				state = -1;
+				if (lastState != state)
+					start_acceleration();
+				else
+					accelerate(-1);
+				if(velocity < 0)
+					velocity = 0;
+			}
+			else if (velocity < targetVelocity)
+			{
+				state = 1;
+				if (lastState != state)
+					start_acceleration();
+				else
+					accelerate(1);
+				if(velocity > targetVelocity)
+					velocity = targetVelocity;
+			}
+			else
+				state = 0;
+		}
 	};
 	LinearData linearData;
 
@@ -569,26 +625,6 @@ bool canLog;
 
 		return diff;
 	}
-
-	//=====================================================================================================
-	void start_acceleration()
-	{
-		linearData.lastVelocity = linearData.velocity;
-		linearData.lastTime = timer.get_ticks();
-	}
-
-	//=====================================================================================================
-	void accelerate(int multiplier)
-	{
-		int currentTime = timer.get_ticks();
-		int delta = currentTime - linearData.lastTime;
-		linearData.velocity = linearData.lastVelocity + delta * multiplier * linearData.acceleration;
-		if (delta > 100000)
-		{
-			linearData.lastVelocity = linearData.velocity;
-			linearData.lastTime = currentTime;
-		}
-	}
 	
 	//=====================================================================================================
 	void finish_linear()
@@ -618,40 +654,11 @@ bool canLog;
 		float length = linearData.invProj * virtualAxe._position;
 		length += 0.001f * current_track_length();
 
-		float currentFeed = linearData.maxFeedVelocity;
+		float targetFeed = linearData.maxFeedVelocity;
 		if (interpolation == MoveMode_LINEAR)
-			feedModifier.modify(currentFeed, linearData.velocity, linearData.acceleration, coord, stepLength, linearData.velCoef);
+			feedModifier.modify(targetFeed, linearData.velocity, linearData.acceleration, coord, stepLength, linearData.velCoef);
 
-		int lastState = linearData.state;
-		//v^2 = 2g*h; //сначала проверяем, что не врежемся с разгона
-		if (pow2(linearData.velocity) > (linearData.acceleration * length * 2))
-		{
-			linearData.state = -2;
-			//v = sqrt(2*g*h)
-			linearData.velocity = sqrtf(linearData.acceleration * length * 2);
-		}
-		else if (needPause || (linearData.velocity > currentFeed))
-		{
-			linearData.state = -1;
-			if (lastState != linearData.state)
-				start_acceleration();
-			else
-				accelerate(-1);
-			if(linearData.velocity < 0)
-				linearData.velocity = 0;
-		}
-		else if (linearData.velocity < currentFeed)
-		{
-			linearData.state = 1;
-			if (lastState != linearData.state)
-				start_acceleration();
-			else
-				accelerate(1);
-			if(linearData.velocity > currentFeed)
-				linearData.velocity = currentFeed;
-		}
-		else
-			linearData.state = 0;
+		linearData.update_velocity(needPause ? 0 : targetFeed, length);
 
 		if (!brez_step())
 		{
