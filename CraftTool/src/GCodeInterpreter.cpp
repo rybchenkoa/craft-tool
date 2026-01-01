@@ -328,23 +328,9 @@ InterError GCodeInterpreter::run_modal_groups()
 {
     double value;
 
-    switch (readedFrame.plane) //задаём плоскость обработки
-    {
-		case Plane::NONE: break;
-
-		case Plane::XY:
-			runner.plane = Plane::XY;
-            break;
-		case Plane::ZX:
-			runner.plane = Plane::ZX;
-            break;
-		case Plane::YZ:
-			runner.plane = Plane::YZ;
-            break;
-
-		default: return InterError(InterError::WRONG_PLANE, 
-					 std::string("internal error, invalid plane ") + to_string((int)readedFrame.plane));
-    }
+	if (readedFrame.plane != Plane::NONE) { // задаём плоскость обработки
+		runner.plane = readedFrame.plane;
+	}
 
     if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
         if (!trajectory)
@@ -813,14 +799,13 @@ void GCodeInterpreter::move_to(Coords position)
 //====================================================================================================
 bool GCodeInterpreter::is_screw(Coords center)
 {
-	if(center.x != runner.position.x && runner.plane == Plane::YZ)
-        return true;
-	if(center.y != runner.position.y && runner.plane == Plane::ZX)
-        return true;
-	if(center.z != runner.position.z && runner.plane == Plane::XY)
-        return true;
-
-    return false;
+	switch (runner.plane)
+	{
+		case Plane::XY: return center.z != runner.position.z;
+		case Plane::ZX: return center.y != runner.position.y;
+		case Plane::YZ: return center.x != runner.position.x;
+		default: return false;
+	}
 }
 
 //====================================================================================================
