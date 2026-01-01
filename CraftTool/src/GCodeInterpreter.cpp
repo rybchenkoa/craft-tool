@@ -327,6 +327,7 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
 InterError GCodeInterpreter::run_modal_groups()
 {
     double value;
+	InterError error;
 
 	if (readedFrame.plane != Plane::NONE) { // задаём плоскость обработки
 		runner.plane = readedFrame.plane;
@@ -342,101 +343,12 @@ InterError GCodeInterpreter::run_modal_groups()
 		runner.feed = value;
 	}
 
-	//обработка смены режима перемещения
-	if (readedFrame.motionMode != MotionMode::NONE && readedFrame.motionMode != runner.motionMode) {
-		if (runner.motionMode == MotionMode::LINEAR_SYNC) {
-			if (!trajectory) //TODO возможно надо возвращать стабилизацию оборотов
-				remoteDevice->set_feed_normal(); //выключаем синхронизацию со шпинделем
-		}
-		runner.motionMode = readedFrame.motionMode;
-	}
+	update_motion_mode(); // обработка смены режима перемещения (G0, G1, G32...)
+	error = update_cycle_params(); // обновление параметров постоянных циклов (G80...)
+	if (error.code) return error;
 
-    switch (readedFrame.motionMode)
-    {
-		case MotionMode::NONE: break;
-
-		case MotionMode::FAST:    set_move_mode(MoveMode_FAST); break;
-		case MotionMode::LINEAR:  set_move_mode(MoveMode_LINEAR); break;
-		case MotionMode::CCW_ARC: set_move_mode(MoveMode_LINEAR); break;
-		case MotionMode::CW_ARC:  set_move_mode(MoveMode_LINEAR); break;
-		case MotionMode::LINEAR_SYNC: set_move_mode(MoveMode_LINEAR); break;
-    }
-
-    switch(readedFrame.cycle)
-    {
-		case CannedCycle::NONE: break;
-
-		case CannedCycle::RESET:
-			runner.cycle = CannedCycle::NONE; break;
-
-		case CannedCycle::SINGLE_DRILL:
-		case CannedCycle::DRILL_AND_PAUSE:
-		case CannedCycle::DEEP_DRILL:
-        {
-			if(runner.cycle != CannedCycle::NONE)
-                return InterError(InterError::DOUBLE_DEFINITION, "repeat canned cycle call");
-
-            runner.cycle = readedFrame.cycle;
-
-            if(!readedFrame.have_value('R'))
-                return InterError(InterError::NO_VALUE, "expected R parameter");
-
-            if(!readedFrame.have_value('Z'))
-                return InterError(InterError::NO_VALUE, "expected Z parameter");
-
-			if(!readedFrame.have_value('P') && runner.cycle == CannedCycle::DRILL_AND_PAUSE)
-                return InterError(InterError::NO_VALUE, "expected P parameter");
-
-			if(!readedFrame.have_value('Q') && runner.cycle == CannedCycle::DEEP_DRILL)
-                return InterError(InterError::NO_VALUE, "expected Q parameter");
-
-            runner.cycleHiLevel = runner.position.z;
-
-            double value;
-
-            get_readed_coord('R', value);
-            if(runner.incremental)
-                value += runner.cycleHiLevel;
-            runner.cycleLowLevel = value;
-
-            get_readed_coord('Z', value);
-            //где-то это глубина от R, где-то конечная координата, можно флагом выбирать поведение
-			if (runner.incremental || runner.cycle == CannedCycle::SINGLE_DRILL && runner.cycle81Incremental)
-                value += runner.cycleLowLevel;
-            runner.cycleDeepLevel = value;
-
-			if(runner.cycle == CannedCycle::DEEP_DRILL)
-                get_readed_coord('Q', runner.cycleStep);
-
-			if(runner.cycle == CannedCycle::DRILL_AND_PAUSE ||
-				runner.cycle == CannedCycle::DEEP_DRILL)
-            {
-                readedFrame.get_value('P', value);
-                runner.cycleWait = value;
-            }
-
-            break;
-        }
-    }
-
-    switch(readedFrame.cycleLevel)
-    {
-		case CannedLevel::NONE: break;
-		case CannedLevel::HIGH: runner.cycleUseLowLevel = false; break;
-		case CannedLevel::LOW: runner.cycleUseLowLevel = true; break;
-    }
-
-    if(readedFrame.sendWait)
-    {
-        if(!readedFrame.get_value('P', value))
-            return InterError(InterError::NO_VALUE, "expected P parameter");
-
-        if(value < 0)
-            return InterError(InterError::WRONG_VALUE, std::string("invalid P parameter") + to_string(value));
-
-        if (!trajectory)
-            remoteDevice->wait(value);
-    }
+	error = run_dwell(); // обработка паузы
+	if (error.code) return error;
 
 	if(runner.cycle != CannedCycle::NONE) //включен постоянный цикл
     {
@@ -457,7 +369,122 @@ InterError GCodeInterpreter::run_modal_groups()
 }
 
 //====================================================================================================
-//исполняет линейное движение текущего фрейма
+// обновляет режим перемещения из текущего фрейма
+void GCodeInterpreter::update_motion_mode()
+{
+	if (readedFrame.motionMode != MotionMode::NONE && readedFrame.motionMode != runner.motionMode) {
+		if (runner.motionMode == MotionMode::LINEAR_SYNC) {
+			if (!trajectory) //TODO возможно надо возвращать стабилизацию оборотов
+				remoteDevice->set_feed_normal(); //выключаем синхронизацию со шпинделем
+		}
+		runner.motionMode = readedFrame.motionMode;
+	}
+
+	switch (readedFrame.motionMode)
+	{
+		case MotionMode::NONE: break;
+
+		case MotionMode::FAST:    set_move_mode(MoveMode_FAST); break;
+		case MotionMode::LINEAR:  set_move_mode(MoveMode_LINEAR); break;
+		case MotionMode::CCW_ARC: set_move_mode(MoveMode_LINEAR); break;
+		case MotionMode::CW_ARC:  set_move_mode(MoveMode_LINEAR); break;
+		case MotionMode::LINEAR_SYNC: set_move_mode(MoveMode_LINEAR); break;
+	}
+}
+
+//====================================================================================================
+// обновляет данные циклов из текущего фрейма
+InterError GCodeInterpreter::update_cycle_params()
+{
+	switch(readedFrame.cycle)
+	{
+		case CannedCycle::NONE: break;
+
+		case CannedCycle::RESET:
+			runner.cycle = CannedCycle::NONE; break;
+
+		case CannedCycle::SINGLE_DRILL:
+		case CannedCycle::DRILL_AND_PAUSE:
+		case CannedCycle::DEEP_DRILL:
+		{
+			if(runner.cycle != CannedCycle::NONE)
+				return InterError(InterError::DOUBLE_DEFINITION, "repeat canned cycle call");
+
+			runner.cycle = readedFrame.cycle;
+
+			if(!readedFrame.have_value('R'))
+				return InterError(InterError::NO_VALUE, "expected R parameter");
+
+			if(!readedFrame.have_value('Z'))
+				return InterError(InterError::NO_VALUE, "expected Z parameter");
+
+			if(!readedFrame.have_value('P') && runner.cycle == CannedCycle::DRILL_AND_PAUSE)
+				return InterError(InterError::NO_VALUE, "expected P parameter");
+
+			if(!readedFrame.have_value('Q') && runner.cycle == CannedCycle::DEEP_DRILL)
+				return InterError(InterError::NO_VALUE, "expected Q parameter");
+
+			runner.cycleHiLevel = runner.position.z;
+
+			double value;
+
+			get_readed_coord('R', value);
+			if(runner.incremental)
+				value += runner.cycleHiLevel;
+			runner.cycleLowLevel = value;
+
+			get_readed_coord('Z', value);
+			//где-то это глубина от R, где-то конечная координата, можно флагом выбирать поведение
+			if (runner.incremental || runner.cycle == CannedCycle::SINGLE_DRILL && runner.cycle81Incremental)
+				value += runner.cycleLowLevel;
+			runner.cycleDeepLevel = value;
+
+			if(runner.cycle == CannedCycle::DEEP_DRILL)
+				get_readed_coord('Q', runner.cycleStep);
+
+			if(runner.cycle == CannedCycle::DRILL_AND_PAUSE ||
+				runner.cycle == CannedCycle::DEEP_DRILL)
+			{
+				readedFrame.get_value('P', value);
+				runner.cycleWait = value;
+			}
+
+			break;
+		}
+	}
+
+	switch(readedFrame.cycleLevel)
+	{
+		case CannedLevel::NONE: break;
+		case CannedLevel::HIGH: runner.cycleUseLowLevel = false; break;
+		case CannedLevel::LOW: runner.cycleUseLowLevel = true; break;
+	}
+
+	return InterError();
+}
+
+//====================================================================================================
+// исполняет задержку
+InterError GCodeInterpreter::run_dwell()
+{
+	if (readedFrame.sendWait)
+	{
+		double value;
+		if (!readedFrame.get_value('P', value))
+			return InterError(InterError::NO_VALUE, "expected P parameter");
+
+		if (value < 0)
+			return InterError(InterError::WRONG_VALUE, std::string("invalid P parameter") + to_string(value));
+
+		if (!trajectory)
+			remoteDevice->wait(value);
+	}
+
+	return InterError();
+}
+
+//====================================================================================================
+// исполняет линейное движение текущего фрейма
 InterError GCodeInterpreter::run_modal_group_linear()
 {
 	Coords pos = runner.position;
@@ -490,7 +517,7 @@ InterError GCodeInterpreter::run_modal_group_linear()
 }
 
 //====================================================================================================
-//исполняет круговое движение текущего фрейма
+//исполняет линейное движение текущего фрейма с синхронизацией со шпинделем
 InterError GCodeInterpreter::run_linear_sync(Coords& pos)
 {
 	//дополнительная инициализация на старте

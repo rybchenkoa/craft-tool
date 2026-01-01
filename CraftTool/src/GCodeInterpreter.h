@@ -231,6 +231,9 @@ public:
     InterError make_new_state();            //чтение команд из строки
     InterError run_modal_groups();          //запуск команд
     ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
+	void update_motion_mode();              //читает режим перемещения
+	InterError update_cycle_params();       //читает параметры циклов
+	InterError run_dwell();                 //обработка паузы
     InterError run_modal_group_linear();    //обработка линейного движения
     InterError run_modal_group_arc();       //обработка движения по дуге
     InterError run_modal_group_cycles();    //обработка цикла
