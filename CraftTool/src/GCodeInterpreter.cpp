@@ -372,15 +372,21 @@ InterError GCodeInterpreter::run_modal_groups()
 // обновляет режим перемещения из текущего фрейма
 void GCodeInterpreter::update_motion_mode()
 {
-	if (readedFrame.motionMode != MotionMode::NONE && readedFrame.motionMode != runner.motionMode) {
+	MotionMode newMode = readedFrame.motionMode;
+
+	// постоянные циклы тоже должны отключать режим синхронизации со шпинделем
+	if (readedFrame.cycle != CannedCycle::NONE)
+		newMode = MotionMode::LINEAR;
+
+	if (newMode != MotionMode::NONE && newMode != runner.motionMode) {
 		if (runner.motionMode == MotionMode::LINEAR_SYNC) {
 			if (!trajectory) //TODO возможно надо возвращать стабилизацию оборотов
 				remoteDevice->set_feed_normal(); //выключаем синхронизацию со шпинделем
 		}
-		runner.motionMode = readedFrame.motionMode;
+		runner.motionMode = newMode;
 	}
 
-	switch (readedFrame.motionMode)
+	switch (newMode)
 	{
 		case MotionMode::NONE: break;
 
