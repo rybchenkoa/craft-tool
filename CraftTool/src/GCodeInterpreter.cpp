@@ -186,6 +186,11 @@ InterError GCodeInterpreter::make_new_state()
 					break;
 				}
 
+				if (code.value == 94.2) {
+					readedFrame.feedMode = FeedMode::ADC;
+					break;
+				}
+
 				if (code.value == 95.1) {
 					readedFrame.feedMode = FeedMode::STABLE_REV;
 					break;
@@ -281,6 +286,9 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
     if(letter == 'G')
     {
 		if (value == 94.1)
+			return ModalGroup::FEED_MODE;
+
+		if (value == 94.2)
 			return ModalGroup::FEED_MODE;
 
 		if (value == 95.1)
@@ -442,6 +450,15 @@ InterError GCodeInterpreter::run_feed_mode()
 
 			if (!trajectory) {
 				remoteDevice->set_feed_throttling(true, period, value);
+			}
+			break;
+
+		case FeedMode::ADC:
+			if (!readedFrame.get_value('P', value))
+				return InterError(InterError::NO_VALUE, "expected P parameter");
+
+			if (!trajectory) {
+				remoteDevice->set_feed_adc(value != 0);
 			}
 			break;
 	}
