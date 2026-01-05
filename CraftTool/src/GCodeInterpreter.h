@@ -7,8 +7,15 @@ namespace Interpreter
 
 enum class UnitSystem //система единиц
 {
-	METRIC, //метричекая
+	METRIC, //метрическая
 	INCHES, //дюймовая
+};
+
+enum class FeedMode // режим контроля подачи
+{
+	NONE = 0,
+	PER_MIN,    // подача в минуту, G94
+	PER_REV,    // подача на оборот, G95
 };
 
 enum class MotionMode //режимы перемещения
@@ -43,6 +50,7 @@ enum class ModalGroup //некоторые операторы не могут о
 	MOVE,                 //g0..g3 //G38.2, G80..G89
 	INCREMENTAL, //g90..g91
 	UNITS, //g20..g21
+	FEED_MODE,              // G94, G95
 	COORD_SYSTEM, //g54..g58
 	TOOL_LENGTH_CORRECTION, //g43,g44,g49
 	TOOL_RADIUS_CORRECTION, //g40..g42
@@ -108,7 +116,9 @@ struct Runner
     MotionMode motionMode;   //режим перемещения (линейная интерполяция и т.п.)
     MoveMode deviceMoveMode; //режим перемещения устройства
     Plane plane;             //текущая плоскость интерполяции
-    double feed;             //подача в мм/мин
+	FeedMode feedMode;       //режим управления подачей (в минуту, на оборот)
+	double feed;             //подача в мм/мин
+	double feedPerRev;       //подача в мм/оборот
 	double spindleAngle;     //угол поворота шпинделя (в оборотах)
 	double threadPitch;      //шаг витка (мм/оборот)
 	int threadIndex;         //координата, с которой синхронизирован шпиндель
@@ -194,6 +204,7 @@ struct FrameParams
     CannedLevel cycleLevel; //G98, G99
 
     MotionMode motionMode;
+	FeedMode feedMode;
 
     FrameParams()
     {
@@ -210,7 +221,8 @@ struct FrameParams
 
 };
 
-class GCodeInterpreter  //несомненно, это интерпретатор г-кода )
+// интерпретатор G-кода
+class GCodeInterpreter
 {
 public:
 
@@ -231,6 +243,8 @@ public:
     InterError make_new_state();            //чтение команд из строки
     InterError run_modal_groups();          //запуск команд
     ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
+	InterError run_feed_mode();             //обработка режима подачи
+	InterError run_feed_rate();             //обработка значения подачи
 	void update_motion_mode();              //читает режим перемещения
 	InterError update_cycle_params();       //читает параметры циклов
 	InterError run_dwell();                 //обработка паузы

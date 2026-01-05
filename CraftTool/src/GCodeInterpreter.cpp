@@ -150,6 +150,7 @@ void FrameParams::reset()
 	plane = Plane::NONE;    //G17
     absoluteSet = false; //G53
 	motionMode = MotionMode::NONE;
+	feedMode = FeedMode::NONE;
 	cycle = CannedCycle::NONE;
 	cycleLevel = CannedLevel::NONE;
 }
@@ -208,6 +209,9 @@ InterError GCodeInterpreter::make_new_state()
 
                     case 90: runner.incremental = false; break;
                     case 91: runner.incremental = true; break;
+
+					case 94: readedFrame.feedMode = FeedMode::PER_MIN; break;
+					case 95: readedFrame.feedMode = FeedMode::PER_REV; break;
 
 					case 98: readedFrame.cycleLevel = CannedLevel::HIGH; break;
 					case 99: readedFrame.cycleLevel = CannedLevel::LOW; break;
@@ -279,6 +283,9 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
         case 20: case 21:
 			return ModalGroup::UNITS;
 
+		case 94: case 95:
+			return ModalGroup::FEED_MODE;
+
         case 54: case 55: case 56: case 57: case 58:
 			return ModalGroup::COORD_SYSTEM;
 
@@ -333,15 +340,15 @@ InterError GCodeInterpreter::run_modal_groups()
 		runner.plane = readedFrame.plane;
 	}
 
+	error = run_feed_mode(); // режим контроля подачи (G94 и т.д.)
+	if (error.code) return error;
+
+	error = run_feed_rate(); // подача (F)
+	if (error.code) return error;
+
     if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
         if (!trajectory)
             remoteDevice->set_spindle_vel(value);
-
-	if (readedFrame.get_value('F', value)) { // скорость подачи
-		if (!trajectory)
-			remoteDevice->set_feed(value / 60);
-		runner.feed = value;
-	}
 
 	update_motion_mode(); // обработка смены режима перемещения (G0, G1, G32...)
 	error = update_cycle_params(); // обновление параметров постоянных циклов (G80...)
@@ -369,6 +376,52 @@ InterError GCodeInterpreter::run_modal_groups()
 }
 
 //====================================================================================================
+// обновляет режим контроля подачи из текущего фрейма
+InterError GCodeInterpreter::run_feed_mode()
+{
+	if (readedFrame.feedMode != FeedMode::NONE) {
+		// здесь только проверим, что подача будет задана, само задание дальше по коду
+		if (readedFrame.feedMode == FeedMode::PER_REV && !readedFrame.have_value('F'))
+			return InterError(InterError::NO_VALUE, "expected F parameter");
+
+		//TODO обработать P=0
+		if (readedFrame.feedMode == FeedMode::PER_MIN) {
+			if (!trajectory) {
+				remoteDevice->set_feed_normal();
+			}
+		}
+
+		runner.feedMode = readedFrame.feedMode;
+	}
+	return InterError();
+}
+
+//====================================================================================================
+// задаёт подачу из текущего фрейма
+InterError GCodeInterpreter::run_feed_rate()
+{
+	double value;
+
+	if (readedFrame.get_value('F', value)) { // скорость подачи
+		switch (runner.feedMode)
+		{
+			case FeedMode::PER_MIN:
+				if (!trajectory)
+					remoteDevice->set_feed(value / 60);
+				runner.feed = value;
+				break;
+			case FeedMode::PER_REV:
+				if (!trajectory)
+					remoteDevice->set_feed_per_rev(value);
+				runner.feedPerRev = value;
+				break;
+		}
+	}
+
+	return InterError();
+}
+
+//====================================================================================================
 // обновляет режим перемещения из текущего фрейма
 void GCodeInterpreter::update_motion_mode()
 {
@@ -379,9 +432,20 @@ void GCodeInterpreter::update_motion_mode()
 		newMode = MotionMode::LINEAR;
 
 	if (newMode != MotionMode::NONE && newMode != runner.motionMode) {
+		//G32 и режим перемещения, и способ задания подачи, поэтому тут особая обработка
 		if (runner.motionMode == MotionMode::LINEAR_SYNC) {
-			if (!trajectory) //TODO возможно надо возвращать стабилизацию оборотов
-				remoteDevice->set_feed_normal(); //выключаем синхронизацию со шпинделем
+			if (!trajectory) {
+				switch (runner.feedMode)
+				{
+					case FeedMode::PER_MIN:
+						remoteDevice->set_feed_normal(); //выключаем синхронизацию со шпинделем
+						break;
+					case FeedMode::PER_REV:
+						remoteDevice->set_feed_per_rev(runner.feedPerRev);
+						break;
+				}
+				// TODO вернуть подачу на оборот, которая оставлена фоново для G94 P0
+			}
 		}
 		runner.motionMode = newMode;
 	}
@@ -1205,7 +1269,9 @@ void GCodeInterpreter::init()
     runner.coordSystemNumber = 0;
     runner.cutterLength = 0;
     runner.cutterRadius = 0;
+	runner.feedMode = FeedMode::PER_MIN;
     runner.feed = 600; // сейчас это значение справочное
+	runner.feedPerRev = 0.05;
 	runner.spindleAngle = 0;
 	runner.threadPitch = 0;
 	runner.threadIndex = 0;
