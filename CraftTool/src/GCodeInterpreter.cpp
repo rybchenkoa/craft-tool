@@ -181,6 +181,11 @@ InterError GCodeInterpreter::make_new_state()
         {
             case 'G':
             {
+				if (code.value == 94.1) {
+					readedFrame.feedMode = FeedMode::THROTTLING;
+					break;
+				}
+
 				if (code.value == 95.1) {
 					readedFrame.feedMode = FeedMode::STABLE_REV;
 					break;
@@ -275,6 +280,9 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
     int num = int(value);
     if(letter == 'G')
     {
+		if (value == 94.1)
+			return ModalGroup::FEED_MODE;
+
 		if (value == 95.1)
 			return ModalGroup::FEED_MODE;
 
@@ -395,6 +403,7 @@ InterError GCodeInterpreter::run_feed_mode()
 			//TODO обработать P=0
 			if (!trajectory) {
 				remoteDevice->set_feed_normal();
+				remoteDevice->set_feed_throttling(false, 0, 0);
 			}
 			runner.feedMode = readedFrame.feedMode;
 			runner.feedModeRollback = readedFrame.feedMode;
@@ -421,6 +430,19 @@ InterError GCodeInterpreter::run_feed_mode()
 			// сбрасываем, так как подача на оборот не работает с ним параллельно
 			runner.feedMode = FeedMode::PER_MIN;
 			runner.feedModeRollback = readedFrame.feedMode;
+			break;
+
+		case FeedMode::THROTTLING:
+			double period;
+			if (!readedFrame.get_value('P', period))
+				return InterError(InterError::NO_VALUE, "expected P parameter");
+
+			if (!readedFrame.get_value('K', value))
+				return InterError(InterError::NO_VALUE, "expected K parameter");
+
+			if (!trajectory) {
+				remoteDevice->set_feed_throttling(true, period, value);
+			}
 			break;
 	}
 

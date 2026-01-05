@@ -17,6 +17,7 @@ enum class FeedMode // режим контроля подачи
 	PER_MIN,    // подача в минуту, G94
 	PER_REV,    // подача на оборот, G95
 	STABLE_REV, // стабилизация оборотов, G95.1
+	THROTTLING, // прерывистая подача, G94.1
 };
 
 enum class MotionMode //режимы перемещения
