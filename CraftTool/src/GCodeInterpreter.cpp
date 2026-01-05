@@ -408,13 +408,15 @@ InterError GCodeInterpreter::run_feed_mode()
 	switch (readedFrame.feedMode)
 	{
 		case FeedMode::PER_MIN:
-			//TODO обработать P=0
-			if (!trajectory) {
-				remoteDevice->set_feed_normal();
-				remoteDevice->set_feed_throttling(false, 0, 0);
+			// если задано P0, не сбрасываем другие ограничители подачи
+			if (!(readedFrame.get_value('P', value) && value == 0)) {
+				if (!trajectory) {
+					remoteDevice->set_feed_normal();
+					remoteDevice->set_feed_throttling(false, 0, 0);
+				}
+				runner.feedModeRollback = readedFrame.feedMode;
 			}
 			runner.feedMode = readedFrame.feedMode;
-			runner.feedModeRollback = readedFrame.feedMode;
 			break;
 
 		case FeedMode::PER_REV:
