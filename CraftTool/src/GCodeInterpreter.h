@@ -16,6 +16,7 @@ enum class FeedMode // режим контроля подачи
 	NONE = 0,
 	PER_MIN,    // подача в минуту, G94
 	PER_REV,    // подача на оборот, G95
+	STABLE_REV, // стабилизация оборотов, G95.1
 };
 
 enum class MotionMode //режимы перемещения
@@ -117,8 +118,10 @@ struct Runner
     MoveMode deviceMoveMode; //режим перемещения устройства
     Plane plane;             //текущая плоскость интерполяции
 	FeedMode feedMode;       //режим управления подачей (в минуту, на оборот)
+	FeedMode feedModeRollback; //режим подачи, к которому откатывать после G32
 	double feed;             //подача в мм/мин
 	double feedPerRev;       //подача в мм/оборот
+	double feedStableFreq;   //подача со стабилизацией оборотов
 	double spindleAngle;     //угол поворота шпинделя (в оборотах)
 	double threadPitch;      //шаг витка (мм/оборот)
 	int threadIndex;         //координата, с которой синхронизирован шпиндель

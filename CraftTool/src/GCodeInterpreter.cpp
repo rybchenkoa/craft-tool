@@ -181,6 +181,11 @@ InterError GCodeInterpreter::make_new_state()
         {
             case 'G':
             {
+				if (code.value == 95.1) {
+					readedFrame.feedMode = FeedMode::STABLE_REV;
+					break;
+				}
+
                 switch (intValue)
                 {
 					case 0: readedFrame.motionMode = MotionMode::FAST; break;
@@ -270,6 +275,9 @@ ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
     int num = int(value);
     if(letter == 'G')
     {
+		if (value == 95.1)
+			return ModalGroup::FEED_MODE;
+
         switch(num)
         {
         case 0: case 1: case 2: case 3:
@@ -379,20 +387,43 @@ InterError GCodeInterpreter::run_modal_groups()
 // обновляет режим контроля подачи из текущего фрейма
 InterError GCodeInterpreter::run_feed_mode()
 {
-	if (readedFrame.feedMode != FeedMode::NONE) {
-		// здесь только проверим, что подача будет задана, само задание дальше по коду
-		if (readedFrame.feedMode == FeedMode::PER_REV && !readedFrame.have_value('F'))
-			return InterError(InterError::NO_VALUE, "expected F parameter");
+	double value;
 
-		//TODO обработать P=0
-		if (readedFrame.feedMode == FeedMode::PER_MIN) {
+	switch (readedFrame.feedMode)
+	{
+		case FeedMode::PER_MIN:
+			//TODO обработать P=0
 			if (!trajectory) {
 				remoteDevice->set_feed_normal();
 			}
-		}
+			runner.feedMode = readedFrame.feedMode;
+			runner.feedModeRollback = readedFrame.feedMode;
+			break;
 
-		runner.feedMode = readedFrame.feedMode;
+		case FeedMode::PER_REV:
+			// здесь только проверим, что подача будет задана, само задание дальше по коду
+			if (!readedFrame.have_value('F'))
+				return InterError(InterError::NO_VALUE, "expected F parameter");
+
+			runner.feedMode = readedFrame.feedMode;
+			runner.feedModeRollback = readedFrame.feedMode;
+			break;
+
+		case FeedMode::STABLE_REV:
+			// здесь сразу прочитаем параметр, потому что команда не модальная
+			if (!readedFrame.get_value('P', value))
+				return InterError(InterError::NO_VALUE, "expected P parameter");
+
+			if (!trajectory) {
+				remoteDevice->set_feed_stable(value);
+			}
+			runner.feedStableFreq = value;
+			// сбрасываем, так как подача на оборот не работает с ним параллельно
+			runner.feedMode = FeedMode::PER_MIN;
+			runner.feedModeRollback = readedFrame.feedMode;
+			break;
 	}
+
 	return InterError();
 }
 
@@ -410,6 +441,7 @@ InterError GCodeInterpreter::run_feed_rate()
 					remoteDevice->set_feed(value / 60);
 				runner.feed = value;
 				break;
+
 			case FeedMode::PER_REV:
 				if (!trajectory)
 					remoteDevice->set_feed_per_rev(value);
@@ -435,16 +467,20 @@ void GCodeInterpreter::update_motion_mode()
 		//G32 и режим перемещения, и способ задания подачи, поэтому тут особая обработка
 		if (runner.motionMode == MotionMode::LINEAR_SYNC) {
 			if (!trajectory) {
-				switch (runner.feedMode)
+				switch (runner.feedModeRollback)
 				{
 					case FeedMode::PER_MIN:
 						remoteDevice->set_feed_normal(); //выключаем синхронизацию со шпинделем
 						break;
+
 					case FeedMode::PER_REV:
 						remoteDevice->set_feed_per_rev(runner.feedPerRev);
 						break;
+
+					case FeedMode::STABLE_REV:
+						remoteDevice->set_feed_stable(runner.feedStableFreq);
+						break;
 				}
-				// TODO вернуть подачу на оборот, которая оставлена фоново для G94 P0
 			}
 		}
 		runner.motionMode = newMode;
@@ -1270,8 +1306,10 @@ void GCodeInterpreter::init()
     runner.cutterLength = 0;
     runner.cutterRadius = 0;
 	runner.feedMode = FeedMode::PER_MIN;
+	runner.feedModeRollback = FeedMode::PER_MIN;
     runner.feed = 600; // сейчас это значение справочное
 	runner.feedPerRev = 0.05;
+	runner.feedStableFreq = 10;
 	runner.spindleAngle = 0;
 	runner.threadPitch = 0;
 	runner.threadIndex = 0;
