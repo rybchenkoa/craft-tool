@@ -105,8 +105,9 @@ struct FeedModifier
 	//=========================================================
 	void modify_feed_per_rev(float& feed)
 	{
-		//подача в мм/тик, скорость в оборотах/тик
+		//подача в мм/об, скорость в оборотах/мкс
 		float targetFeed = spindle.velocity * feedPerRev;
+		targetFeed *= float(TIMER_FREQUENCY) / CORE_FREQ; // приводим к мм/такт
 		
 		if (feed > targetFeed)
 			feed = targetFeed;
@@ -184,7 +185,7 @@ struct FeedModifier
 			{
 				clear_flags();
 				useFeedStable = true;
-				stableFrequency = ((PacketSetFeedStable*)pack)->frequency;
+				stableFrequency = ((PacketSetFeedStable*)pack)->frequency / 1000000; // об/мкс
 				break;
 			}
 			case FeedType_PER_REV:
