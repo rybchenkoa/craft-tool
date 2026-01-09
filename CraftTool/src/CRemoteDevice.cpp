@@ -686,7 +686,7 @@ void CRemoteDevice::set_feed_throttling(bool enable, int period, int size)
 	packet->mode = FeedType_THROTTLING;
 	packet->enable = enable;
 	packet->period = period;
-	packet->size = size;
+	packet->duration = size;
 	push_packet_common(packet);
 }
 

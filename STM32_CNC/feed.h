@@ -169,8 +169,9 @@ struct FeedModifier
 			{
 				auto p = (PacketSetFeedThrottling*)pack;
 				useThrottling = p->enable;
-				throttlingPeriod = p->period;
-				throttlingSize = p->size;
+				throttlingPeriod = p->period * 1000;
+				throttlingSize = p->duration * 1000;
+				lastThrottlingUpdate = timer.get();
 				break;
 			}
 			//эти друг друга выключают

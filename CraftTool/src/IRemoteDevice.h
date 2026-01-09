@@ -193,7 +193,7 @@ struct PacketSetFeedThrottling : public PacketSetFeedMode
 {
     bool enable;
     int period;
-    int size;
+    int duration;
     int crc;
 };
 struct PacketSetFeedAdc : public PacketSetFeedMode
