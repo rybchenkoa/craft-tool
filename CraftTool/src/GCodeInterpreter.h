@@ -127,6 +127,8 @@ struct Runner
 	double spindleAngle;     //угол поворота шпинделя (в оборотах)
 	double threadPitch;      //шаг витка (мм/оборот)
 	int threadIndex;         //координата, с которой синхронизирован шпиндель
+	bool feedThrottling;     //включена ли прерывистая подача
+	bool feedAdc;            //включено ли управление подачей напряжением
     double cutterRadius;     //радиус фрезы
     double cutterLength;     //длина фрезы
     int coordSystemNumber;   //номер выбранной координатной системы

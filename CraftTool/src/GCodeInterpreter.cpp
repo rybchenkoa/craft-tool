@@ -24,6 +24,14 @@ inline double pow2(double x)
 }
 
 //====================================================================================================
+inline std::string double_to_string(double value)
+{
+	return (value == int(value) ?
+		std::to_string(int(value)) :
+		std::to_string(value));
+}
+
+//====================================================================================================
 BitPos FrameParams::get_bit_pos(char letter)
 {
     switch (letter)
@@ -415,6 +423,7 @@ InterError GCodeInterpreter::run_feed_mode()
 					remoteDevice->set_feed_throttling(false, 0, 0);
 				}
 				runner.feedModeRollback = readedFrame.feedMode;
+				runner.feedThrottling = false;
 			}
 			runner.feedMode = readedFrame.feedMode;
 			break;
@@ -453,6 +462,7 @@ InterError GCodeInterpreter::run_feed_mode()
 			if (!trajectory) {
 				remoteDevice->set_feed_throttling(period != 0, period, value);
 			}
+			runner.feedThrottling = period != 0;
 			break;
 
 		case FeedMode::ADC:
@@ -462,6 +472,7 @@ InterError GCodeInterpreter::run_feed_mode()
 			if (!trajectory) {
 				remoteDevice->set_feed_adc(value != 0);
 			}
+			runner.feedAdc = value != 0;
 			break;
 	}
 
@@ -1354,6 +1365,8 @@ void GCodeInterpreter::init()
 	runner.spindleAngle = 0;
 	runner.threadPitch = 0;
 	runner.threadIndex = 0;
+	runner.feedThrottling = false;
+	runner.feedAdc = g_config->get_int_def(CFG_DEFAULT_ADC_USE, 0);
     runner.incremental = false;
 	runner.motionMode = MotionMode::FAST;
     runner.deviceMoveMode = MoveMode_FAST;
@@ -1387,9 +1400,22 @@ std::vector<std::string> GCodeInterpreter::get_active_codes()
 		}
 	}
 
-	result.push_back("F" + (runner.feed == int(runner.feed) ?
-		std::to_string(int(runner.feed)) :
-		std::to_string(runner.feed)));
+	if (runner.feedMode == FeedMode::PER_MIN) // может быть активен параллельно с другими режимами
+		result.push_back("G94");
+
+	result.push_back("F" + double_to_string(runner.feed));
+
+	if (runner.feedModeRollback == FeedMode::PER_REV)
+		result.push_back("G95F" + double_to_string(runner.feedPerRev));
+
+	if (runner.feedModeRollback == FeedMode::STABLE_REV)
+		result.push_back("G95.1P" + double_to_string(runner.feedStableFreq));
+
+	if (runner.feedThrottling)
+		result.push_back("G94.1");
+
+	if (runner.feedAdc)
+		result.push_back("G94.2");
 
 	result.push_back("G" + std::to_string(17 + plane));
 	result.push_back(runner.units == UnitSystem::INCHES ? "G20" : "G21");
