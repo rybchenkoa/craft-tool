@@ -451,7 +451,7 @@ InterError GCodeInterpreter::run_feed_mode()
 				return InterError(InterError::NO_VALUE, "expected K parameter");
 
 			if (!trajectory) {
-				remoteDevice->set_feed_throttling(true, period, value);
+				remoteDevice->set_feed_throttling(period != 0, period, value);
 			}
 			break;
 
