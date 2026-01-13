@@ -116,7 +116,7 @@ InterError GCodeInterpreter::execute_frame(const char *frame)
 {
     InterError state;
 
-    state = reader.parse_codes(frame); //проверяем строку на валидность, читаем значения в массив
+    state = lexer.parse_codes(frame); //проверяем строку на валидность, читаем значения в массив
     if(state.code) return state;
 
     state = make_new_state(); //читаем все коды и по ним создаём команды изменения состояния
@@ -124,26 +124,6 @@ InterError GCodeInterpreter::execute_frame(const char *frame)
 
     state = run_modal_groups(); //исполняем коды или пересылаем их устройству
     if(state.code) return state;
-
-    return state;
-}
-
-//====================================================================================================
-//читает данные из строки в массив
-InterError Reader::parse_codes(const char *frame)
-{
-    codes.clear();
-    position = 0;
-    string = frame;
-    state = InterError();
-
-    GKey current;
-    current.position = position;
-    while(parse_code(current.letter, current.value))
-    {
-        codes.push_back(current);
-        current.position = position;
-    }
 
     return state;
 }
@@ -169,7 +149,7 @@ InterError GCodeInterpreter::make_new_state()
 {
     readedFrame.reset();
 
-    for(const auto& code : reader.codes)
+    for(const auto& code : lexer.codes)
     {
         int intValue = int(code.value);
 
@@ -178,7 +158,7 @@ InterError GCodeInterpreter::make_new_state()
         {
 			if(readedFrame.flagModal.get((int)group))   //встретили два оператора из одной группы
             {
-                reader.position = code.position;
+                lexer.position = code.position;
                 return InterError(InterError::DOUBLE_DEFINITION, 
 					std::string("conflict modal group for ") + code.letter + to_string(code.value));
             }
@@ -1182,123 +1162,6 @@ bool GCodeInterpreter::get_readed_coord(char letter, coord &value)
 }
 
 //====================================================================================================
-//читает следующий код
-bool Reader::parse_code(char &letter, double &value) 
-{
-    find_significal_symbol();
-    if (string[position] == 0)
-        return false;
-
-    letter = string[position];
-
-    if(letter == '%')
-        return false;
-
-    if(letter >= 'a' && letter <= 'z')
-        letter += 'A' - 'a';
-
-    if(letter < 'A' || letter > 'Z')
-    {
-        state = InterError(InterError::WRONG_LETTER, std::string("wrong letter: ") + letter);
-        return false;
-    }
-
-    position++;
-
-    find_significal_symbol();
-    if (!parse_value(value))
-    {
-        state = InterError(InterError::WRONG_VALUE, std::string("cant parse value"));
-        return false;
-    };
-
-    return true;
-}
-
-//====================================================================================================
-//пропускает пробелы
-void Reader::accept_whitespace()
-{
-    while (string[position] == ' ' || string[position] == '\t') position++;
-}
-
-//====================================================================================================
-//доходит до следующего кода
-void Reader::find_significal_symbol()
-{
-    while(string[position] != 0)
-    {
-        accept_whitespace();
-        if(string[position] == '(')
-        {
-            while(string[position] != ')' && string[position] != 0) position++;
-            if(string[position] == ')') position++;
-        }
-        else
-            break;
-    }
-}
-
-//====================================================================================================
-//читает число
-bool Reader::parse_value(double &dst)
-{
-    const char *cursor = string + position;
-
-    double value = 0;
-    int sign = 1;       // +-
-    int numDigits = 0;  //сколько цифр прочитано
-    int maxDigits = 20; //сколько всего можно
-    double denominator = 1;//на сколько поделить прочитанное
-
-    if (*cursor == '-')
-        sign = -1;
-    else if (*cursor == '+')
-        sign = 1;
-    else if(*cursor >= '0' && *cursor <= '9')
-    {
-        value = *cursor - '0';
-        numDigits++;
-    }
-    else if(*cursor != '.')
-        return false;
-
-    if(*cursor != '.')
-        ++cursor;
-
-    while(*cursor >= '0' && *cursor <= '9' && ++numDigits <= maxDigits)
-        value = value*10 + (*(cursor++) - '0');
-
-    if(numDigits > maxDigits)
-    {
-        position = cursor - string;
-        return false;
-    }
-
-    if(*cursor == '.')
-    {
-        ++cursor;
-        while(*cursor >= '0' && *cursor <= '9' && ++numDigits <= maxDigits)
-        {
-            value = value*10 + (*(cursor++) - '0');
-            denominator *= 10;
-        }
-
-        if(numDigits > maxDigits)
-        {
-            position = cursor - string;
-            return false;
-        }
-
-        value /= denominator;
-    }
-
-    dst = value * sign;
-    position = cursor - string;
-    return true;
-}
-
-//====================================================================================================
 //читает строки в список
 bool GCodeInterpreter::read_file(const char *name)
 {
@@ -1351,8 +1214,7 @@ void GCodeInterpreter::execute_line(std::string line)
 //====================================================================================================
 void GCodeInterpreter::init()
 {
-    //reader.position = {0.0f, 0.0f, 0.0f};
-    reader.state = InterError();
+    lexer.state = InterError();
 
     runner.coordSystemNumber = 0;
     runner.cutterLength = 0;

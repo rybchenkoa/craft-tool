@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "IRemoteDevice.h"
+#include "GCodeLexer.h"
 
 namespace Interpreter
 {
@@ -73,24 +74,6 @@ enum class Plane
 	YZ,
 };
 
-struct InterError
-{
-	enum Code
-	{
-		ALL_OK = 0,
-		INVALID_STATEMENT, //неизвестная буква
-		DOUBLE_DEFINITION, //буква повторилась
-		WRONG_LETTER,
-		WRONG_VALUE,
-		NO_VALUE,
-	};
-
-	Code code;
-	std::string description;
-	InterError() :code(ALL_OK){};
-	InterError(Code code, std::string description) : code(code), description(description) {};
-};
-
 //параметры координатной системы
 struct CoordSystemData
 {
@@ -142,29 +125,6 @@ struct Runner
     double cycleDeepLevel;   //глубина сверления задаётся в Z
     double cycleStep;        //глубина одного шага Q
     int    cycleWait;        //задержка в цикле P
-};
-
-struct GKey
-{
-    char letter;
-    double value;
-    int position;
-};
-
-//здесь переменные для чтения команд
-struct Reader 
-{
-    const char *string;
-    int  position;
-    InterError  state;
-    std::vector<GKey> codes;
-
-    InterError parse_codes(const char *frame); //читает коды и значения параметров
-
-    bool parse_code(char &letter, double &value); //следующий код
-    void accept_whitespace(); //пропускает пробелы
-    void find_significal_symbol(); //пропускает комментарии, пробелы
-    bool parse_value(double &value); //считывает число
 };
 
 enum class BitPos
@@ -236,7 +196,7 @@ public:
     std::list<std::string> inputFile;     //строки входного файла
 
     Runner runner;            //исполнитель команд
-    Reader reader;            //парсер команд
+	GCodeLexer lexer;         //парсер команд
     FrameParams readedFrame;  //прочитанные команды одной строки
     IRemoteDevice *remoteDevice; //устройство, которое исполняет команды
     Trajectory *trajectory;      //или массив, в который заносятся точки пути
