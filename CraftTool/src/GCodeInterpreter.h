@@ -8,6 +8,7 @@ namespace Interpreter
 
 enum class UnitSystem //система единиц
 {
+	NONE = 0,
 	METRIC, //метрическая
 	INCHES, //дюймовая
 };
@@ -166,7 +167,10 @@ struct FrameParams
 
     bool sendWait;    //G4 readed
     Plane plane;      //G17
+	UnitSystem units; //G20
     bool absoluteSet; //G53
+	int coordSystemNumber; //G54
+	int incremental;  //G90
     CannedCycle cycle;//G80-G83
     CannedLevel cycleLevel; //G98, G99
 

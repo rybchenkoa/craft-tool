@@ -136,7 +136,10 @@ void FrameParams::reset()
     flagModal.reset();
     sendWait = false; //G4 readed
 	plane = Plane::NONE;    //G17
+	units = UnitSystem::NONE; //G20
     absoluteSet = false; //G53
+	coordSystemNumber = -1;
+	incremental = -1;
 	motionMode = MotionMode::NONE;
 	feedMode = FeedMode::NONE;
 	cycle = CannedCycle::NONE;
@@ -197,21 +200,21 @@ InterError GCodeInterpreter::make_new_state()
 					case 18: readedFrame.plane = Plane::ZX; break;
 					case 19: readedFrame.plane = Plane::YZ; break;
 
-					case 20: runner.units = UnitSystem::INCHES; break;
-					case 21: runner.units = UnitSystem::METRIC; break;
+					case 20: readedFrame.units = UnitSystem::INCHES; break;
+					case 21: readedFrame.units = UnitSystem::METRIC; break;
 
                     case 53: readedFrame.absoluteSet = true; break;
 
                     case 54: case 55: case 56: case 57: case 58:
-                        runner.coordSystemNumber = intValue - 54; break;
+                        readedFrame.coordSystemNumber = intValue - 54; break;
 
 					case 80: readedFrame.cycle = CannedCycle::RESET; break;
 					case 81: readedFrame.cycle = CannedCycle::SINGLE_DRILL; break;
 					case 82: readedFrame.cycle = CannedCycle::DRILL_AND_PAUSE; break;
 					case 83: readedFrame.cycle = CannedCycle::DEEP_DRILL; break;
 
-                    case 90: runner.incremental = false; break;
-                    case 91: runner.incremental = true; break;
+                    case 90: readedFrame.incremental = 0; break;
+                    case 91: readedFrame.incremental = 1; break;
 
 					case 94: readedFrame.feedMode = FeedMode::PER_MIN; break;
 					case 95: readedFrame.feedMode = FeedMode::PER_REV; break;
@@ -350,6 +353,18 @@ InterError GCodeInterpreter::run_modal_groups()
 
 	if (readedFrame.plane != Plane::NONE) { // задаём плоскость обработки
 		runner.plane = readedFrame.plane;
+	}
+
+	if (readedFrame.units != UnitSystem::NONE) { // задаём единицы измерения
+		runner.units = readedFrame.units;
+	}
+
+	if (readedFrame.coordSystemNumber != -1) { // задаём локальную систему координат
+		runner.coordSystemNumber = readedFrame.coordSystemNumber;
+	}
+
+	if (readedFrame.incremental != -1) { // активируем инкрементное задание координат
+		runner.incremental = readedFrame.incremental;
 	}
 
 	error = run_feed_mode(); // режим контроля подачи (G94 и т.д.)
