@@ -119,7 +119,7 @@ InterError GCodeInterpreter::execute_frame(const char *frame)
     state = lexer.parse_codes(frame); //проверяем строку на валидность, читаем значения в массив
     if(state.code) return state;
 
-    state = make_new_state(); //читаем все коды и по ним создаём команды изменения состояния
+    state = readedFrame.make_new_state(lexer); //читаем все коды и по ним создаём команды изменения состояния
     if(state.code) return state;
 
     state = run_modal_groups(); //исполняем коды или пересылаем их устройству
@@ -148,9 +148,9 @@ void FrameParams::reset()
 
 //====================================================================================================
 //формирует параметры перехода в новое состояние
-InterError GCodeInterpreter::make_new_state()
+InterError FrameParams::make_new_state(GCodeLexer& lexer)
 {
-    readedFrame.reset();
+    reset();
 
     for(const auto& code : lexer.codes)
     {
@@ -159,13 +159,13 @@ InterError GCodeInterpreter::make_new_state()
         ModalGroup group = get_modal_group(code.letter, code.value);
 		if ((int)group > 0)
         {
-			if(readedFrame.flagModal.get((int)group))   //встретили два оператора из одной группы
+			if(flagModal.get((int)group))   //встретили два оператора из одной группы
             {
                 lexer.position = code.position;
                 return InterError(InterError::DOUBLE_DEFINITION, 
 					std::string("conflict modal group for ") + code.letter + to_string(code.value));
             }
-			readedFrame.flagModal.set((int)group, true);
+			flagModal.set((int)group, true);
         }
 
         switch(code.letter)
@@ -173,54 +173,54 @@ InterError GCodeInterpreter::make_new_state()
             case 'G':
             {
 				if (code.value == 94.1) {
-					readedFrame.feedMode = FeedMode::THROTTLING;
+					feedMode = FeedMode::THROTTLING;
 					break;
 				}
 
 				if (code.value == 94.2) {
-					readedFrame.feedMode = FeedMode::ADC;
+					feedMode = FeedMode::ADC;
 					break;
 				}
 
 				if (code.value == 95.1) {
-					readedFrame.feedMode = FeedMode::STABLE_REV;
+					feedMode = FeedMode::STABLE_REV;
 					break;
 				}
 
                 switch (intValue)
                 {
-					case 0: readedFrame.motionMode = MotionMode::FAST; break;
-					case 1: readedFrame.motionMode = MotionMode::LINEAR; break;
-					case 2: readedFrame.motionMode = MotionMode::CW_ARC; break;
-					case 3: readedFrame.motionMode = MotionMode::CCW_ARC; break;
-					case 32: readedFrame.motionMode = MotionMode::LINEAR_SYNC; break;
+					case 0: motionMode = MotionMode::FAST; break;
+					case 1: motionMode = MotionMode::LINEAR; break;
+					case 2: motionMode = MotionMode::CW_ARC; break;
+					case 3: motionMode = MotionMode::CCW_ARC; break;
+					case 32: motionMode = MotionMode::LINEAR_SYNC; break;
 
-                    case 4: readedFrame.sendWait = true; break;
-					case 17: readedFrame.plane = Plane::XY; break;
-					case 18: readedFrame.plane = Plane::ZX; break;
-					case 19: readedFrame.plane = Plane::YZ; break;
+                    case 4: sendWait = true; break;
+					case 17: plane = Plane::XY; break;
+					case 18: plane = Plane::ZX; break;
+					case 19: plane = Plane::YZ; break;
 
-					case 20: readedFrame.units = UnitSystem::INCHES; break;
-					case 21: readedFrame.units = UnitSystem::METRIC; break;
+					case 20: units = UnitSystem::INCHES; break;
+					case 21: units = UnitSystem::METRIC; break;
 
-                    case 53: readedFrame.absoluteSet = true; break;
+                    case 53: absoluteSet = true; break;
 
                     case 54: case 55: case 56: case 57: case 58:
-                        readedFrame.coordSystemNumber = intValue - 54; break;
+                        coordSystemNumber = intValue - 54; break;
 
-					case 80: readedFrame.cycle = CannedCycle::RESET; break;
-					case 81: readedFrame.cycle = CannedCycle::SINGLE_DRILL; break;
-					case 82: readedFrame.cycle = CannedCycle::DRILL_AND_PAUSE; break;
-					case 83: readedFrame.cycle = CannedCycle::DEEP_DRILL; break;
+					case 80: cycle = CannedCycle::RESET; break;
+					case 81: cycle = CannedCycle::SINGLE_DRILL; break;
+					case 82: cycle = CannedCycle::DRILL_AND_PAUSE; break;
+					case 83: cycle = CannedCycle::DEEP_DRILL; break;
 
-                    case 90: readedFrame.incremental = 0; break;
-                    case 91: readedFrame.incremental = 1; break;
+                    case 90: incremental = 0; break;
+                    case 91: incremental = 1; break;
 
-					case 94: readedFrame.feedMode = FeedMode::PER_MIN; break;
-					case 95: readedFrame.feedMode = FeedMode::PER_REV; break;
+					case 94: feedMode = FeedMode::PER_MIN; break;
+					case 95: feedMode = FeedMode::PER_REV; break;
 
-					case 98: readedFrame.cycleLevel = CannedLevel::HIGH; break;
-					case 99: readedFrame.cycleLevel = CannedLevel::LOW; break;
+					case 98: cycleLevel = CannedLevel::HIGH; break;
+					case 99: cycleLevel = CannedLevel::LOW; break;
 
 					default: return InterError(InterError::INVALID_STATEMENT, 
 								 std::string("unknown code: G") + to_string(intValue));
@@ -256,7 +256,7 @@ InterError GCodeInterpreter::make_new_state()
             case 'R':
             case 'D':
             case 'L':
-                readedFrame.set_value(code.letter, code.value);
+                set_value(code.letter, code.value);
                 break;
 
             case 'N':
@@ -271,7 +271,7 @@ InterError GCodeInterpreter::make_new_state()
 
 //====================================================================================================
 //возвращает модальную группу команды
-ModalGroup GCodeInterpreter::get_modal_group(char letter, double value)
+ModalGroup FrameParams::get_modal_group(char letter, double value)
 {
     int num = int(value);
     if(letter == 'G')

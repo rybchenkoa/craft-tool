@@ -183,6 +183,8 @@ struct FrameParams
     }
 
     void reset();
+	InterError make_new_state(GCodeLexer& lexer);      //чтение команд из строки
+	ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
 
     BitPos get_bit_pos(char letter);
 
@@ -211,9 +213,7 @@ public:
     void execute_file(Trajectory *trajectory);                    //исполняет файл
 	void execute_line(std::string line);    //исполняет одну строку
     InterError execute_frame(const char *frame);    //выполнение строки
-    InterError make_new_state();            //чтение команд из строки
     InterError run_modal_groups();          //запуск команд
-    ModalGroup get_modal_group(char letter, double value); //возвращает модальную группу команды
 	InterError run_feed_mode();             //обработка режима подачи
 	InterError run_feed_rate();             //обработка значения подачи
 	void update_motion_mode();              //читает режим перемещения
