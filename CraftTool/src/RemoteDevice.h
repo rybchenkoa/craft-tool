@@ -125,3 +125,5 @@ signals:
     void coords_changed(float x, float y, float z);
 
 };
+
+extern RemoteDevice *g_device;

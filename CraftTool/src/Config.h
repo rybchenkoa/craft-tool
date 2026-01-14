@@ -30,4 +30,6 @@ private:
     std::map<std::string, std::list<KeyData>::iterator> positions;
 };
 
+extern Config *g_config;
+
 std::vector<std::string> split_string(std::string& value, char delimiter);

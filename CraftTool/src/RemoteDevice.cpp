@@ -2,7 +2,6 @@
 #define NOMINMAX
 #endif
 #include "windows.h"
-
 #include "RemoteDevice.h"
 #include "Packets.h"
 #include "log.h"
@@ -10,6 +9,7 @@
 
 static const bool LOG_CONNECT = false;
 //====================================================================================================
+RemoteDevice *g_device = 0;
 unsigned crc32Table[256];
 void init_crc();
 void make_crc(char *packet);

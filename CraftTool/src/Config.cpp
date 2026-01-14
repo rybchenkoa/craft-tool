@@ -1,6 +1,8 @@
 ﻿#include <algorithm>
 #include "Config.h"
 
+Config *g_config = 0;
+
 bool Config::read_from_file(const char *fileName)
 {
     positions.clear();

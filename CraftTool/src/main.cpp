@@ -8,10 +8,6 @@
 #include "RemoteDevice.h"
 
 QApplication *g_application = 0;
-MainWindow *g_mainWindow = 0;
-Interpreter::GCodeInterpreter *g_inter = 0;
-Config *g_config = 0;
-RemoteDevice *g_device = 0;
 std::string appDir;
 
 

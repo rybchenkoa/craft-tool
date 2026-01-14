@@ -111,3 +111,5 @@ public:
 };
 
 }
+
+extern Interpreter::GCodeInterpreter *g_inter;

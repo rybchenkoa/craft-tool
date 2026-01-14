@@ -8,8 +8,8 @@
 #include "GCodeInterpreter.h"
 #include "RemoteDevice.h"
 
-extern Interpreter::GCodeInterpreter *g_inter;
-extern RemoteDevice *g_device;
+MainWindow *g_mainWindow = 0;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),

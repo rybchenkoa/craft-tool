@@ -2,6 +2,8 @@
 #include "log.h"
 #include "config_defines.h"
 
+Interpreter::GCodeInterpreter *g_inter = 0;
+
 using namespace Interpreter;
 
 #define MM_PER_INCHES 2.54

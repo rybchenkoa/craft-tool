@@ -1,7 +1,9 @@
 #include <iomanip>
 #include <QTimerEvent>
 #include "StatusBar.h"
-#include "main.h"
+#include "mainwindow.h"
+#include "GCodeInterpreter.h"
+#include "RemoteDevice.h"
 
 StatusBar::StatusBar(QWidget *parent) : QStatusBar(parent)
 {

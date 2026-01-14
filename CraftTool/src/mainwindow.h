@@ -50,3 +50,5 @@ public slots:
     void on_c_pauseButton_clicked();
     void on_c_breakButton_clicked();
 };
+
+extern MainWindow *g_mainWindow;
