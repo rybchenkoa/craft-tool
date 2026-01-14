@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "IRemoteDevice.h"
 #include "GCodeLexer.h"
 
 namespace Interpreter
