@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "IRemoteDevice.h"
+#include "RemoteDeviceInterface.h"
 #include "GCodeLexer.h"
 #include "GCodeFrameParser.h"
 
@@ -69,7 +69,7 @@ public:
     Runner runner;            //исполнитель команд
 	GCodeLexer lexer;         //парсер команд
 	GCodeFrameParser readedFrame; //прочитанные команды одной строки
-    IRemoteDevice *remoteDevice; //устройство, которое исполняет команды
+	RemoteDeviceInterface *remoteDevice; //устройство, которое исполняет команды
     Trajectory *trajectory;      //или массив, в который заносятся точки пути
     bool coordsInited;        //при начальной инициализации выставляем интерпретатору координаты устройства
 

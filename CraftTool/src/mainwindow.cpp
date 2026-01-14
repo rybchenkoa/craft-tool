@@ -6,9 +6,10 @@
 #include "log.h"
 #include "config_defines.h"
 #include "GCodeInterpreter.h"
+#include "RemoteDevice.h"
 
 extern Interpreter::GCodeInterpreter *g_inter;
-extern CRemoteDevice *g_device;
+extern RemoteDevice *g_device;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -150,7 +151,7 @@ void MainWindow::update_state()
 
 bool MainWindow::connect_to_device()
 {
-    /*CRemoteDevice *remoteDevice = new CRemoteDevice; //управление удалённым устройством
+    /*RemoteDevice *remoteDevice = new RemoteDevice; //управление удалённым устройством
 
     QObject::connect(remoteDevice, SIGNAL(coords_changed(float, float, float)),
                      g_mainWindow->ui->c_3dView, SLOT(update_tool_coords(float, float, float)));

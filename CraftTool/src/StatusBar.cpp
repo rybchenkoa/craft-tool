@@ -12,7 +12,7 @@ void StatusBar::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == timer.timerId())
     {
-        CRemoteDevice *device = (CRemoteDevice*)g_inter->remoteDevice;
+        RemoteDevice *device = (RemoteDevice*)g_inter->remoteDevice;
         if(device == 0)
             return;
         auto connection = device->connection;

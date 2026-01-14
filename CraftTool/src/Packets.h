@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Coords.h"
-#include "IRemoteDevice.h"
+#include "RemoteDevice.h"
 
 using PacketCount = char;
 

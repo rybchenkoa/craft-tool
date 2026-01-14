@@ -5,13 +5,13 @@
 #include "log.h"
 #include "config_defines.h"
 #include "GCodeInterpreter.h"
-#include "IRemoteDevice.h"
+#include "RemoteDevice.h"
 
 QApplication *g_application = 0;
 MainWindow *g_mainWindow = 0;
 Interpreter::GCodeInterpreter *g_inter = 0;
 Config *g_config = 0;
-CRemoteDevice *g_device = 0;
+RemoteDevice *g_device = 0;
 std::string appDir;
 
 
@@ -19,7 +19,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
 {
     Q_UNUSED(lpParam)
 
-    CRemoteDevice *remoteDevice = new CRemoteDevice; //управление удалённым устройством
+    RemoteDevice *remoteDevice = new RemoteDevice; //управление удалённым устройством
 
     QObject::connect(remoteDevice, SIGNAL(coords_changed(float, float, float)),
                      g_mainWindow->ui->c_3dView, SLOT(update_tool_coords(float, float, float)));
@@ -27,7 +27,7 @@ static DWORD WINAPI execute( LPVOID lpParam )
 	UniversalConnection *connection = new UniversalConnection; //устройство доводит данные до реального устройтва через подключение
 
     remoteDevice->connection = connection; //говорим устройству, через что слать
-    connection->on_packet_received = std::bind(&CRemoteDevice::on_packet_received, remoteDevice, std::placeholders::_1, std::placeholders::_2); //порту говорим, кто принимает
+    connection->on_packet_received = std::bind(&RemoteDevice::on_packet_received, remoteDevice, std::placeholders::_1, std::placeholders::_2); //порту говорим, кто принимает
 
     g_device = remoteDevice;
 
