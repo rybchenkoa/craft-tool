@@ -4,6 +4,7 @@
 #include "windows.h"
 
 #include "IRemoteDevice.h"
+#include "Packets.h"
 #include "log.h"
 #include "config_defines.h"
 
