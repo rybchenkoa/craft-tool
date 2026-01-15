@@ -18,7 +18,6 @@
           <Define name="STM32F4XX"/>
           <Define name="STM32F407xx"/>
           <Define name="USE_FULL_LL_DRIVER"/>
-          <Define name="USE_FULL_ASSERT"/>
           <Define name="SUPPORT_CPLUSPLUS"/>
         </DefinedSymbols>
       </Compile>
@@ -130,7 +129,6 @@
     <File name="cmsis/hal/inc/stm32f4xx_hal.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h" type="1"/>
     <File name="src/motor.h" path="../motor.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_tim_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h" type="1"/>
-    <File name="sys/stm32_assert.h" path="Inc/stm32_assert.h" type="1"/>
     <File name="cmsis/core/core_cm0.h" path="Drivers/CMSIS/Include/core_cm0.h" type="1"/>
     <File name="cmsis/core/core_sc300.h" path="Drivers/CMSIS/Include/core_sc300.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_pwr.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h" type="1"/>

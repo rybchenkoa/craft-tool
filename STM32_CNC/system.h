@@ -145,10 +145,4 @@ void UsageFault_Handler()
 //void __libc_init_array (){}
 //без поддержки исключений
 //void __aeabi_unwind_cpp_pr0 (void){}
-
-#ifdef  USE_FULL_ASSERT
-void assert_failed(uint8_t* file, uint32_t line)
-{ 
-}
-#endif
 }
