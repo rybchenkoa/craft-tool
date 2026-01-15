@@ -9,11 +9,6 @@ class SysTimer
 		int highCounter; //таймер тикает на уменьшение, поэтому здесь лежит накопленное время + макс. значение
 		void init()
 		{
-          /*
-          highCounter = SysTick_LOAD_RELOAD_Msk + 1;
-          SysTick_Config(SysTick_LOAD_RELOAD_Msk);
-          */
-
           //таймер максимального разрешения
           CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 	      DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
@@ -39,7 +34,6 @@ class SysTimer
 
 		inline int get()
 		{
-            //return (highCounter - SysTick->VAL); //mks*168
 			return TIM5->CNT; //mks
 		}
 		
@@ -77,9 +71,3 @@ class SysTimer
 };
 
 SysTimer timer;
-/*
-extern "C" void SysTick_Handler(void)
-{
-	timer.highCounter += SysTick_LOAD_RELOAD_Msk + 1;
-}
-*/

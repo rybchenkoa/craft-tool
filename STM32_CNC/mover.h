@@ -540,11 +540,8 @@ bool canLog;
 			for (int i = 0; i < MAX_AXES; ++i)
 			{
 				motor[i].set_period(stepTimeArr[i]);
-
-				//if(canLog) log_console("st[%X] = %d\n", i, stepTimeArr[i]);
 			}
 			virtualAxe.set_period(stepTimeArr[MAX_AXES]);
-			//if(canLog) log_console("st[v] = %d\n", stepTimeArr[MAX_AXES]);
 		}
 	}
 
@@ -804,10 +801,6 @@ bool canLog;
 		case MoveMode_HOME:
 			{
 				led.flip(0);
-
-				//log_console("pos %7d, %7d, %5d, time %d init\n",
-				//       packet->coord[0], packet->coord[1], packet->coord[2], timer.get());
-				//send_packet_service_coords(coord); //надо для отладки
 				int coord[MAX_AXES];
 				for (int i = 0; i < MAX_AXES; ++i)
 					coord[i] = packet->coord[i];
@@ -815,8 +808,6 @@ bool canLog;
 				break;
 			}
 		}
-
-		//log_console("posle1  first %d, last %d\n", receiver.queue.first, receiver.queue.last);
 	}
 
 
@@ -849,7 +840,6 @@ bool canLog;
 				case DeviceCommand_MOVE_MODE:
 					{
 						interpolation = ((PacketInterpolationMode*)common)->mode;
-						//log_console("mode %d\n", interpolation);
 
 						break;
 					}
@@ -902,7 +892,7 @@ bool canLog;
 					break;
 				}
 				case DeviceCommand_SET_FEED:
-					{
+					{ //TODO возможно надо удалить пакет
 						/*PacketSetFeed *packet = (PacketSetFeed*)common;
 						linearData.feedVelocity = packet->feedVel;
 						log_console("feed %d\n", int(linearData.feedVelocity));*/
@@ -959,8 +949,6 @@ bool canLog;
 				}
 
 				receiver.queue.Pop();
-				//log_console("POSLE  first %d, last %d\n",
-				//      receiver.queue.first, receiver.queue.last);
 			}
 		}
 
@@ -988,7 +976,6 @@ bool canLog;
 		handler = &Mover::empty;
 
 		interpolation = MoveMode_LINEAR;
-		//feedVelocity = maxVelocity[0]; //для обычной подачи задержка больше
 		feedModifier = FeedModifier();
 		spindle = Spindle();
 
@@ -1008,7 +995,6 @@ bool canLog;
 		track.segments = 0;
 		track.uLength = 0;
 		receiver.tracks.Push(track);
-		//log_console("fract %d\n", receiver.tracks.Size());
 	}
 
 	//=====================================================================================================
@@ -1026,7 +1012,6 @@ bool canLog;
 		Track *track = &receiver.tracks.Back();
 		++track->segments;
 		track->uLength += length;
-		//log_console("move %d, %d, %d\n", track->uLength, track->segments, receiver.tracks.Size());
 	}
 
 	//=====================================================================================================
@@ -1039,7 +1024,6 @@ bool canLog;
 		__disable_irq();
 		while(track->segments == 0)
 		{
-			//log_console("fract2 %d\n", receiver.tracks.Size());
 			receiver.tracks.Pop();
 			linearData.velocity = 0;         //при завершении линии сбрасываем скорость
 			linearData.state = 0;
@@ -1091,7 +1075,6 @@ void on_packet_received(char * __restrict packet, int size)
 	int receivedCrc = *(int*)(packet+size-4);
 	if(crc != receivedCrc)
 	{
-		//log_console("\n0x%X, 0x%X\n", receivedCrc, crc);
 		send_wrong_crc();
 		return;
 	}

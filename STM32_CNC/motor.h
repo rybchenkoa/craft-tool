@@ -64,7 +64,7 @@ struct Motor
 		{
 			int currentCnt = get_steps(_index);
 			int delta = currentCnt - _lastCnt; //находим разницу с предыдущего раза
-//log_console("delta %d, dir %d\n", delta, _direction);
+
 			if (delta < 0)
 				delta += MAX_STEP;
 			if (_direction)

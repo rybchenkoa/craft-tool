@@ -61,21 +61,6 @@ int main()
 		
 		if (mover.canLog)
 		{
-			//log_console("dest %d %d %d, sc %d\n", mover.to[0], mover.to[1], mover.to[2]);
-		//	log_console("stepT %d, st %d, tmr %d\n", stepTime, mover.linearData.state, timer.get());
-		//	log_console("queue %d, ulen %d, trcnt %d\n", receiver.queue.Count(), receiver.tracks.Front().segments, receiver.tracks.Count());
-			//log_console("mot %d, %d, %d\n", motor[0]._isHardware, motor[1]._isHardware, motor[2]._isHardware);
-			//log_console("err %d, %d, %d\n", mover.linearData.err[0], mover.linearData.err[1], mover.linearData.err[2]);
-		//	log_console("ervr: %d, %d, %d\n", mover.linearData.error[0], mover.linearData.error[1], mover.linearData.error[2]);
-		//	log_console("coord: %d, %d, %d\n", mover.coord[0], mover.coord[1], mover.coord[2]);
-	//		log_console("coord %d, ref %d\n", mover.coord[0], virtualAxe._position);
-	//		log_console("step %d, ref %d\n", motor[0]._period, virtualAxe._period);
-			//log_console("Astep %d, %d, %d\n", get_steps(0), get_steps(1), get_steps(2));
-			//log_console("adc %d\n", adc.value());
-	//		int coord[MAX_AXES];
-	//		coord[0] = virtualAxe._position;
-	//		coord[1] = mover.coord[0];
-	//		coord[2] = 0;
 			send_packet_service_coords(mover.coord);
 		}
 		

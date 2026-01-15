@@ -199,16 +199,9 @@ Usart usart;
 
 //----------------------------------------------------------
 extern "C" void DMA2_Stream7_IRQHandler (void)
-{//led.flip();
-	//обмен завершен
-	//if(DMA2->ISR & DMA_ISR_TCIF7)
-	//{
-		DMA2->HIFCR |= DMA_HIFCR_CTCIF7 /*| DMA_HIFCR_CHTIF7*/ | DMA_HIFCR_CTEIF7;
-		usart.process_send_data();
-	//}
-	//else
-	//	DMA2->IFCR |= DMA_HIFCR_CTCIF7 | DMA_HIFCR_CHTIF7 | DMA_HIFCR_CTEIF7;
-	//DMA2->HIFCR |= DMA_HIFCR_CGIF7;
+{
+	DMA2->HIFCR |= DMA_HIFCR_CTCIF7 | DMA_HIFCR_CTEIF7;
+	usart.process_send_data();
 }
 
 //----------------------------------------------------------
