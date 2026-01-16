@@ -3,7 +3,7 @@
 #include "Coords.h"
 
 #define NUM_COORDS 4 //сколько координат задаем в G-коде
-#define MAX_IN_PINS 11 //количество входных пинов
+#define MAX_IN_PINS 8 //количество входных пинов
 
 enum MoveMode :char //режим движения/интерполяции
 {

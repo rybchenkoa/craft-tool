@@ -82,7 +82,7 @@ void configure_gpio()
     LL_GPIO_InitTypeDef gpio;
 	gpio.Mode = LL_GPIO_MODE_INPUT;
 	gpio.Pull = LL_GPIO_PULL_UP;
-    for (int i = 0; i < 9; ++i)
+    for (int i = 0; i < 8; ++i)
     {
 	  gpio.Pin = 1<<IN_PINS[i];
 	  LL_GPIO_Init(IN_PORTS[i], &gpio);
@@ -116,7 +116,7 @@ void configure_gpio()
 	  LL_GPIO_Init(DIR_PORTS[i], &gpio);
     }
 	
-    //'этот STEP через BSRR
+    // этот STEP через BSRR
 	gpio.Pin = LL_GPIO_PIN_4;
 	LL_GPIO_Init(GPIOG, &gpio);
 
@@ -345,7 +345,7 @@ void inline set_pwm_width(int index, int width)
 }
 
 //--------------------------------------------------
-//задает ширину импульсов на аппаратной ножке
+//задает периодичность импульсов на аппаратной ножке
 void inline set_pwm_period(int period)
 {
 	TIM1->ARR = period;
