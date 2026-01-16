@@ -135,6 +135,7 @@
     <File name="cmsis/ll/src/stm32f4xx_ll_gpio.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_gpio.c" type="1"/>
     <File name="cmsis/ll/inc/stm32f4xx_ll_adc.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_adc.h" type="1"/>
     <File name="src/adc.h" path="../adc.h" type="1"/>
+    <File name="src/receiver.h" path="../receiver.h" type="1"/>
     <File name="cmsis" path="" type="2"/>
     <File name="cmsis/device/system_stm32f4xx.h" path="Drivers/CMSIS/Device/ST/STM32F4xx/Include/system_stm32f4xx.h" type="1"/>
     <File name="cmsis/ll/inc" path="" type="2"/>
