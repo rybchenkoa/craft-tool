@@ -2,6 +2,7 @@
 // исполняет команды
 
 #include "receiver.h"
+#include "track.h"
 #include "packets.h"
 #include "motor.h"
 #include "sys_timer.h"
@@ -456,7 +457,7 @@ bool canLog;
 		}
 			
 		float length = linearData.invProj * virtualAxe._position;
-		length += 0.001f * current_track_length();
+		length += 0.001f * tracks.current_length();
 
 		float targetFeed = linearData.maxFeedVelocity;
 		if (interpolation == MoveMode_LINEAR)
@@ -466,7 +467,7 @@ bool canLog;
 
 		if (!brez_step())
 		{
-			if (current_track_length() == 0)
+			if (tracks.current_length() == 0)
 			{
 				stop_motors();
 				linearData.state = 0;
@@ -479,6 +480,7 @@ bool canLog;
 		{
 			finish_linear();
 			receiver.init();
+			tracks.init();
 			breakState = 2;
 			return END;
 		}
@@ -490,7 +492,10 @@ bool canLog;
 	//=====================================================================================================
 	void init_linear(int dest[MAX_AXES], int refCoord, float acceleration, int uLength, float length, float velocity)
 	{
-		dec_track(uLength);
+		if (tracks.decrement(uLength)) {
+			linearData.velocity = 0;
+			linearData.state = 0;
+		}
 
 		linearData.refCoord = refCoord; //используется в brez_init
 
@@ -544,6 +549,7 @@ bool canLog;
 		if (breakState == 1)
 		{
 			receiver.init();
+			tracks.init();
 			breakState = 2;
 		}
 	
@@ -567,6 +573,7 @@ bool canLog;
 		if (breakState == 1)
 		{
 			receiver.init();
+			tracks.init();
 			breakState = 2;
 			return END;
 		}
@@ -791,64 +798,6 @@ bool canLog;
 			pwmSizes[i] = 0;
 		lastPwmUpdate = 0;
 	}
-
-	//=====================================================================================================
-	//вызывается в потоке приёма
-	void new_track()
-	{
-		if(receiver.tracks.IsFull())
-			log_console("ERR: fracts overflow %d\n", 1);
-		Track track;
-		track.segments = 0;
-		track.uLength = 0;
-		receiver.tracks.Push(track);
-	}
-
-	//=====================================================================================================
-	//вызывается в потоке приёма перед добавлением пакета
-	void add_to_track(int length)
-	{
-		if(receiver.tracks.IsEmpty())
-		{
-			Track track;
-			track.segments = 0;
-			track.uLength = 0;
-			receiver.tracks.Push(track);
-			log_console("no fract %d\n", 0);
-		}
-		Track *track = &receiver.tracks.Back();
-		++track->segments;
-		track->uLength += length;
-	}
-
-	//=====================================================================================================
-	//вызывается в основном потоке
-	//на момент извлечения отрезок уже есть в линии,
-	//так что число отрезков в ней != 0
-	void dec_track(int uLength)
-	{
-		Track *track = &receiver.tracks.Front();
-		__disable_irq();
-		while(track->segments == 0)
-		{
-			receiver.tracks.Pop();
-			linearData.velocity = 0;         //при завершении линии сбрасываем скорость
-			linearData.state = 0;
-			track = &receiver.tracks.Front();
-		}
-
-		--track->segments;
-		track->uLength -= uLength;
-		if(track->uLength < 0) //вычитаем то, что перед этим было добавлено
-			log_console("ERR: len %d, %d, %d\n", track->segments, track->uLength, uLength);
-		__enable_irq();
-	}
-
-	//=====================================================================================================
-	int current_track_length()
-	{
-		return receiver.tracks.Front().uLength;
-	}
 };
 
 Mover mover;
@@ -863,12 +812,12 @@ void preprocess_command(PacketCommon *p)
 	{
 	case DeviceCommand_SET_FRACT:
 		{
-			mover.new_track();
+			tracks.new_track();
 			break;
 		}
 	case DeviceCommand_MOVE:
 		{
-			mover.add_to_track(((PacketMove*)p)->uLength);
+			tracks.increment(((PacketMove*)p)->uLength);
 			break;
 		}
 	}

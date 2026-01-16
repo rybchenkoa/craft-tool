@@ -19,18 +19,10 @@ void send_packet_repeat(int number, int queue);
 void send_packet_received(int number, int queue);
 
 
-struct Track
-{
-	int segments;  //число отрезков в траектории
-	int uLength;  //общая длина пути в микронах
-};
-
-
 class Receiver
 {
 public:
 	FIFOBuffer<MaxPacket, 5> queue; //48*32+8 = 904
-	FIFOBuffer<Track, 5> tracks;
 	int _tail; //первый ожидаемый элемент очереди (он не заполнен, а дальше могут быть заполненные)
 	PacketCount _index; //номер его пакета
 	static const int BUFFER_LEN = 5;
@@ -39,7 +31,6 @@ public:
 	void init()
 	{
 		queue.Clear();
-		tracks.Clear();
 		_index = PacketCount(-1);
 		_index2 = PacketCount(-1);
 		_tail = queue.last;

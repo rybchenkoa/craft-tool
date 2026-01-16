@@ -10,6 +10,8 @@
 #include "string.h"
 #include "sys_timer.h"
 #include "mover.h"
+#include "receiver.h"
+#include "track.h"
 #include "system.h"
 
 //===============================================================
@@ -33,6 +35,7 @@ void init()
 	
 	usart.init();
 	receiver.init();
+	tracks.init();
 	configure_gpio();
 	configure_timers();
 	init_motors();

@@ -110,6 +110,7 @@
     <File name="cmsis/ll/inc/stm32f4xx_ll_crc.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_crc.h" type="1"/>
     <File name="cmsis/ll/src" path="" type="2"/>
     <File name="cmsis/core" path="" type="2"/>
+    <File name="src/track.h" path="../track.h" type="1"/>
     <File name="cmsis/ll/inc/stm32f4xx_ll_cortex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_cortex.h" type="1"/>
     <File name="cmsis/core/core_cm3.h" path="Drivers/CMSIS/Include/core_cm3.h" type="1"/>
     <File name="cmsis/core/arm_math.h" path="Drivers/CMSIS/Include/arm_math.h" type="1"/>
