@@ -14,11 +14,8 @@
           <Includepath path="."/>
         </Includepaths>
         <DefinedSymbols>
-          <Define name="STM32F407ZG"/>
-          <Define name="STM32F4XX"/>
           <Define name="STM32F407xx"/>
           <Define name="USE_FULL_LL_DRIVER"/>
-          <Define name="SUPPORT_CPLUSPLUS"/>
         </DefinedSymbols>
       </Compile>
       <Link useDefault="0">
