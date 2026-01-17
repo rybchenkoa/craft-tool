@@ -10,16 +10,10 @@
 #include "math.h"
 #include "spindle.h"
 #include "feed.h"
+#include "inertial.h"
 
 
 void send_packet_service_command(PacketCount number);
-
-
-//=====================================================================================================
-float pow2(float value)
-{
-	return value*value;
-}
 
 
 //=====================================================================================================
@@ -49,6 +43,7 @@ public:
 	bool needPause;           //сбросить скорость до 0
 	char breakState;          //сбросить очередь команд
 	FeedModifier feedModifier;//управление подачей
+	Inertial inertial;        //данные для корректного изменения скорости
 
 	//данные, отвечающие за раздельное движение по осям (концевики и ручное управление)
 	char limitSwitchMin[MAX_AXES]; //концевики
@@ -110,72 +105,9 @@ bool canLog;
 		int last[MAX_AXES+1];   //последние координаты, для которых была посчитана ошибка
 		float velCoef[MAX_AXES]; //на что умножить скорость, чтобы получить число тактов на шаг, мм/шаг
 
-		float maxFeedVelocity;	//скорость подачи, мм/такт
-		float acceleration;		//ускорение, мм/такт^2
-		float velocity;			//скорость на прошлом шаге, мм/такт
 		float invProj;			//(длина опорной координаты / полную длину)
-		int state;			//ускорение/замедление/стабильное движение
-		int lastTime;		//предыдущее время, нужно для вычисления разницы
-		float lastVelocity; //предыдущая скорость
-
-		//=====================================================================================================
-		void start_acceleration()
-		{
-			lastVelocity = velocity;
-			lastTime = timer.get_ticks();
-		}
-
-		//=====================================================================================================
-		void accelerate(int multiplier)
-		{
-			int currentTime = timer.get_ticks();
-			int delta = currentTime - lastTime;
-			velocity = lastVelocity + delta * multiplier * acceleration;
-			if (delta > 100000)
-			{
-				lastVelocity = velocity;
-				lastTime = currentTime;
-			}
-		}
-
-		//=====================================================================================================
-		// ускоряемся или замедляемся для достижения заданной скорости и с учётом оставшегося расстояния
-		void update_velocity(float targetVelocity, float length)
-		{
-			int lastState = state;
-			//v^2 = 2g*h; //сначала проверяем, что не врежемся с разгона
-			if (pow2(velocity) > (acceleration * length * 2))
-			{
-				state = -2;
-				//v = sqrt(2*g*h)
-				velocity = sqrtf(acceleration * length * 2);
-			}
-			else if (velocity > targetVelocity)
-			{
-				state = -1;
-				if (lastState != state)
-					start_acceleration();
-				else
-					accelerate(-1);
-				if(velocity < 0)
-					velocity = 0;
-			}
-			else if (velocity < targetVelocity)
-			{
-				state = 1;
-				if (lastState != state)
-					start_acceleration();
-				else
-					accelerate(1);
-				if(velocity > targetVelocity)
-					velocity = targetVelocity;
-			}
-			else
-				state = 0;
-		}
 	};
 	LinearData linearData;
-
 
 	
 	//=====================================================================================================
@@ -276,7 +208,7 @@ bool canLog;
 	void set_velocity()
 	{
 		//задаем скорости
-		if (linearData.velocity == 0)
+		if (inertial.velocity == 0)
 		{
 			for (int i = 0; i < MAX_AXES; ++i)
 				motor[i].set_period(MAX_STEP_TIME);
@@ -303,7 +235,7 @@ bool canLog;
 					{
 						if (!homeActivated[i])
 						{
-							axeVelocity[i] = linearData.velocity / linearData.velCoef[i];
+							axeVelocity[i] = inertial.velocity / linearData.velCoef[i];
 							timeActivate[i] = curTime;
 							homeActivated[i] = true;
 						}
@@ -325,7 +257,7 @@ bool canLog;
 					}
 				}
 
-				float step = linearData.velCoef[i] / linearData.velocity;//linearData.maxFeedVelocity;//
+				float step = linearData.velCoef[i] / inertial.velocity;
 				int err = linearData.err[i];
 				float add = step * step * err * errCoef / 1024; //t*(1+t*e/T)
 				float maxAdd = step * 0.1f; //регулировка скорости максимально на 10 %
@@ -339,7 +271,7 @@ bool canLog;
 			}
 			//для виртуальной оси тоже считаем скорость
 			{
-				int stepTime = linearData.velCoef[ref] / linearData.velocity;//linearData.maxFeedVelocity;//
+				int stepTime = linearData.velCoef[ref] / inertial.velocity;
 				if (stepTime > MAX_STEP_TIME || stepTime <= 0) //0 возможен при переполнении разрядов
 					stepTime = MAX_STEP_TIME;
 				stepTimeArr[MAX_AXES] = stepTime;
@@ -437,7 +369,7 @@ bool canLog;
 		stop_motors();
 		for(int i = 0; i < MAX_AXES; ++i)
 			to[i] = coord[i];
-		linearData.state = 0;
+		inertial.state = 0;
 		init_empty();
 	}
 
@@ -459,24 +391,24 @@ bool canLog;
 		float length = linearData.invProj * virtualAxe._position;
 		length += 0.001f * tracks.current_length();
 
-		float targetFeed = linearData.maxFeedVelocity;
+		float targetFeed = inertial.maxFeedVelocity;
 		if (interpolation == MoveMode_LINEAR)
-			feedModifier.modify(targetFeed, linearData.velocity, linearData.acceleration, coord, stepLength, linearData.velCoef);
+			feedModifier.modify(targetFeed, inertial.velocity, inertial.acceleration, coord, stepLength, linearData.velCoef);
 
-		linearData.update_velocity(needPause ? 0 : targetFeed, length);
+		inertial.update_velocity(needPause ? 0 : targetFeed, length);
 
 		if (!brez_step())
 		{
 			if (tracks.current_length() == 0)
 			{
 				stop_motors();
-				linearData.state = 0;
+				inertial.state = 0;
 			}
 			return END;
 		}
 		
 		//прерывание обработки
-		if (linearData.velocity == 0 && breakState == 1)
+		if (inertial.velocity == 0 && breakState == 1)
 		{
 			finish_linear();
 			receiver.init();
@@ -493,8 +425,8 @@ bool canLog;
 	void init_linear(int dest[MAX_AXES], int refCoord, float acceleration, int uLength, float length, float velocity)
 	{
 		if (tracks.decrement(uLength)) {
-			linearData.velocity = 0;
-			linearData.state = 0;
+			inertial.velocity = 0;
+			inertial.state = 0;
 		}
 
 		linearData.refCoord = refCoord; //используется в brez_init
@@ -507,8 +439,8 @@ bool canLog;
 
 		start_motors();
 
-		linearData.acceleration = acceleration;
-		linearData.maxFeedVelocity = velocity;
+		inertial.acceleration = acceleration;
+		inertial.maxFeedVelocity = velocity;
 		activeSwitchCount = 0;
 
 		for (int i = 0; i < MAX_AXES; ++i)
