@@ -14,6 +14,20 @@ struct Inertial
 	float lastVelocity; //предыдущая скорость
 
 	//=====================================================================================================
+	void stop()
+	{
+		velocity = 0;
+		state = 0;
+	}
+
+	//=====================================================================================================
+	void set_max_params(float maxVelocity, float maxAcceleration)
+	{
+		maxFeedVelocity = maxVelocity;
+		acceleration = maxAcceleration;
+	}
+
+	//=====================================================================================================
 	void start_acceleration()
 	{
 		lastVelocity = velocity;

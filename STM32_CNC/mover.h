@@ -369,7 +369,7 @@ bool canLog;
 		stop_motors();
 		for(int i = 0; i < MAX_AXES; ++i)
 			to[i] = coord[i];
-		inertial.state = 0;
+		inertial.stop();
 		init_empty();
 	}
 
@@ -402,7 +402,7 @@ bool canLog;
 			if (tracks.current_length() == 0)
 			{
 				stop_motors();
-				inertial.state = 0;
+				inertial.stop();
 			}
 			return END;
 		}
@@ -425,8 +425,7 @@ bool canLog;
 	void init_linear(int dest[MAX_AXES], int refCoord, float acceleration, int uLength, float length, float velocity)
 	{
 		if (tracks.decrement(uLength)) {
-			inertial.velocity = 0;
-			inertial.state = 0;
+			inertial.stop();
 		}
 
 		linearData.refCoord = refCoord; //используется в brez_init
@@ -439,8 +438,7 @@ bool canLog;
 
 		start_motors();
 
-		inertial.acceleration = acceleration;
-		inertial.maxFeedVelocity = velocity;
+		inertial.set_max_params(velocity, acceleration);
 		activeSwitchCount = 0;
 
 		for (int i = 0; i < MAX_AXES; ++i)
