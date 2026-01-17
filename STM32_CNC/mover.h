@@ -539,19 +539,11 @@ bool canLog;
 	//=====================================================================================================
 	void process_packet_move(PacketMove *packet)
 	{
-		switch (interpolation)
-		{
-		case MoveMode_LINEAR:
-		case MoveMode_HOME:
-			{
-				led.flip(0);
-				int coord[MAX_AXES];
-				for (int i = 0; i < MAX_AXES; ++i)
-					coord[i] = packet->coord[i];
-				init_linear(coord, packet->refCoord, packet->acceleration, packet->uLength, packet->length, packet->velocity);
-				break;
-			}
-		}
+		led.flip(0);
+		int coord[MAX_AXES];
+		for (int i = 0; i < MAX_AXES; ++i)
+			coord[i] = packet->coord[i];
+		init_linear(coord, packet->refCoord, packet->acceleration, packet->uLength, packet->length, packet->velocity);
 	}
 
 
@@ -584,7 +576,6 @@ bool canLog;
 				case DeviceCommand_MOVE_MODE:
 					{
 						interpolation = ((PacketInterpolationMode*)common)->mode;
-
 						break;
 					}
 				case DeviceCommand_SET_VEL_ACC:

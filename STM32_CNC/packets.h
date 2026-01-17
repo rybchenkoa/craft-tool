@@ -37,6 +37,7 @@ enum MoveMode //:char режим движения/интерполяции
 {
 	MoveMode_LINEAR = 0, //обычное движение по прямой
 	MoveMode_HOME,       //наезд на дом
+	MoveMode_FAST,       //быстрое перемещение по прямой
 };
 enum SwitchGroup //:char
 {
