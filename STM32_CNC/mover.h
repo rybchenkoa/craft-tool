@@ -11,6 +11,7 @@
 #include "spindle.h"
 #include "feed.h"
 #include "inertial.h"
+#include "pwm.h"
 
 
 void send_packet_service_command(PacketCount number);
@@ -57,10 +58,7 @@ public:
 	bool homeActivated[MAX_AXES]; //при наезде на дом выставляем бит
 	bool homeReached;
 
-	//медленный ШИМ
-	int pwmSlowPeriod;
-	int lastPwmUpdate;
-	int pwmSizes[MAX_SLOW_PWMS];
+	PwmController pwm;        // управление выходными пинами
 
 bool canLog;
 
@@ -522,19 +520,6 @@ bool canLog;
 		handler = &Mover::wait;
 	}
 
-	//=====================================================================================================
-	void updateSlowPwms(int time)
-	{
-		int delta = time - lastPwmUpdate;
-		if (delta >= pwmSlowPeriod)
-		{
-			lastPwmUpdate = time;
-			delta = 0;
-		}
-		for (int i = 0; i < MAX_SLOW_PWMS; ++i)
-			set_pwm_pin(i, delta < pwmSizes[i]);
-	}
-
 
 	//=====================================================================================================
 	void process_packet_move(PacketMove *packet)
@@ -653,20 +638,13 @@ bool canLog;
 				case DeviceCommand_SET_PWM:
 					{
 						PacketSetPWM *packet = (PacketSetPWM*)common;
-						if (packet->pin < MAX_SLOW_PWMS + MAX_PWM)
-						{
-							if (packet->pin < MAX_SLOW_PWMS)
-								pwmSizes[(int)packet->pin] = pwmSlowPeriod * packet->value;
-							else
-								set_pwm_width(MAX_SLOW_PWMS - packet->pin, TIM1->ARR * packet->value);
-						}
+						pwm.process_packet_set_pwm(packet);
 						break;
 					}
 				case DeviceCommand_SET_PWM_FREQ:
 					{
 						PacketSetPWMFreq *packet = (PacketSetPWMFreq*)common;
-						pwmSlowPeriod = 1000000 / packet->slowFreq;
-						set_pwm_period(CORE_FREQ / packet->freq);
+						pwm.process_packet_set_pwm_freq(packet);
 						break;
 					}
 				case DeviceCommand_WAIT:
@@ -688,7 +666,7 @@ bool canLog;
 		}
 
 		int time = timer.get();
-		updateSlowPwms(time);
+		pwm.update(time);
 		spindle.update(time);
 		feedModifier.update(time);
 	}
@@ -713,11 +691,7 @@ bool canLog;
 		interpolation = MoveMode_LINEAR;
 		feedModifier = FeedModifier();
 		spindle = Spindle();
-
-		pwmSlowPeriod = PWM_SLOW_SIZE;
-		for(int i = 0; i < MAX_SLOW_PWMS; i++)
-			pwmSizes[i] = 0;
-		lastPwmUpdate = 0;
+		pwm = PwmController();
 	}
 };
 

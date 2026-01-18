@@ -1,4 +1,6 @@
-//ǁ
+#pragma once
+//задаёт конфигурацию выходных пинов
+
 #include "stm32f407xx.h"
 #include "common.h"
 
