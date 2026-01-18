@@ -12,6 +12,7 @@
 #include "feed.h"
 #include "inertial.h"
 #include "pwm.h"
+#include "limit_switch.h"
 
 
 void send_packet_service_command(PacketCount number);
@@ -45,19 +46,7 @@ public:
 	char breakState;          //сбросить очередь команд
 	FeedModifier feedModifier;//управление подачей
 	Inertial inertial;        //данные для корректного изменения скорости
-
-	//данные, отвечающие за раздельное движение по осям (концевики и ручное управление)
-	char limitSwitchMin[MAX_AXES]; //концевики
-	char limitSwitchMax[MAX_AXES];
-	char activeSwitch[MAX_AXES]; //концевики, в сторону которых сейчас едем
-	int  activeSwitchCount;      //количество активных концевиков
-
-	char homeSwitch[MAX_AXES]; //датчики дома
-	float axeVelocity[MAX_AXES]; //скорость оси во время попадания в концевик
-	int timeActivate[MAX_AXES]; //время начала остановки
-	bool homeActivated[MAX_AXES]; //при наезде на дом выставляем бит
-	bool homeReached;
-
+	LimitSwitchController switches; // хард лимиты и хоминг
 	PwmController pwm;        // управление выходными пинами
 
 bool canLog;
@@ -107,39 +96,6 @@ bool canLog;
 	};
 	LinearData linearData;
 
-	
-	//=====================================================================================================
-	//наезд на хард лимит
-	bool switch_reached()
-	{
-		//при обычной езде при налете на концевик прекращаем выдавать STEP
-		if (interpolation != MoveMode_HOME)
-		{
-			for (int i = 0; i < activeSwitchCount; ++i)
-				if (activeSwitch[i] != -1 && get_pin(activeSwitch[i]))
-				{
-					log_console("switch %d, %d reached\n", i, activeSwitch[i]);
-					return true;
-				}
-		}
-		//при поиске дома датчик дома может быть и хард лимитом
-		else
-		{
-			for (int i = 0; i < MAX_AXES; ++i)
-				if (linearData.size[i] != 0)
-					if (activeSwitch[i] != -1 && //если концевик задан, и не равен концевику дома
-						homeSwitch[i] != activeSwitch[i] && get_pin(activeSwitch[i])) //и сработал
-						return true;
-		}
-		return false;
-	}
-
-	//=====================================================================================================
-	//наезд на дом
-	bool home_reached()
-	{
-		return (interpolation == MoveMode_HOME) && homeReached;
-	}
 	
 	//=====================================================================================================
 	void start_motors()
@@ -218,7 +174,7 @@ bool canLog;
 			int curTime = timer.get_ticks();
 			int stepTimeArr[MAX_AXES+1];
 			float errCoef = 1.0f / linearData.size[ref];
-			homeReached = true;
+			switches.reset_home(true);
 			for (int i = 0; i < MAX_AXES; ++i)
 			{
 				if (linearData.velCoef[i] == 0)
@@ -226,42 +182,25 @@ bool canLog;
 					stepTimeArr[i] = MAX_STEP_TIME;
 					continue;
 				}
-				else if (interpolation == MoveMode_HOME)
-				{
-					//если не задали концевик, но пытаемся на него наехать, то считаем что уже на нем
-					if (homeSwitch[i] == -1 || get_pin(homeSwitch[i]) || homeActivated[i])
-					{
-						if (!homeActivated[i])
-						{
-							axeVelocity[i] = inertial.velocity / linearData.velCoef[i];
-							timeActivate[i] = curTime;
-							homeActivated[i] = true;
-						}
-						
-						if (curTime - timeActivate[i] > (1<<30)) //страховка на случай переполнения таймера
-							timeActivate[i] = curTime - (1<<30);
-							
-						float vel = axeVelocity[i] - maxAcceleration[i] * (curTime - timeActivate[i]);
-						int stepTime = 1 / vel;
-						if (stepTime > MAX_STEP_TIME || stepTime <= 0)
-							stepTime = MAX_STEP_TIME;
-						stepTimeArr[i] = stepTime;
-						if (vel >= 0)
-							homeReached = false;
-						continue;
-					}
-					else {
-						homeReached = false;
-					}
-				}
 
-				float step = linearData.velCoef[i] / inertial.velocity;
-				int err = linearData.err[i];
-				float add = step * step * err * errCoef / 1024; //t*(1+t*e/T)
-				float maxAdd = step * 0.1f; //регулировка скорости максимально на 10 %
-				if (fabsf(add) > maxAdd)
-					add = copysign(maxAdd, add);
-				int stepTime = step + add;
+				int stepTime;
+				float axeVelocity;
+				// при хоминге происходит торможение по той оси, которая наехала на свой концевик
+				// при обычном движении скорость синхронно меняется у всех осей
+				if (interpolation == MoveMode_HOME &&
+					switches.home_braking(axeVelocity, i, curTime, inertial.velocity, linearData.velCoef[i], maxAcceleration[i]))
+				{
+					stepTime = 1 / axeVelocity;
+				}
+				else {
+					float step = linearData.velCoef[i] / inertial.velocity;
+					int err = linearData.err[i];
+					float add = step * step * err * errCoef / 1024; //t*(1+t*e/T)
+					float maxAdd = step * 0.1f; //регулировка скорости максимально на 10 %
+					if (fabsf(add) > maxAdd)
+						add = copysign(maxAdd, add);
+					stepTime = step + add;
+				}
 				
 				if (stepTime > MAX_STEP_TIME || stepTime <= 0) //0 возможен при переполнении разрядов
 					stepTime = MAX_STEP_TIME;
@@ -374,13 +313,13 @@ bool canLog;
 	//=====================================================================================================
 	OperateResult linear()
 	{
-		if (switch_reached())
+		if (switches.switch_reached(interpolation == MoveMode_HOME, linearData.size))
 		{
 			finish_linear(); //TODO сделать обработку остановки
 			return END;
 		}
 		
-		if (home_reached())
+		if (switches.home_reached() && interpolation == MoveMode_HOME)
 		{
 			finish_linear();
 			return END;
@@ -437,7 +376,8 @@ bool canLog;
 		start_motors();
 
 		inertial.set_max_params(velocity, acceleration);
-		activeSwitchCount = 0;
+		switches.reset_home(false);
+		switches.reset_active();
 
 		for (int i = 0; i < MAX_AXES; ++i)
 		{
@@ -449,18 +389,11 @@ bool canLog;
 			{
 				linearData.velCoef[i] = length / linearData.size[i];
 				
-				int lim = linearData.sign[i] > 0 ? limitSwitchMax[i] : limitSwitchMin[i];
-				if (interpolation == MoveMode_HOME)
-						activeSwitch[i] = lim; //при движении домой торможение раздельное
-				else
-					if (lim != -1)
-						activeSwitch[activeSwitchCount++] = lim; //иначе нас интересует любое срабатывание
-				homeActivated[i] = false;
+				switches.activate_switch(i, interpolation == MoveMode_HOME, linearData.sign[i] > 0);
 			}
 		}
 		
 		linearData.invProj = linearData.velCoef[refCoord];
-		homeReached = false;
 		
 		handler = &Mover::linear;
 	}
@@ -578,16 +511,7 @@ bool canLog;
 				case DeviceCommand_SET_SWITCHES:
 				{
 					PacketSetSwitches *packet = (PacketSetSwitches*)common;
-					char *pins = 0;
-					switch (packet->group)
-					{
-						case SwitchGroup_MIN: pins = limitSwitchMin; break;
-						case SwitchGroup_MAX: pins = limitSwitchMax; break;
-						case SwitchGroup_HOME: pins = homeSwitch; break;
-					}
-					for (int i = 0; i < MAX_AXES; ++i)
-						pins[i] = packet->pins[i];
-					polarity = packet->polarity;
+					switches.process_packet_set_switches(packet);
 					break;
 				}
 				case DeviceCommand_SET_SPINDLE_PARAMS:
@@ -675,12 +599,8 @@ bool canLog;
 	//=====================================================================================================
 	void init()
 	{
-		for(int i = 0; i < MAX_AXES; i++)
-		{
+		for(int i = 0; i < MAX_AXES; i++) {
 			coord[i] = 0;
-			limitSwitchMin[i] = -1;
-			limitSwitchMax[i] = -1;
-			homeSwitch[i] = -1;
 		}
 
 		needPause = false;
@@ -692,6 +612,7 @@ bool canLog;
 		feedModifier = FeedModifier();
 		spindle = Spindle();
 		pwm = PwmController();
+		switches = LimitSwitchController();
 	}
 };
 
