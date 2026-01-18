@@ -1,13 +1,14 @@
 #pragma once
 // исполняет команды
 
+#include <cmath>
+
 #include "receiver.h"
 #include "track.h"
 #include "packets.h"
 #include "motor.h"
 #include "sys_timer.h"
 #include "led.h"
-#include "math.h"
 #include "spindle.h"
 #include "feed.h"
 #include "inertial.h"
@@ -197,8 +198,8 @@ bool canLog;
 					int err = linearData.err[i];
 					float add = step * step * err * errCoef / 1024; //t*(1+t*e/T)
 					float maxAdd = step * 0.1f; //регулировка скорости максимально на 10 %
-					if (fabsf(add) > maxAdd)
-						add = copysign(maxAdd, add);
+					if (std::abs(add) > maxAdd)
+						add = std::copysign(maxAdd, add);
 					stepTime = step + add;
 				}
 				

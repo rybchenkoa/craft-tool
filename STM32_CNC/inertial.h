@@ -1,6 +1,8 @@
 #pragma once
 // обрабатывает изменение скорости с учётом максимального ускорения
 
+#include <cmath>
+
 #include "sys_timer.h"
 
 
@@ -57,7 +59,7 @@ struct Inertial
 		{
 			state = -2;
 			//v = sqrt(2*g*h)
-			velocity = sqrtf(acceleration * length * 2);
+			velocity = std::sqrt(acceleration * length * 2);
 		}
 		else if (velocity > targetVelocity)
 		{

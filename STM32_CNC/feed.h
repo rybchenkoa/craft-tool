@@ -1,5 +1,9 @@
 //ǁ
+
+#include <cmath>
+
 #include "common.h"
+
 
 //===============================================================
 /*
@@ -66,7 +70,7 @@ struct FeedModifier
 			if (currentFeed > spindleFeed * 0.8f)
 			{
 				//пытаемся попасть в ближайший виток
-				float position = fabs(coord[index] - syncPos) * stepLength[index]; //текущий отступ от начала витков
+				float position = std::abs(float(coord[index] - syncPos)) * stepLength[index]; //текущий отступ от начала витков
 				float fraction = position / syncStep; //пройдено витков
 				fraction -= int(fraction); //пройденная часть витка
 				float delta = fraction - spindle.position; //на какую часть витка отклонились
