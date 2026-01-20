@@ -19,15 +19,6 @@
 void send_packet_service_command(PacketCount number);
 
 
-//=====================================================================================================
-int isign(int value)
-{
-	if(value > 0) return 1;
-	else if (value < 0) return -1;
-	else return 0;
-}
-
-
 //=========================================================================================
 class Mover
 {
@@ -88,7 +79,7 @@ bool canLog;
 		int refCoord;          //индекс координаты, по которой шагаем
 		int size[MAX_AXES];  //размеры линии
 		int err[MAX_AXES];   //ошибка координат (внутреннее представление)
-		int error[MAX_AXES]; //ошибка координат
+		float error[MAX_AXES]; //ошибка координат
 		int sign[MAX_AXES];  //изменение координаты при превышении ошибки {-1 || 1}
 		int last[MAX_AXES+1];   //последние координаты, для которых была посчитана ошибка
 		float velCoef[MAX_AXES]; //на что умножить скорость, чтобы получить число тактов на шаг, мм/шаг
@@ -140,13 +131,12 @@ bool canLog;
 	}
 
 	//=====================================================================================================
-	void floor_error()
+	void normalize_error()
 	{
 		int ref = linearData.refCoord;
-		for (int i = 0; i < MAX_AXES; ++i)
-		{
-			int floorAdd = linearData.size[ref] / 2 * isign(linearData.err[i]);
-			linearData.error[i] = (linearData.err[i] + floorAdd) / linearData.size[ref];
+		float errCoef = 1.0f / linearData.size[ref];
+		for (int i = 0; i < MAX_AXES; ++i) {
+			linearData.error[i] = linearData.err[i] * errCoef;
 		}
 	}
 	
@@ -174,7 +164,6 @@ bool canLog;
 			int ref = linearData.refCoord;
 			int curTime = timer.get_ticks();
 			int stepTimeArr[MAX_AXES+1];
-			float errCoef = 1.0f / linearData.size[ref];
 			switches.reset_home(true);
 			for (int i = 0; i < MAX_AXES; ++i)
 			{
@@ -195,8 +184,8 @@ bool canLog;
 				}
 				else {
 					float step = linearData.velCoef[i] / inertial.velocity;
-					int err = linearData.err[i];
-					float add = step * step * err * errCoef / 1024; //t*(1+t*e/T)
+					float err = linearData.error[i];
+					float add = step * step * err / 1024; //t*(1+t*e/T)
 					float maxAdd = step * 0.1f; //регулировка скорости максимально на 10 %
 					if (std::abs(add) > maxAdd)
 						add = std::copysign(maxAdd, add);
@@ -246,7 +235,7 @@ bool canLog;
 					linearData.last[i] += linearData.sign[i];
 				}
 		
-		floor_error();
+		normalize_error();
 		
 		for (int i = 0; i < MAX_AXES; ++i)
 			coord[i] = motor[i]._position;
