@@ -7,7 +7,7 @@
 
 struct Discretization
 {
-	int refCoord;          // индекс координаты, по которой шагаем (на самом деле по виртуальной оси)
+	int refSize;           // исходный размер опорной оси
 	int size[MAX_AXES];    // размеры линии
 	int err[MAX_AXES];     // ошибка координат (внутреннее представление)
 	int sign[MAX_AXES];    // изменение координаты при превышении ошибки {-1 || 1}
@@ -18,7 +18,6 @@ struct Discretization
 	//---------------------------------------------------------------------
 	void compute_error()
 	{
-		int ref = refCoord;
 		// допустим, размеры по x, y = a, b  , отрезок начинается с 0
 		// тогда уравнение будет a*y = b*x;   a*dy = b*dx;  a*dy - b*dx = 0
 		// ошибка по y относительно x при смещении:  (a*dy - b*dx) / a
@@ -27,7 +26,7 @@ struct Discretization
 		for (int i = 0; i < MAX_AXES; ++i)
 		{
 			int dy = (motor[i]._position - last[i]) * sign[i]; // находим изменение текущей координаты
-			int derr = dy * size[ref] - dx * size[i]; // находим ошибку текущей координаты
+			int derr = dy * refSize - dx * size[i]; // находим ошибку текущей координаты
 			err[i] += derr;
 			last[i] = motor[i]._position;
 		}
@@ -36,8 +35,7 @@ struct Discretization
 	//---------------------------------------------------------------------
 	void get_normalized_error(float error[MAX_AXES])
 	{
-		int ref = refCoord;
-		float errCoef = 1.0f / size[ref];
+		float errCoef = 1.0f / refSize;
 		for (int i = 0; i < MAX_AXES; ++i) {
 			error[i] = err[i] * errCoef;
 		}
@@ -56,15 +54,13 @@ struct Discretization
 		compute_error();
 
 		// медленными осями шагаем точно
-		int ref = refCoord;
-
 		for (int i = 0; i < MAX_AXES; ++i) {
 			if (size[i] != 0 && !motor[i]._isHardware)
 			{
-				if (motor[i].can_step(time) && err[i] < -size[ref] / 2)
+				if (motor[i].can_step(time) && err[i] < -refSize / 2)
 				{
 					motor[i].one_step(time);
-					err[i] += size[ref];
+					err[i] += refSize;
 					last[i] += sign[i];
 				}
 			}
@@ -74,8 +70,6 @@ struct Discretization
 	//---------------------------------------------------------------------
 	bool init_segment(int coord[MAX_AXES], int dest[MAX_AXES], int ref, bool homing)
 	{
-		refCoord = ref;
-
 		bool diff = false;
 		for(int i = 0; i < MAX_AXES; ++i)
 		{
@@ -101,6 +95,10 @@ struct Discretization
 				diff = true;
 		}
 
+		// размер опорной оси запоминаем исходный, а координату считаем от текущих координат
+		// чтобы потом при расчёте ошибки правильно скорректировать ошибку текущей позиции осей
+		// потому что в предыдущем отрезке аппаратные оси могли проехать за его конец
+		refSize = size[ref];
 		virtualAxe._position = (to[ref] - coord[ref]) * sign[ref];
 
 		// инициализируем ошибку, учитывая, что в начале отрезка она = 0
@@ -109,7 +107,9 @@ struct Discretization
 			err[i] = 0;
 			last[i] = from[i];
 		}
-		last[MAX_AXES] = size[ref];
+		last[MAX_AXES] = refSize;
+
+		// пересчитываем ошибку от начала отрезка до текущих координат
 		compute_error();
 
 		return diff;
