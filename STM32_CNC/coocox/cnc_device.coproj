@@ -149,6 +149,7 @@
     <File name="src/usart.h" path="../usart.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_gpio_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio_ex.h" type="1"/>
     <File name="src/feed.h" path="../feed.h" type="1"/>
+    <File name="src/discretization.h" path="../discretization.h" type="1"/>
     <File name="cmsis/core/cmsis_armcc_V6.h" path="Drivers/CMSIS/Include/cmsis_armcc_V6.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_tim.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h" type="1"/>
     <File name="src/sys_timer.h" path="../sys_timer.h" type="1"/>

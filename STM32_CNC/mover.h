@@ -7,6 +7,7 @@
 #include "track.h"
 #include "packets.h"
 #include "motor.h"
+#include "discretization.h"
 #include "sys_timer.h"
 #include "led.h"
 #include "spindle.h"
@@ -29,9 +30,6 @@ public:
 
 	int coord[MAX_AXES];    //текущие координаты
 	int stopTime;             //время следующей остановки
-
-	int from[MAX_AXES];     //откуда двигаемся
-	int to[MAX_AXES];       //куда двигаемся
 
 	MoveMode interpolation;
 	bool needPause;           //сбросить скорость до 0
@@ -76,16 +74,12 @@ bool canLog;
 	struct LinearData
 	{
 		bool enabled;          //моторы включены
-		int refCoord;          //индекс координаты, по которой шагаем
-		int size[MAX_AXES];  //размеры линии
-		int err[MAX_AXES];   //ошибка координат (внутреннее представление)
 		float error[MAX_AXES]; //ошибка координат
-		int sign[MAX_AXES];  //изменение координаты при превышении ошибки {-1 || 1}
-		int last[MAX_AXES+1];   //последние координаты, для которых была посчитана ошибка
 		float velCoef[MAX_AXES]; //на что умножить скорость, чтобы получить число тактов на шаг, мм/шаг
-
 		float invProj;			//(длина опорной координаты / полную длину)
 	};
+
+	Discretization discretization; // вычисление позиции двигателей
 	LinearData linearData;
 
 	
@@ -111,34 +105,6 @@ bool canLog;
 			linearData.enabled = false;
 		}
 	}
-
-	//=====================================================================================================
-	void compute_error()
-	{
-		int ref = linearData.refCoord;
-		//допустим, размеры по x, y = a, b  , отрезок начинается с 0
-		//тогда уравнение будет a*y = b*x;   a*dy = b*dx;  a*dy - b*dx = 0
-		//ошибка по y относительно x при смещении:  (a*dy - b*dx) / a
-		int dx = -(virtualAxe._position - linearData.last[MAX_AXES]); //находим изменение опорной координаты
-		linearData.last[MAX_AXES] = virtualAxe._position;
-		for (int i = 0; i < MAX_AXES; ++i)
-		{
-			int dy = (motor[i]._position - linearData.last[i]) * linearData.sign[i]; //находим изменение текущей координаты
-			int derr = dy * linearData.size[ref] - dx * linearData.size[i]; //находим ошибку текущей координаты//какой должен быть знак?
-			linearData.err[i] += derr;
-			linearData.last[i] = motor[i]._position;
-		}
-	}
-
-	//=====================================================================================================
-	void normalize_error()
-	{
-		int ref = linearData.refCoord;
-		float errCoef = 1.0f / linearData.size[ref];
-		for (int i = 0; i < MAX_AXES; ++i) {
-			linearData.error[i] = linearData.err[i] * errCoef;
-		}
-	}
 	
 	//=====================================================================================================
 	/*
@@ -161,7 +127,6 @@ bool canLog;
 		}
 		else
 		{
-			int ref = linearData.refCoord;
 			int curTime = timer.get_ticks();
 			int stepTimeArr[MAX_AXES+1];
 			switches.reset_home(true);
@@ -198,7 +163,7 @@ bool canLog;
 			}
 			//для виртуальной оси тоже считаем скорость
 			{
-				int stepTime = linearData.velCoef[ref] / inertial.velocity;
+				int stepTime = linearData.invProj / inertial.velocity;
 				if (stepTime > MAX_STEP_TIME || stepTime <= 0) //0 возможен при переполнении разрядов
 					stepTime = MAX_STEP_TIME;
 				stepTimeArr[MAX_AXES] = stepTime;
@@ -213,29 +178,15 @@ bool canLog;
 	}
 
 	//=====================================================================================================
-	bool brez_step()
+	bool update_motors()
 	{
 		int time = timer.get_ticks();
-		for (int i = 0; i < MAX_AXES; ++i) //быстро запоминаем текущее состояние координат
-			if (linearData.size[i] != 0 && motor[i]._isHardware)
-				motor[i].shot(time);
-		virtualAxe.shot(time); //виртуальная ось самая большая, если она = 0, то выйдет еще при инициализации
-			
-		//находим ошибку новых координат
-		compute_error();
-		
-		int ref = linearData.refCoord;
-		
-		for (int i = 0; i < MAX_AXES; ++i) //медленными осями шагаем точно
-			if (linearData.size[i] != 0 && !motor[i]._isHardware)
-				if (motor[i].can_step(time) && linearData.err[i] < -linearData.size[ref] / 2)
-				{
-					motor[i].one_step(time);
-					linearData.err[i] += linearData.size[ref];
-					linearData.last[i] += linearData.sign[i];
-				}
-		
-		normalize_error();
+
+		// обновляем позиции моторов
+		discretization.update_position(time);
+
+		// вычисляем ошибку позиций
+		discretization.get_normalized_error(linearData.error);
 		
 		for (int i = 0; i < MAX_AXES; ++i)
 			coord[i] = motor[i]._position;
@@ -248,54 +199,12 @@ bool canLog;
 			
 		return true;
 	}
-
-
-	//=====================================================================================================
-	bool brez_init(int dest[MAX_AXES])
-	{
-		bool diff = false;
-		for(int i = 0; i < MAX_AXES; ++i) //для алгоритма рисования
-		{
-			from[i] = to[i];       //куда должны были доехать
-			if (interpolation != MoveMode_HOME)
-				to[i] = dest[i];       //куда двигаемся
-			else
-				to[i] += dest[i]; //инкрементальный режим для хоминга, так как текущие координаты на компьютере могут быть сбиты
-			if(to[i] > from[i])
-			{
-				linearData.size[i] = to[i] - from[i]; //увеличение ошибки
-				linearData.sign[i] = 1;                 //изменение координаты
-			}
-			else
-			{
-				linearData.size[i] = from[i] - to[i];
-				linearData.sign[i] = -1;
-			}
-
-			if(to[i] != from[i])
-				diff = true;
-		}
-
-		int ref = linearData.refCoord;
-		virtualAxe._position = (to[ref] - coord[ref]) * linearData.sign[ref];
-		//инициализируем ошибку, учитывая, что в начале отрезка она = 0
-		for(int i = 0; i < MAX_AXES; ++i)
-		{
-			linearData.err[i] = 0;
-			linearData.last[i] = from[i];
-		}
-		linearData.last[MAX_AXES] = linearData.size[ref];
-		compute_error();
-
-		return diff;
-	}
 	
 	//=====================================================================================================
 	void finish_linear()
 	{
 		stop_motors();
-		for(int i = 0; i < MAX_AXES; ++i)
-			to[i] = coord[i];
+		discretization.finish(coord);
 		inertial.stop();
 		init_empty();
 	}
@@ -303,7 +212,7 @@ bool canLog;
 	//=====================================================================================================
 	OperateResult linear()
 	{
-		if (switches.switch_reached(interpolation == MoveMode_HOME, linearData.size))
+		if (switches.switch_reached(interpolation == MoveMode_HOME, discretization.size))
 		{
 			finish_linear(); //TODO сделать обработку остановки
 			return END;
@@ -324,7 +233,7 @@ bool canLog;
 
 		inertial.update_velocity(needPause ? 0 : targetFeed, length);
 
-		if (!brez_step())
+		if (!update_motors())
 		{
 			if (tracks.current_length() == 0)
 			{
@@ -355,9 +264,10 @@ bool canLog;
 			inertial.stop();
 		}
 
-		linearData.refCoord = refCoord; //используется в brez_init
+		bool homing = (interpolation == MoveMode_HOME);
 
-		if(!brez_init(dest)) //если двигаться никуда не надо, то выйдет на первом такте
+		//если двигаться никуда не надо, то выйдет на первом такте
+		if(!discretization.init_segment(coord, dest, refCoord, homing))
 		{
 			log_console("ERR: brez %d, %d, %d\n", dest[0], dest[1], dest[2]);
 			return;
@@ -371,15 +281,15 @@ bool canLog;
 
 		for (int i = 0; i < MAX_AXES; ++i)
 		{
-			motor[i].set_direction(linearData.sign[i] > 0);
+			motor[i].set_direction(discretization.sign[i] > 0);
 			
-			if (linearData.size[i] == 0)
+			if (discretization.size[i] == 0)
 				linearData.velCoef[i] = 0;
 			else
 			{
-				linearData.velCoef[i] = length / linearData.size[i];
+				linearData.velCoef[i] = length / discretization.size[i];
 				
-				switches.activate_switch(i, interpolation == MoveMode_HOME, linearData.sign[i] > 0);
+				switches.activate_switch(i, homing, discretization.sign[i] > 0);
 			}
 		}
 		
@@ -521,7 +431,7 @@ bool canLog;
 						{
 							coord[i] = packet->coord[i];
 							motor[i]._position = coord[i];
-							to[i] = coord[i];
+							discretization.to[i] = coord[i];
 						}
 					break;
 				}
