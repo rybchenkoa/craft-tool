@@ -406,6 +406,91 @@ bool canLog;
 
 
 	//=====================================================================================================
+	void execute_packet(const PacketCommon *common)
+	{
+		switch(common->command)
+		{
+			case DeviceCommand_MOVE:
+			{
+				process_packet_move((PacketMove*)common);
+				break;
+			}
+			case DeviceCommand_MOVE_MODE:
+			{
+				interpolation = ((PacketInterpolationMode*)common)->mode;
+				break;
+			}
+			case DeviceCommand_SET_VEL_ACC:
+			{
+				PacketSetVelAcc *packet = (PacketSetVelAcc*)common;
+				process_packet_set_vel_acc(packet);
+				break;
+			}
+			case DeviceCommand_SET_SWITCHES:
+			{
+				PacketSetSwitches *packet = (PacketSetSwitches*)common;
+				switches.process_packet_set_switches(packet);
+				break;
+			}
+			case DeviceCommand_SET_SPINDLE_PARAMS:
+			{
+				PacketSetSpindleParams *packet = (PacketSetSpindleParams*)common;
+				spindle.process_packet_set_spindle_params(packet);
+				break;
+			}
+			case DeviceCommand_SET_COORDS:
+			{
+				PacketSetCoords *packet = (PacketSetCoords*)common;
+				process_packet_set_coords(packet);
+				break;
+			}
+			case DeviceCommand_SET_FEED:
+			{ //TODO возможно надо удалить пакет
+				/*PacketSetFeed *packet = (PacketSetFeed*)common;
+				linearData.feedVelocity = packet->feedVel;
+				log_console("feed %d\n", int(linearData.feedVelocity));*/
+				break;
+			}
+			case DeviceCommand_SET_FEED_MODE:
+			{
+				feedModifier.set_mode((PacketSetFeedMode*)common);
+				break;
+			}
+			case DeviceCommand_SET_STEP_SIZE:
+			{
+				PacketSetStepSize *packet = (PacketSetStepSize*)common;
+				process_packet_set_step_size(packet);
+				break;
+			}
+			case DeviceCommand_SET_PWM:
+			{
+				PacketSetPWM *packet = (PacketSetPWM*)common;
+				pwm.process_packet_set_pwm(packet);
+				break;
+			}
+			case DeviceCommand_SET_PWM_FREQ:
+			{
+				PacketSetPWMFreq *packet = (PacketSetPWMFreq*)common;
+				pwm.process_packet_set_pwm_freq(packet);
+				break;
+			}
+			case DeviceCommand_WAIT:
+			{
+				PacketWait *packet = (PacketWait*)common;
+				init_wait(packet->delay);
+				break;
+			}
+			case DeviceCommand_SET_FRACT:
+				break;
+
+			default:
+				log_console("ERR: undefined packet type %d, %d\n", common->command, common->packetNumber);
+				break;
+		}
+	}
+
+
+	//=====================================================================================================
 	typedef OperateResult (Mover::*Handler)();
 	Handler handler;
 
@@ -423,87 +508,7 @@ bool canLog;
 			{
 				const PacketCommon* common = (PacketCommon*)&receiver.queue.Front();
 				send_packet_service_command(common->packetNumber);
-				
-				switch(common->command)
-				{
-				case DeviceCommand_MOVE:
-					{
-						process_packet_move((PacketMove*)common);
-						break;
-					}
-				case DeviceCommand_MOVE_MODE:
-					{
-						interpolation = ((PacketInterpolationMode*)common)->mode;
-						break;
-					}
-				case DeviceCommand_SET_VEL_ACC:
-				{
-					PacketSetVelAcc *packet = (PacketSetVelAcc*)common;
-					process_packet_set_vel_acc(packet);
-					break;
-				}
-				case DeviceCommand_SET_SWITCHES:
-				{
-					PacketSetSwitches *packet = (PacketSetSwitches*)common;
-					switches.process_packet_set_switches(packet);
-					break;
-				}
-				case DeviceCommand_SET_SPINDLE_PARAMS:
-				{
-					PacketSetSpindleParams *packet = (PacketSetSpindleParams*)common;
-					spindle.process_packet_set_spindle_params(packet);
-					break;
-				}
-				case DeviceCommand_SET_COORDS:
-				{
-					PacketSetCoords *packet = (PacketSetCoords*)common;
-					process_packet_set_coords(packet);
-					break;
-				}
-				case DeviceCommand_SET_FEED:
-					{ //TODO возможно надо удалить пакет
-						/*PacketSetFeed *packet = (PacketSetFeed*)common;
-						linearData.feedVelocity = packet->feedVel;
-						log_console("feed %d\n", int(linearData.feedVelocity));*/
-						break;
-					}
-				case DeviceCommand_SET_FEED_MODE:
-				{
-					feedModifier.set_mode((PacketSetFeedMode*)common);
-					break;
-				}
-				case DeviceCommand_SET_STEP_SIZE:
-					{
-						PacketSetStepSize *packet = (PacketSetStepSize*)common;
-						process_packet_set_step_size(packet);
-						break;
-					}
-				case DeviceCommand_SET_PWM:
-					{
-						PacketSetPWM *packet = (PacketSetPWM*)common;
-						pwm.process_packet_set_pwm(packet);
-						break;
-					}
-				case DeviceCommand_SET_PWM_FREQ:
-					{
-						PacketSetPWMFreq *packet = (PacketSetPWMFreq*)common;
-						pwm.process_packet_set_pwm_freq(packet);
-						break;
-					}
-				case DeviceCommand_WAIT:
-					{
-						PacketWait *packet = (PacketWait*)common;
-						init_wait(packet->delay);
-						break;
-					}
-				case DeviceCommand_SET_FRACT:
-					break;
-
-				default:
-					log_console("ERR: undefined packet type %d, %d\n", common->command, common->packetNumber);
-					break;
-				}
-
+				execute_packet(common);
 				receiver.queue.Pop();
 			}
 		}
