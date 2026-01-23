@@ -210,7 +210,7 @@ bool canLog;
 	}
 
 	//=====================================================================================================
-	OperateResult linear()
+	OperateResult linear(bool needBreak)
 	{
 		if (switches.switch_reached(interpolation == MoveMode_HOME, discretization.size))
 		{
@@ -244,12 +244,9 @@ bool canLog;
 		}
 		
 		//прерывание обработки
-		if (inertial.velocity == 0 && breakState == 1)
+		if (needBreak && inertial.velocity == 0)
 		{
 			finish_linear();
-			receiver.init();
-			tracks.init();
-			breakState = 2;
 			return END;
 		}
 
@@ -300,19 +297,15 @@ bool canLog;
 
 
 	//=====================================================================================================
-	OperateResult empty()
+	OperateResult empty(bool needBreak)
 	{
 		if((unsigned int)timer.get() % 1200000 > 600000)
 			led.show(0);
 		else
 			led.hide(0);
 
-		if (breakState == 1)
-		{
-			receiver.init();
-			tracks.init();
-			breakState = 2;
-		}
+		if (needBreak)
+			return END;
 	
 		if(receiver.queue_empty())
 			return WAIT;
@@ -329,15 +322,10 @@ bool canLog;
 
 
 	//=====================================================================================================
-	OperateResult wait()
+	OperateResult wait(bool needBreak)
 	{
-		if (breakState == 1)
-		{
-			receiver.init();
-			tracks.init();
-			breakState = 2;
+		if (needBreak)
 			return END;
-		}
 		
 		if(timer.check(stopTime))
 			return WAIT;
@@ -491,18 +479,25 @@ bool canLog;
 
 
 	//=====================================================================================================
-	typedef OperateResult (Mover::*Handler)();
+	typedef OperateResult (Mover::*Handler)(bool needBreak);
 	Handler handler;
 
 	void update()
 	{
-		OperateResult result = (this->*handler)();
+		bool needBreak = (breakState == 1);
+		OperateResult result = (this->*handler)(needBreak);
 		if(result == END) //если у нас что-то шло и кончилось
 		{
+			if (needBreak) {
+				receiver.init();
+				tracks.init();
+				breakState = 2;
+			}
+
 			if(receiver.queue_empty())
 			{
 				init_empty();
-				empty();
+				empty(false);
 			}
 			else
 			{
@@ -599,12 +594,14 @@ bool execute_nonmain_packet(PacketCommon* common)
 		}
 		case DeviceCommand_BREAK:
 		{
+			// если уже остановились, сбрасываем флаги остановки
 			if (mover.breakState == 2)
 			{
 				send_packet_received(common->packetNumber, 1);
 				mover.breakState = 0;
 				mover.needPause = 0;
 			}
+			// для breakState == 1 не обрабатываем, потому что уже в процессе остановки
 			else if (mover.breakState == 0)
 			{
 				mover.breakState = 1;
