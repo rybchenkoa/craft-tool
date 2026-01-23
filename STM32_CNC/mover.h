@@ -366,6 +366,46 @@ bool canLog;
 
 
 	//=====================================================================================================
+	void process_packet_set_vel_acc(PacketSetVelAcc *packet)
+	{
+		float mks = 0.000001;
+		for(int i = 0; i < MAX_AXES; ++i)
+		{
+			maxVelocity[i] = packet->maxVelocity[i] * mks;
+			maxAcceleration[i] = packet->maxAcceleration[i] * mks * mks;
+			log_console("[%d]: maxVel %d, maxAcc %d\n", i, int(packet->maxVelocity[i]), int(packet->maxAcceleration[i]));
+		}
+	}
+
+
+	//=====================================================================================================
+	void process_packet_set_coords(PacketSetCoords *packet)
+	{
+		for (int i = 0; i < MAX_AXES; ++i) {
+			if (packet->used | (1 << i))
+			{
+				coord[i] = packet->coord[i];
+				motor[i]._position = coord[i];
+				discretization.to[i] = coord[i];
+			}
+		}
+	}
+
+
+	//=====================================================================================================
+	void process_packet_set_step_size(PacketSetStepSize *packet)
+	{
+		for(int i = 0; i < MAX_AXES; ++i)
+		{
+			stepLength[i] = packet->stepSize[i];
+			float mk = stepLength[i]*1000;
+			int z = int(mk);
+			log_console("[%d]: stepLength %d.%02d um\n", i, z, int(mk*100 - z*100));
+		}
+	}
+
+
+	//=====================================================================================================
 	typedef OperateResult (Mover::*Handler)();
 	Handler handler;
 
@@ -399,13 +439,7 @@ bool canLog;
 				case DeviceCommand_SET_VEL_ACC:
 				{
 					PacketSetVelAcc *packet = (PacketSetVelAcc*)common;
-					float mks = 0.000001;
-					for(int i = 0; i < MAX_AXES; ++i)
-					{
-						maxVelocity[i] = packet->maxVelocity[i] * mks;
-						maxAcceleration[i] = packet->maxAcceleration[i] * mks * mks;
-						log_console("[%d]: maxVel %d, maxAcc %d\n", i, int(packet->maxVelocity[i]), int(packet->maxAcceleration[i]));
-					}
+					process_packet_set_vel_acc(packet);
 					break;
 				}
 				case DeviceCommand_SET_SWITCHES:
@@ -417,22 +451,13 @@ bool canLog;
 				case DeviceCommand_SET_SPINDLE_PARAMS:
 				{
 					PacketSetSpindleParams *packet = (PacketSetSpindleParams*)common;
-					spindle.pinNumber = packet->pin;
-					spindle.marksCount = packet->marksCount;
-					spindle.maxSyncPeriod = TIMER_FREQUENCY / packet->frequency; // период оборота в микросекундах
-					spindle.sensorFilterSize = packet->filterSize;
+					spindle.process_packet_set_spindle_params(packet);
 					break;
 				}
 				case DeviceCommand_SET_COORDS:
 				{
 					PacketSetCoords *packet = (PacketSetCoords*)common;
-					for (int i = 0; i < MAX_AXES; ++i)
-						if (packet->used | (1 << i))
-						{
-							coord[i] = packet->coord[i];
-							motor[i]._position = coord[i];
-							discretization.to[i] = coord[i];
-						}
+					process_packet_set_coords(packet);
 					break;
 				}
 				case DeviceCommand_SET_FEED:
@@ -450,13 +475,7 @@ bool canLog;
 				case DeviceCommand_SET_STEP_SIZE:
 					{
 						PacketSetStepSize *packet = (PacketSetStepSize*)common;
-						for(int i = 0; i < MAX_AXES; ++i)
-						{
-							stepLength[i] = packet->stepSize[i];
-							float mk = stepLength[i]*1000;
-							int z = int(mk);
-							log_console("[%d]: stepLength %d.%02d um\n", i, z, int(mk*100 - z*100));
-						}
+						process_packet_set_step_size(packet);
 						break;
 					}
 				case DeviceCommand_SET_PWM:

@@ -1,5 +1,6 @@
 //ǁ
 #include "common.h"
+#include "packets.h"
 
 //===============================================================
 /*
@@ -237,6 +238,15 @@ struct Spindle
 			length += syncMarks[j];
 			markPositions[i] = length * factor;
 		}
+	}
+
+	// задаёт настройки
+	void process_packet_set_spindle_params(PacketSetSpindleParams *packet)
+	{
+		pinNumber = packet->pin;
+		marksCount = packet->marksCount;
+		maxSyncPeriod = TIMER_FREQUENCY / packet->frequency; // период оборота в микросекундах
+		sensorFilterSize = packet->filterSize;
 	}
 };
 
