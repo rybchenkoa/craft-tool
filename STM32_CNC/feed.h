@@ -1,8 +1,10 @@
-//ǁ
+#pragma once
+// управление подачей
 
 #include <cmath>
 
 #include "common.h"
+#include "spindle.h"
 
 
 //===============================================================

@@ -9,7 +9,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "sys_timer.h"
-#include "mover.h"
+#include "executor.h"
 #include "receiver.h"
 #include "track.h"
 #include "system.h"
@@ -50,21 +50,21 @@ int main()
 	init();
 	led.show(0);
 
-	mover.init();
+	executor.init();
 	int timeToSend = timer.get_ms(500); //предварительная пауза на всякий случай
 	int stepTime; //время обработки одного шага
-	mover.canLog = true;
+	executor.canLog = true;
 	int numShow = 0;
 	while(1)
 	{
 		stepTime = timer.get_ticks();
-		mover.update();
+		executor.update();
 		usart.process_receive();
 		stepTime = timer.get_ticks() - stepTime;
 		
-		if (mover.canLog)
+		if (executor.canLog)
 		{
-			send_packet_service_coords(mover.coord);
+			send_packet_service_coords(executor.taskMove.coord);
 		}
 		
 		if(!timer.check(timeToSend))
@@ -76,9 +76,9 @@ int main()
 		if (numShow > 0)
 		{
 			--numShow;
-			mover.canLog = true;
+			executor.canLog = true;
 		}
 		else
-			mover.canLog = false;
+			executor.canLog = false;
 	}
 }

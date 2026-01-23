@@ -6,7 +6,7 @@
       <Compile>
         <Option name="OptimizationLevel" value="4"/>
         <Option name="UseFPU" value="0"/>
-        <Option name="UserEditCompiler" value="-Wno-switch;-fno-exceptions;-fsigned-char;-std=c++11;-ffast-math"/>
+        <Option name="UserEditCompiler" value="-Wno-switch;-fno-exceptions;-fsigned-char;-std=c++11;-ffast-math;-fno-rtti"/>
         <Option name="SupportCPlusplus" value="1"/>
         <Option name="FPU" value="2"/>
         <Option name="CompileBeforeDebug" value="0"/>
@@ -73,8 +73,8 @@
   </Target>
   <Components path="./"/>
   <Files>
-    <File name="src/mover.h" path="../mover.h" type="1"/>
     <File name="src/common.h" path="../common.h" type="1"/>
+    <File name="src/task_move.h" path="../task_move.h" type="1"/>
     <File name="sys/stm32f4xx_hal_conf.h" path="Inc/stm32f4xx_hal_conf.h" type="1"/>
     <File name="src/main.cpp" path="../main.cpp" type="1"/>
     <File name="src/fifo.h" path="../fifo.h" type="1"/>
@@ -115,9 +115,11 @@
     <File name="cmsis/core/core_cm3.h" path="Drivers/CMSIS/Include/core_cm3.h" type="1"/>
     <File name="cmsis/core/arm_math.h" path="Drivers/CMSIS/Include/arm_math.h" type="1"/>
     <File name="src/limit_switch.h" path="../limit_switch.h" type="1"/>
+    <File name="src/task.h" path="../task.h" type="1"/>
     <File name="src/packets.h" path="../packets.h" type="1"/>
     <File name="src/gpio.h" path="../gpio.h" type="1"/>
     <File name="sys" path="" type="2"/>
+    <File name="src/task_wait.h" path="../task_wait.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_gpio.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h" type="1"/>
     <File name="cmsis/core/core_cmInstr.h" path="Drivers/CMSIS/Include/core_cmInstr.h" type="1"/>
     <File name="cmsis/core/arm_common_tables.h" path="Drivers/CMSIS/Include/arm_common_tables.h" type="1"/>
@@ -139,6 +141,7 @@
     <File name="src/adc.h" path="../adc.h" type="1"/>
     <File name="src/receiver.h" path="../receiver.h" type="1"/>
     <File name="src/pwm.h" path="../pwm.h" type="1"/>
+    <File name="src/task_empty.h" path="../task_empty.h" type="1"/>
     <File name="cmsis" path="" type="2"/>
     <File name="src/inertial.h" path="../inertial.h" type="1"/>
     <File name="cmsis/device/system_stm32f4xx.h" path="Drivers/CMSIS/Device/ST/STM32F4xx/Include/system_stm32f4xx.h" type="1"/>
@@ -157,6 +160,7 @@
     <File name="src/spindle.h" path="../spindle.h" type="1"/>
     <File name="sys/system_stm32f4xx.c" path="Src/system_stm32f4xx.c" type="1"/>
     <File name="cmsis/core/core_sc000.h" path="Drivers/CMSIS/Include/core_sc000.h" type="1"/>
+    <File name="src/executor.h" path="../executor.h" type="1"/>
     <File name="cmsis/core/core_cmSimd.h" path="Drivers/CMSIS/Include/core_cmSimd.h" type="1"/>
     <File name="cmsis/device" path="" type="2"/>
     <File name="cmsis/ll/src/stm32f4xx_ll_utils.c" path="Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_utils.c" type="1"/>

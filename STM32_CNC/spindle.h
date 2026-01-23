@@ -1,4 +1,6 @@
-//ǁ
+#pragma once
+// управление шпинделем
+
 #include "common.h"
 #include "packets.h"
 
