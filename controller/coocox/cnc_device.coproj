@@ -74,7 +74,7 @@
   <Components path="./"/>
   <Files>
     <File name="src/task_move.h" path="../src/task_move.h" type="1"/>
-    <File name="sys/stm32f4xx_hal_conf.h" path="Inc/stm32f4xx_hal_conf.h" type="1"/>
+    <File name="src/stm32f407/sys/stm32f4xx_hal_conf.h" path="../src/stm32f407/sys/stm32f4xx_hal_conf.h" type="1"/>
     <File name="src/stm32f407/common.h" path="../src/stm32f407/common.h" type="1"/>
     <File name="src/main.cpp" path="../src/main.cpp" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_pwr_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h" type="1"/>
@@ -93,7 +93,7 @@
     <File name="cmsis/core/core_cm4.h" path="Drivers/CMSIS/Include/core_cm4.h" type="1"/>
     <File name="cmsis/core/core_cmFunc.h" path="Drivers/CMSIS/Include/core_cmFunc.h" type="1"/>
     <File name="src/stm32f407/led.h" path="../src/stm32f407/led.h" type="1"/>
-    <File name="sys/startup_stm32f407xx.s" path="startup/startup_stm32f407xx.s" type="1"/>
+    <File name="src/stm32f407/sys/startup_stm32f407xx.s" path="../src/stm32f407/sys/startup_stm32f407xx.s" type="1"/>
     <File name="src/stm32f407/system.h" path="../src/stm32f407/system.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_cortex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_cortex.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_dma_ex.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma_ex.h" type="1"/>
@@ -119,7 +119,7 @@
     <File name="src/packets.h" path="../src/packets.h" type="1"/>
     <File name="src/task.h" path="../src/task.h" type="1"/>
     <File name="src/stm32f407/gpio.h" path="../src/stm32f407/gpio.h" type="1"/>
-    <File name="sys" path="" type="2"/>
+    <File name="src/stm32f407/sys" path="" type="2"/>
     <File name="src/task_wait.h" path="../src/task_wait.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_gpio.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h" type="1"/>
     <File name="cmsis/core/core_cmInstr.h" path="Drivers/CMSIS/Include/core_cmInstr.h" type="1"/>
@@ -159,7 +159,7 @@
     <File name="src/stm32f407/sys_timer.h" path="../src/stm32f407/sys_timer.h" type="1"/>
     <File name="cmsis/hal" path="" type="2"/>
     <File name="src/spindle.h" path="../src/spindle.h" type="1"/>
-    <File name="sys/system_stm32f4xx.c" path="Src/system_stm32f4xx.c" type="1"/>
+    <File name="src/stm32f407/sys/system_stm32f4xx.c" path="../src/stm32f407/sys/system_stm32f4xx.c" type="1"/>
     <File name="cmsis/core/core_sc000.h" path="Drivers/CMSIS/Include/core_sc000.h" type="1"/>
     <File name="src/executor.h" path="../src/executor.h" type="1"/>
     <File name="cmsis/core/core_cmSimd.h" path="Drivers/CMSIS/Include/core_cmSimd.h" type="1"/>
