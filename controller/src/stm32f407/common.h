@@ -4,8 +4,6 @@
 //#include <stdio.h>
 //#include <stdarg.h>
 
-#define M_PI 3.1415f
-
 const int MAX_AXES = 5;
 const int CORE_FREQ = 168000000;
 const int PWM_SIZE = CORE_FREQ / 20000;    //дефолтные частоты

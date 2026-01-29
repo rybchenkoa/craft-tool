@@ -105,6 +105,14 @@ void init_default_gpio()
 }
 
 
+void init_system()
+{
+	init_fault_irq();
+	init_system_clock();
+	connect_peripherals();
+	init_default_gpio();
+	DBGMCU->CR = -1u; //при отладке останавливаем всё
+}
 
 
 void NMI_Handler()

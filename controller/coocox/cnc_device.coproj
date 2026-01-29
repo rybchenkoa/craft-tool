@@ -101,6 +101,7 @@
     <File name="cmsis/hal/inc/stm32f4xx_hal_rcc.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h" type="1"/>
     <File name="cmsis/core/cmsis_armcc.h" path="Drivers/CMSIS/Include/cmsis_armcc.h" type="1"/>
     <File name="cmsis/core/cmsis_gcc.h" path="Drivers/CMSIS/Include/cmsis_gcc.h" type="1"/>
+    <File name="src/stm32f407/crc.h" path="../src/stm32f407/crc.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_flash.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_dma.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h" type="1"/>
     <File name="cmsis/device/stm32f4xx.h" path="Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f4xx.h" type="1"/>
@@ -157,6 +158,7 @@
     <File name="cmsis/core/cmsis_armcc_V6.h" path="Drivers/CMSIS/Include/cmsis_armcc_V6.h" type="1"/>
     <File name="cmsis/hal/inc/stm32f4xx_hal_tim.h" path="Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h" type="1"/>
     <File name="src/stm32f407/sys_timer.h" path="../src/stm32f407/sys_timer.h" type="1"/>
+    <File name="src/main.h" path="../src/main.h" type="1"/>
     <File name="cmsis/hal" path="" type="2"/>
     <File name="src/spindle.h" path="../src/spindle.h" type="1"/>
     <File name="src/stm32f407/sys/system_stm32f4xx.c" path="../src/stm32f407/sys/system_stm32f4xx.c" type="1"/>

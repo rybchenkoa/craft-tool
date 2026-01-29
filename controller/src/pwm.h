@@ -44,7 +44,7 @@ public:
 			if (packet->pin < MAX_SLOW_PWMS)
 				pwmSizes[(int)packet->pin] = pwmSlowPeriod * packet->value;
 			else
-				set_pwm_width(MAX_SLOW_PWMS - packet->pin, TIM1->ARR * packet->value);
+				set_pwm_width(MAX_SLOW_PWMS - packet->pin, packet->value);
 		}
 	}
 

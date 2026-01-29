@@ -341,9 +341,9 @@ void inline set_pwm_pin(int index, bool state)
 
 //--------------------------------------------------
 //задает ширину импульсов на аппаратной ножке
-void inline set_pwm_width(int index, int width)
+void inline set_pwm_width(int index, float width)
 {
-	(&TIM1->CCR1)[index] = width;
+	(&TIM1->CCR1)[index] = TIM1->ARR * width;
 }
 
 //--------------------------------------------------
