@@ -57,7 +57,7 @@ public:
 	{
 		bool isEmpty = false;
 		Track *track = &tracks.Front();
-		__disable_irq();
+		//__disable_irq();
 		while(track->segments == 0)
 		{
 			tracks.Pop();
@@ -69,7 +69,7 @@ public:
 		track->uLength -= uLength;
 		if(track->uLength < 0) //вычитаем то, что перед этим было добавлено
 			log_console("ERR: len %d, %d, %d\n", track->segments, track->uLength, uLength);
-		__enable_irq();
+		//__enable_irq();
 
 		return isEmpty;
 	}
