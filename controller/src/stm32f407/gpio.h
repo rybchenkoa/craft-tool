@@ -220,7 +220,7 @@ void config_pwm_timer()
 							| TIM_CCER_CC4E; //подключаем все каналы для шим
 
 	TIM1->PSC = 0;
-	TIM1->ARR = PWM_SIZE-1;
+	TIM1->ARR = CORE_FREQ / PWM_FREQ - 1;
 	TIM1->CR1 |= TIM_CR1_ARPE; //чтобы при обновлении с большего на меньшее не считать до 2^16
 	TIM1->CR1 |= TIM_CR1_CEN; //запускаем таймер
 }
@@ -348,7 +348,8 @@ void inline set_pwm_width(int index, float width)
 
 //--------------------------------------------------
 //задает периодичность импульсов на аппаратной ножке
-void inline set_pwm_period(int period)
+void inline set_pwm_frequency(float frequency)
 {
+	int period = CORE_FREQ / frequency;
 	TIM1->ARR = period;
 }

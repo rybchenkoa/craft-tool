@@ -6,8 +6,8 @@
 
 const int MAX_AXES = 5;
 const int CORE_FREQ = 168000000;
-const int PWM_SIZE = CORE_FREQ / 20000;    //дефолтные частоты
-const int PWM_SLOW_SIZE = 1000000 / 1000;//
+const int PWM_FREQ = 20000;               // дефолтные частоты
+const int PWM_SLOW_FREQ = 1000;           // частота медленного ШИМ
 const int MAX_SLOW_PWMS = 3;
 const int MAX_STEP_TIME = 1<<30;
 const int MAX_SPINDLE_MARKS = 10; //10 меток, 20 переключений туда/сюда

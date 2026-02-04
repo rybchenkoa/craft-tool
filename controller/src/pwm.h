@@ -16,7 +16,7 @@ public:
 	//---------------------------------------------------------------------
 	PwmController()
 	{
-		pwmSlowPeriod = PWM_SLOW_SIZE;
+		pwmSlowPeriod = 1000000 / PWM_SLOW_FREQ;
 		for(int i = 0; i < MAX_SLOW_PWMS; i++)
 			pwmSizes[i] = 0;
 		lastPwmUpdate = 0;
@@ -53,6 +53,6 @@ public:
 	void process_packet_set_pwm_freq(PacketSetPWMFreq *packet)
 	{
 		pwmSlowPeriod = 1000000 / packet->slowFreq;
-		set_pwm_period(CORE_FREQ / packet->freq);
+		set_pwm_frequency(packet->freq);
 	}
 };

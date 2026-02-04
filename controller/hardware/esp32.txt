@@ -1,0 +1,52 @@
+ESP-WROOM-32
+NodeMCU-32S
+
+3.3V
+EN RESET
+G36 ADC0 SP	IN_ONLY	ADC
+G39 ADC3 SM	IN_ONLY	IN1
+G34 ADC6	IN_ONLY	IN2
+G35 ADC7	IN_ONLY	IN3
+G32 ADC4	+	STEP1
+G33 ADC5	+	DIR1
+G25	+	STEP2
+G26	+	DIR2
+G27	+	STEP3
+G14	?	DIR3
+G12	-
+GND
+G13	+	IN4
+G9  SD2 RX1	-
+G10 SD3 TX1	-
+G11 CMD	-
+V5
+
+
+GND
+G23	+	STEP4
+G22	+	DIR4
+G1 TX0	-
+G3 RX0	-
+G21	+	STEP5
+GND
+G19	+	DIR5
+G18	+	OUT1
+G5	?	OUT2
+G17 TX2
+G16 RX2
+G4	+	OUT3
+G0	-
+G2	LED
+G15	?	OUT4
+G8  SD1	-
+G7  SD0	-
+G6  CLK	-
+
+G0, G2 для переключения в режим загрузки прошивки
+G6..G11 заняты встроенным flash
+G12 управляет напряжением на flash
+G1, G3 для загрузки прошивки
+G15 переключает отсылку отладочных сообщений загрузчиком, можно использовать
+G5, G14, G15 могут менять состояние при загрузке
+G18,G19,G21,G22,G23,G25,G26,G27,G32,G33 - можно безопасно использовать
+G34, 35, G36, G39 работают только на вход

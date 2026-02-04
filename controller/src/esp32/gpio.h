@@ -1,38 +1,50 @@
 #pragma once
-//задаёт конфигурацию выходных пинов
+// задаёт конфигурацию выходных пинов
 
-#include "common.h"
+// разводка выводов под двигатели
+// STEP [32, 25, 27, 23, 21]
+// DIR  [33, 26, 14, 22, 19]
+// выводы ШИМ [18, 5  аппаратные 4, 15]
 
-
-//=====================================================================
-//разводка выводов под двигатели
-//STEP [d12, d13, d14, d15, g4]
-//DIR [d10, d11, g2, g3, g6]
-//выводы ШИМ [e8, e10, e12  аппаратные e9, e11, e13, e14]
+#include "sys_timer.h"
 
 #define MAX_HARD_AXES 5
-#define MAX_PWM  4
+#define MAX_PWM 2
+#define PWM_RESOLUTION 16
+#define MAX_PWM_WIDTH ((1<<16)-1)
 
-//16-бит максимальное время между шагами для аппаратного таймера
-//тактирование на 1/2 частоты процессора
-//время периода = ARR+1, поэтому здесь можно вылезть на 1 за пределы 16 бит
-#define MAX_PERIOD (1<<17)
-#define MAX_STEP 256 //8-битный счетчик шагов, 0 пропускается, вместо него 0x1 00
+// 16-бит максимальное время между шагами для генерации в отдельном потоке
+#define MAX_PERIOD (1<<16)
+#define MAX_STEP 0 // 32-битный программный счётчик, поэтому при переполнении ничего не добавляем
 
-int STEP_PINS[] = { 1,  2,  3,  4,  5};
-int DIR_PINS[]  = { 1,  2,  3,  4,  5};
+int STEP_PINS[] = {32, 25, 27, 23, 21};
+int DIR_PINS[]  = {33, 26, 14, 22, 19};
 
-//входы c11, c12, d0, d1, d2, d3, d4, d5
-int IN_PINS[]  = { 1,  2,  3,  4,  5};
-int polarity = 0; //надо ли инвертировать вход (битовый массив)
+// входы 39, 34, 35
+int IN_PINS[]  = {39, 34, 35};
+int polarity = 0; // надо ли инвертировать вход (битовый массив)
 
-int OUT_PINS[]    = {8, 10, 12, 9, 11, 13, 14};
+int OUT_PINS[]    = {18, 5, 4, 15};
+
+// данные для генерации шагов
+struct SoftTimer
+{
+	int period;   // время шага (половина меандра)
+	int lastTime; // время начала шага
+	int steps;    // число шагов (полуволн)
+	int /*bool*/ active; // включен ли таймер
+};
+
+SoftTimer stepTimers[MAX_HARD_AXES];
+int updatesCounter;
+
+void timers_update(void*);
 
 //--------------------------------------------------
 void configure_gpio()
 {
 	// входы
-	for (int i = 0; i < 8; ++i) {
+	for (int i = 0; i < 3; ++i) {
 		pinMode(IN_PINS[i], INPUT);
 	}
 
@@ -41,7 +53,7 @@ void configure_gpio()
 		pinMode(OUT_PINS[i], OUTPUT);
 	}
 
-	// DIR управляется вручную
+	// STEP / DIR управляется вручную
 	for (int i = 0; i < MAX_HARD_AXES; ++i) {
 		pinMode(STEP_PINS[i], OUTPUT);
 		pinMode(DIR_PINS[i], OUTPUT);
@@ -52,15 +64,22 @@ void configure_gpio()
 //один таймер для каналов ШИМ
 void config_pwm_timer()
 {
+	int channel = 0;
+	for (int i = MAX_SLOW_PWMS; i < MAX_SLOW_PWMS + MAX_PWM; ++i)
+	{
+		ledcSetup(channel, PWM_FREQ, PWM_RESOLUTION); // настраиваем таймер
+		ledcAttachPin(OUT_PINS[i], channel); // подключаем к ножке
+		ledcWrite(channel, 0); // выдаём по умолчанию 0 на выходе
+	}
 }
-
-//пересчитывает такты процессора в такты таймера
-int inline to_tim_clock(int interval) { return interval >> 1; }
 
 //--------------------------------------------------
 void configure_timers()
 {
 	config_pwm_timer();
+	// запускаем update на отдельном ядре
+	TaskHandle_t task;
+	xTaskCreatePinnedToCore(timers_update, "steps", 1000, nullptr, 1, &task, 0);
 }
 
 
@@ -91,39 +110,78 @@ bool inline get_pin(int index)
 //задает время между шагами
 void inline set_step_time(int index, int ticks)
 {
+	stepTimers[index].period = ticks;
 }
 
 //--------------------------------------------------
 //включает автошаги
 void inline enable_step_timer(int index)
 {
+	stepTimers[index].active = true;
 }
 
 //--------------------------------------------------
 //выключает автошаги
 void inline disable_step_timer(int index)
 {
+	stepTimers[index].active = false;
+	
+	// убеждаемся, что не влезем посреди обновления таймера
+	int count = updatesCounter;
+	while (count == updatesCounter)
+		;
 }
 
 //--------------------------------------------------
 //возвращает число шагов, сделанных таймером
 int inline get_steps(int index)
 {
-	return 0;
+	return stepTimers[index].steps;
 }
 
 //--------------------------------------------------
-//делает шаг таймером. (делает cnt!=ccr1, а потом равным (одновременно запуская dma)
+//делает шаг таймером
 void inline step(int index)
 {
+	SoftTimer* timer = &stepTimers[index];
+	++timer->steps;
+	set_pin_state(STEP_PINS[index], timer->steps & 1);
 }
 
 //--------------------------------------------------
-//выставляет время до следующего шага
+// выставляет время до следующего шага
+// применяется к неактивному таймеру
 void inline set_next_step_time(int index, int time)
 {
+	SoftTimer* tim = &stepTimers[index];
+	tim->lastTime = timer.get_ticks() - tim->period + time;
 }
 
+//--------------------------------------------------
+// программная эмуляция периферии на отдельном ядре
+void timers_update(void*)
+{
+	while(true) {
+		int time = timer.get_ticks();
+		for (int i = 0; i < MAX_HARD_AXES; ++i) {
+			SoftTimer* tim = &stepTimers[i];
+			if (tim->active) {
+				// значения могут быть изменены посреди обновления, делаем транзакционно
+				int lastTime = tim->lastTime;
+				int period = tim->period;
+				if (time - lastTime > period) {
+					++tim->steps;
+					set_pin_state(STEP_PINS[i], tim->steps & 1);
+					tim->lastTime = lastTime + period;
+				}
+			}
+			++updatesCounter;
+		}
+	}
+}
+
+
+//--------------------------------------------------
 //--------------------------------------------------
 //выдает сигнал на ножке
 void inline set_pwm_pin(int index, bool state)
@@ -135,10 +193,13 @@ void inline set_pwm_pin(int index, bool state)
 //задает ширину импульсов на аппаратной ножке
 void inline set_pwm_width(int index, float width)
 {
+	ledcWrite(index, width * MAX_PWM_WIDTH);
 }
 
 //--------------------------------------------------
 //задает периодичность импульсов на аппаратной ножке
-void inline set_pwm_period(int period)
+void inline set_pwm_frequency(float frequency)
 {
+	for (int channel = 0; channel < MAX_PWM; ++channel)
+		ledcSetup(channel, frequency, PWM_RESOLUTION);
 }
