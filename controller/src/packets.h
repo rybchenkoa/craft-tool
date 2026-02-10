@@ -4,7 +4,7 @@
 #include "common.h"
 //=========================================================================================
 typedef char PacketCount;
-enum DeviceCommand //:char какие команды получает устройство
+enum DeviceCommand : char //какие команды получает устройство
 {
 	DeviceCommand_MOVE = 1,         //in
 	DeviceCommand_WAIT,             //in
@@ -32,19 +32,19 @@ enum DeviceCommand //:char какие команды получает устро
 	DeviceCommand_PAUSE,            //in
 	DeviceCommand_BREAK,            //in
 };
-enum MoveMode //:char режим движения/интерполяции
+enum MoveMode : char //режим движения/интерполяции
 {
 	MoveMode_LINEAR = 0, //обычное движение по прямой
 	MoveMode_HOME,       //наезд на дом
 	MoveMode_FAST,       //быстрое перемещение по прямой
 };
-enum SwitchGroup //:char
+enum SwitchGroup : char
 {
 	SwitchGroup_MIN = 0,
 	SwitchGroup_MAX,
 	SwitchGroup_HOME,
 };
-enum FeedType //:char
+enum FeedType : char
 {
 	FeedType_NORMAL = 0, //движение с заданной скоростью
 	FeedType_ADC, //управление скоростью через АЦП

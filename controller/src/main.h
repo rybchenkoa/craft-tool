@@ -33,6 +33,7 @@ void init()
 	init_system();
 	led.init();
 	timer.init();
+	crc.init();
 	usart.init();
 	receiver.init();
 	tracks.init();

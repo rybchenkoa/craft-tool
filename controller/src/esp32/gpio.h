@@ -10,8 +10,8 @@
 
 #define MAX_HARD_AXES 5
 #define MAX_PWM 2
-#define PWM_RESOLUTION 16
-#define MAX_PWM_WIDTH ((1<<16)-1)
+#define PWM_RESOLUTION 10
+#define MAX_PWM_WIDTH ((1<<PWM_RESOLUTION)-1)
 
 // 16-бит максимальное время между шагами для генерации в отдельном потоке
 #define MAX_PERIOD (1<<16)
@@ -36,7 +36,7 @@ struct SoftTimer
 };
 
 SoftTimer stepTimers[MAX_HARD_AXES];
-int updatesCounter;
+volatile int updatesCounter;
 
 void timers_update(void*);
 
@@ -78,6 +78,7 @@ void configure_timers()
 {
 	config_pwm_timer();
 	// запускаем update на отдельном ядре
+	disableCore0WDT();
 	TaskHandle_t task;
 	xTaskCreatePinnedToCore(timers_update, "steps", 1000, nullptr, 1, &task, 0);
 }

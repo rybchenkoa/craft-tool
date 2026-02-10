@@ -36,7 +36,6 @@ public:
 		rxPin = 3;
 		txPin = 1;
 		esp_log_level_set("*", ESP_LOG_NONE);
-		uart_driver_delete(UART_NUM_0);
 		/**/
 		
 		uart_config_t uart_config = {
@@ -48,8 +47,9 @@ public:
 			.source_clk = UART_SCLK_REF_TICK,
 		};
 		
-		int receiveBufferSize = 100; // бодрейт / частота чтения = 3М/30к
+		int receiveBufferSize = 200; // бодрейт / частота чтения = 3М/30к = 100, но минимум UART_HW_FIFO_LEN = 128
 		int transmitBufferSize = 1000;
+		uart_driver_delete(uartId);
 		uart_driver_install(uartId, receiveBufferSize, transmitBufferSize, 0, NULL, 0);
 		uart_param_config(uartId, &uart_config);
 		uart_set_pin(uartId, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
@@ -62,7 +62,7 @@ public:
 			return;
 		
 		char buffer[PACK_SIZE * 2];
-		int count;
+		int count = 0;
 		
 		for(char *endp = data + size; data != endp; data++)
 		{
@@ -79,7 +79,7 @@ public:
 		if(freeSpace < count + 1)
 			return;
 		
-		uart_write_bytes(uartId, buffer, size);
+		uart_write_bytes(uartId, buffer, count);
 	}
 
 //----------------------------------------------------------
