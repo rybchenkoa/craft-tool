@@ -5,11 +5,12 @@
 
 void on_packet_received(char *packet, int size);
 
-const int PACK_SIZE = 64;
 
 class Usart
 {
 public:
+	static const int PACK_SIZE = 64;
+
 	enum Tags
 	{
 		OP_CODE = '\\', //признак, что дальше идёт управляющий код
@@ -18,15 +19,13 @@ public:
 
 	char pack[PACK_SIZE];
 	int packPos = 0;
-	bool waitOpcode;
+	bool waitOpcode = false;
 
 	int uartId;
 
 //----------------------------------------------------------
 	void init()
 	{
-		waitOpcode = false;
-		
 		uartId = UART_NUM_2;
 		int rxPin = 16;
 		int txPin = 17;

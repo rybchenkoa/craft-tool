@@ -40,7 +40,7 @@ public:
 	// управление скоростью моторов для попадания на ожидаемую текущую позицию
 	struct LinearData
 	{
-		bool enabled;            // моторы включены
+		bool enabled = false;    // моторы включены
 		float error[MAX_AXES];   // ошибка координат
 		float velCoef[MAX_AXES]; // на что умножить скорость, чтобы получить число тактов на шаг, мм/шаг
 		float invProj;			 // (длина опорной координаты / полную длину)
@@ -59,8 +59,6 @@ public:
 
 		needPause = false;
 		interpolation = MoveMode_LINEAR;
-		feedModifier = FeedModifier();
-		switches = LimitSwitchController();
 	}
 
 	//---------------------------------------------------------------------

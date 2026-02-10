@@ -5,8 +5,8 @@ template <class item, int bits> //какие элементы хранятся, 
 class FIFOBuffer
 {
 public:
-	int first; //первый элемент в очереди
-	int last;  //следующий за последним (первый свободный)
+	int first = 0; //первый элемент в очереди
+	int last = 0;  //следующий за последним (первый свободный)
 	static const int mask = (1 << bits) - 1;
 	static const int size = 1 << bits;
 	item buffer[size];
@@ -26,6 +26,4 @@ public:
 	item& End()    { return buffer[last & mask];}
 	void Push()    { ++last; }
 	item& Element(int pos) { return buffer[pos & mask]; }
-
-	FIFOBuffer()   { Clear(); }
 };

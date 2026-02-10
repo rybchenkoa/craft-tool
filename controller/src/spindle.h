@@ -16,16 +16,16 @@
 struct Spindle
 {
 	// данные конфигурации
-	int pinNumber;            //номер входа, с которого получаем сигнал
+	int pinNumber = -1;       //номер входа, с которого получаем сигнал
 	int marksCount;           //количество меток на шпинделе, белые и черные суммарно
 	float markPositions[MAX_SPINDLE_MARKS*2]; // позиции концов меток, например [0.3, 0.4, 0.5, 0.6, 0.7, 1.0]
 
 	// измерение координаты
-	int lastIndex;            //на какой метке были в последний раз
+	int lastIndex = 0;        //на какой метке были в последний раз
 	bool lastSensorState;     //что выдавал датчик на предыдущем такте
-	int sensorFilterCounter;  //защита от дребезга, сколько раз подряд повторились новые показания
-	int sensorFilterSize;     //сколько отсчётов берёт фильтр
-	int lastTime;             //время предыдущего переключения датчика
+	int sensorFilterCounter = 0; //защита от дребезга, сколько раз подряд повторились новые показания
+	int sensorFilterSize = 5; //сколько отсчётов берёт фильтр
+	int lastTime = 0;         //время предыдущего переключения датчика
 	bool freeze;              //если долго не переключался, считаем что не крутится
 	float position;           //интерполированная текущая позиция шпинделя
 	float velocity;           //скорость, оборотов/мкс
@@ -42,16 +42,8 @@ struct Spindle
 	int currentTurnPeriod;  // сколько идёт текущий оборот
 	int maxSyncPeriod;      // начиная с какой частоты можно пытаться синхронизировать
 	int syncMarks[MAX_SPINDLE_MARKS*2]; // время между метками при измерении
-	Sync syncState;         // на каком этапе калибровка
+	Sync syncState = Sync::None;        // на каком этапе калибровка
 
-
-	Spindle()
-	{
-		pinNumber = -1;
-		syncState = Sync::None;
-		sensorFilterSize = 5;
-		lastIndex = 0;
-	}
 
 	int next_index(int index)
 	{

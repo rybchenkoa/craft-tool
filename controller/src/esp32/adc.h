@@ -6,7 +6,8 @@
 class Adc
 {
 public:
-	int channel;
+	int channel = 0;
+	
 	inline uint32_t value()
 	{
 		// забираем результат прошлого измерения
@@ -21,7 +22,6 @@ public:
 	
 	void init()
 	{
-		channel = 0;
 		analogSetClockDiv(1);     // задаём делитель поменьше, чтобы измерять чаще
 		analogReadResolution(12); // 12 бит
 		adcAttachPin(channel);    // убираем другие функции с пина

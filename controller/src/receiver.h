@@ -22,10 +22,10 @@ void send_packet_received(int number, int queue);
 class Receiver
 {
 public:
-	FIFOBuffer<MaxPacket, 5> queue; //48*32+8 = 904
+	FIFOBuffer<MaxPacket, 5> queue;  // 32 пакета в очереди, 32 * (sizeof(int) * MAX_AXES * 2 + x)
+	static const int BUFFER_LEN = 5; // размер окна приёма
 	int _tail; //первый ожидаемый элемент очереди (он не заполнен, а дальше могут быть заполненные)
-	PacketCount _index; //номер его пакета
-	static const int BUFFER_LEN = 5;
+	PacketCount _index;  //номер его пакета
 	PacketCount _index2; //второе соединение, обработка на лету
 
 	void init()

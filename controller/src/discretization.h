@@ -15,6 +15,13 @@ struct Discretization
 	int from[MAX_AXES];    // откуда двигаемся
 	int to[MAX_AXES];      // куда двигаемся
 
+	Discretization()
+	{
+		for (int i = 0; i < MAX_AXES; ++i) {
+			to[i] = 0;
+		}
+	}
+	
 	//---------------------------------------------------------------------
 	void compute_error()
 	{

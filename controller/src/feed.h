@@ -14,36 +14,28 @@
 
 struct FeedModifier
 {
-	float feedMult;             //заданная из интерфейса скорость движения
+	float feedMult = 1.f;       //заданная из интерфейса скорость движения
 
-	bool useAdcMult;            //умножать подачу на значение АЦП
+	bool useAdcMult = false;    //умножать подачу на значение АЦП
 
-	bool useThrottling;         //умножать подачу на ШИМ (подача короткими рывками)
+	bool useThrottling = false; //умножать подачу на ШИМ (подача короткими рывками)
 	int throttlingSize;         //процент времени, когда движение разрешено
 	int throttlingPeriod;       //частота прерывания движения по осям
 	int lastThrottlingUpdate;   //время с начала периода
 	bool throttling;            //запрещена ли подача
 
-	bool useFeedStable;         //подача со стабилизацией оборотов
+	bool useFeedStable = false; //подача со стабилизацией оборотов
 	bool stablePause;           //регулятор замедления/ускорения
 	float stableFrequency;      //целевая частота оборотов (об/тик)
 
-	bool useFeedPerRev;         //подача со стабилизацией нагрузки на фрезу (подача на зуб)
+	bool useFeedPerRev = false; //подача со стабилизацией нагрузки на фрезу (подача на зуб)
 	float feedPerRev;           //целевое значение подачи (мм/об)
 
-	bool useFeedSync;           //подача с синхронизацией шпинделя
+	bool useFeedSync = false;   //подача с синхронизацией шпинделя
 	float syncStep;             //шаг витка (мм/об), нужно точное значение, т.к. ошибка суммируется
 	int syncAxeIndex;           //номер оси, с которой синхронизируемся
 	int syncPos;                //позиция начала витка
 
-	//=========================================================
-	FeedModifier()
-	{
-		feedMult = 1;
-		useAdcMult = false;
-		useThrottling = false;
-		useFeedSync = false;
-	}
 
 	//=========================================================
 	void update_throttling(int time)

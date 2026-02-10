@@ -27,10 +27,17 @@ public:
 	TaskWait taskWait;   // ожидать заданное время
 	TaskMove taskMove;   // линейное движение
 
-	char breakState;     // сбросить очередь команд
+	char breakState = 0; // сбросить очередь команд
 	PwmController pwm;   // управление выходными пинами
 
 bool canLog;
+
+
+	//=====================================================================================================
+	void init()
+	{
+		handler = &taskEmpty;
+	}
 
 
 	//=====================================================================================================
@@ -178,19 +185,6 @@ bool canLog;
 		int time = timer.get();
 		pwm.update(time);
 		spindle.update(time);
-	}
-
-
-	//=====================================================================================================
-	void init()
-	{
-		breakState = 0;
-		handler = &taskEmpty;
-		taskEmpty = TaskEmpty();
-		taskWait = TaskWait();
-		taskMove = TaskMove();
-		spindle = Spindle();
-		pwm = PwmController();
 	}
 };
 

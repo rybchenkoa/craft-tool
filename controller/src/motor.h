@@ -13,9 +13,9 @@
 
 struct Motor
 {
-	int _index;         //номер оси
-	int _position;      //по каким координатам сейчас расположена гайка
-	bool _direction;    //куда считать
+	int _index = 0;     //номер оси
+	int _position = 0;  //по каким координатам сейчас расположена гайка
+	bool _direction = false; //куда считать
 	bool _isHardware;   //катит с помощью таймера или нет
 	int _lastTime;      //время последнего шага
 	//_isHardware = false
@@ -23,13 +23,6 @@ struct Motor
 	//_isHardware = true
 	int _lastCnt;       //у таймера узнаём не реальную позицию, а разницу в шагах
 
-	//===============================================================
-	Motor()
-	{
-		_index = 0;
-		_position = 0;
-		_direction = false;
-	}
 
 	//===============================================================
 	void reset()

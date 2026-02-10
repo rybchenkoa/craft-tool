@@ -10,8 +10,8 @@ struct Inertial
 {
 	float maxFeedVelocity;	//скорость подачи, мм/такт
 	float acceleration;		//ускорение, мм/такт^2
-	float velocity;			//скорость на прошлом шаге, мм/такт
-	int state;			//ускорение/замедление/стабильное движение
+	float velocity = 0;		//скорость на прошлом шаге, мм/такт
+	int state = 0;			//ускорение/замедление/стабильное движение
 	int lastTime;		//предыдущее время
 	float lastVelocity; //предыдущая скорость
 

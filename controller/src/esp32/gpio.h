@@ -29,10 +29,10 @@ int OUT_PINS[]    = {18, 5, 4, 15};
 // данные для генерации шагов
 struct SoftTimer
 {
-	int period;   // время шага (половина меандра)
-	int lastTime; // время начала шага
-	int steps;    // число шагов (полуволн)
-	int /*bool*/ active; // включен ли таймер
+	int period = 0;   // время шага (половина меандра)
+	int lastTime = 0; // время начала шага
+	int steps = 0;    // число шагов (полуволн)
+	int /*bool*/ active = false; // включен ли таймер
 };
 
 SoftTimer stepTimers[MAX_HARD_AXES];
