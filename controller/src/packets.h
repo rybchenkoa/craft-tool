@@ -65,8 +65,8 @@ struct PacketMove : public PacketCommon
 {
 	__packed int coord[MAX_AXES];
 	char refCoord;
-	float velocity;      //скорость подачи, мм/тик
-	float acceleration;  //ускорение, мм/тик^2
+	float velocity;      //скорость подачи, мм/сек
+	float acceleration;  //ускорение, мм/сек^2
 	int uLength;         //длина в микронах
 	float length;        // полная длина
 };

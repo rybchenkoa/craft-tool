@@ -69,7 +69,6 @@ public:
     double scale[MAX_AXES];            //шагов на миллиметр
 	double stepSize[MAX_AXES];         //длина одного шага
     double minStep;                    //макс. точность устройства
-    double secToTick;                  //тиков таймера в одной секунде
     Coords lastPosition;               //последняя переданная позиция
     Coords lastDelta;                  //последний вектор сдвига
     double feed;                       //подача

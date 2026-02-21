@@ -25,8 +25,9 @@ struct Inertial
 	//=====================================================================================================
 	void set_max_params(float maxVelocity, float maxAcceleration)
 	{
-		maxFeedVelocity = maxVelocity;
-		acceleration = maxAcceleration;
+		const float secToTick = 1.f / CORE_FREQ;
+		maxFeedVelocity = maxVelocity * secToTick;
+		acceleration = maxAcceleration * (secToTick * secToTick);
 	}
 
 	//=====================================================================================================

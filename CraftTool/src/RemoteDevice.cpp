@@ -234,7 +234,6 @@ RemoteDevice::RemoteDevice()
         lastDelta.r[i]      = HUGE_VAL;
     }
     minStep = HUGE_VAL;
-    secToTick = HUGE_VAL;
     feed = HUGE_VAL;
     moveMode = MoveMode_LINEAR;
     fractSended = false;
@@ -519,8 +518,8 @@ void RemoteDevice::set_position(Coords posIn)
     packet->refCoord = toDeviceIndex[reference];
     packet->length = float(length);
     packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
-    packet->velocity = float(velValue / secToTick);
-    packet->acceleration = float(accValue / (secToTick * secToTick));
+    packet->velocity = float(velValue);
+    packet->acceleration = float(accValue);
 
 	try_set_fract(delta);
     //log_message("   GO TO %d, %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2], packet->coord[3]);
@@ -926,7 +925,6 @@ void RemoteDevice::init()
 	}
 
 	//читаем параметры дискретизации
-    secToTick = 168000000.0;
 	minStep = 1000000; //километровых шагов уж точно ни у кого не будет
 	for (int i = 0; i < MAX_AXES; ++i)
 		if (usedAxes[i]) //дискретизация нужна для всех осей
