@@ -7,6 +7,7 @@
 // выводы ШИМ [18, 5  аппаратные 4, 15]
 
 #include "hal/wdt_hal.h"
+#include "hal/gpio_ll.h"
 #include "sys_timer.h"
 
 #define MAX_HARD_AXES 5
@@ -91,7 +92,8 @@ void configure_timers()
 //задаёт состояние пина порта
 void inline set_pin_state(int pinNum, bool state)
 {
-	digitalWrite(pinNum, state ? HIGH : LOW);
+	//digitalWrite(pinNum, state ? HIGH : LOW);
+	gpio_ll_set_level(&GPIO, (gpio_num_t)pinNum, state);
 }
 
 //--------------------------------------------------
@@ -106,7 +108,8 @@ void inline set_dir(int index, bool state)
 bool inline get_pin(int index)
 {
 	int pinNum = IN_PINS[index];
-	return ((digitalRead(pinNum) == HIGH ? 1 : 0) ^ (polarity >> index)) & 1;
+	//return ((digitalRead(pinNum) == HIGH ? 1 : 0) ^ (polarity >> index)) & 1;
+	return (gpio_ll_get_level(&GPIO, (gpio_num_t)pinNum) ^ (polarity >> index)) & 1;
 }
 
 //--------------------------------------------------
