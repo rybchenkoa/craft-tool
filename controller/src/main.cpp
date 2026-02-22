@@ -3,10 +3,10 @@
 
 int main()
 {
-	setup();
+	main_setup();
 	
 	while(1)
 	{
-		loop();
+		main_loop();
 	}
 }

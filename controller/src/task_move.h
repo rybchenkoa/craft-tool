@@ -245,7 +245,7 @@ public:
 		// если двигаться никуда не надо, то выйдет на первом такте
 		if(!discretization.init_segment(coord, dest, refCoord, homing))
 		{
-			log_console("ERR: brez %d, %d, %d\n", dest[0], dest[1], dest[2]);
+			log_console("ERR: move %d, %d, %d\n", dest[0], dest[1], dest[2]);
 			return false;
 		}
 

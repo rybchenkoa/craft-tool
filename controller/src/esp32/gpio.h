@@ -6,6 +6,7 @@
 // DIR  [33, 26, 14, 22, 19]
 // выводы ШИМ [18, 5  аппаратные 4, 15]
 
+#include "hal/wdt_hal.h"
 #include "sys_timer.h"
 
 #define MAX_HARD_AXES 5
@@ -78,9 +79,10 @@ void configure_timers()
 {
 	config_pwm_timer();
 	// запускаем update на отдельном ядре
-	disableCore0WDT();
+	disableCore1WDT();
 	TaskHandle_t task;
-	xTaskCreatePinnedToCore(timers_update, "steps", 1000, nullptr, 1, &task, 0);
+	// размер стека, параметры, приоритет, дескриптор, ядро
+	xTaskCreatePinnedToCore(timers_update, "steps", 1000, nullptr, 1, &task, 1);
 }
 
 
@@ -160,8 +162,12 @@ void inline set_next_step_time(int index, int time)
 
 //--------------------------------------------------
 // программная эмуляция периферии на отдельном ядре
-void timers_update(void*)
+void IRAM_ATTR timers_update(void*)
 {
+	portDISABLE_INTERRUPTS(); // выключаем прерывания для монопольной работы с ядром
+	mwdt_ll_write_protect_disable(&TIMERG1); // выключаем watchdog шедулера
+	mwdt_ll_disable(&TIMERG1);
+
 	int lastTime = timer.get_ticks();
 	while(true) {
 		int time = timer.get_ticks();

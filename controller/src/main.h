@@ -28,7 +28,7 @@ void init_motors()
 }
 
 //===============================================================
-void init()
+void main_init()
 {
 	init_system();
 	led.init();
@@ -47,9 +47,9 @@ void init()
 int timeToSend; // следующая посылка координат
 int numShow;    // сколько раз подряд послать координаты
 
-void setup()
+void main_setup()
 {
-	init();
+	main_init();
 	led.show(0);
 	executor.init();
 
@@ -58,7 +58,7 @@ void setup()
 	numShow = 0;
 }
 
-void loop()
+void main_loop()
 {
 	int stepTime = timer.get_ticks(); // время обработки одного шага
 	executor.update();
