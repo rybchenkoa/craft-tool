@@ -30,7 +30,7 @@ int OUT_PINS[]    = {18, 5, 4, 15};
 struct SoftTimer
 {
 	int period = 0;   // время шага (половина меандра)
-	int lastTime = 0; // время начала шага
+	int timeLeft = 0; // время, оставшееся до конца шага
 	int steps = 0;    // число шагов (полуволн)
 	int /*bool*/ active = false; // включен ли таймер
 };
@@ -155,28 +155,31 @@ void inline step(int index)
 void inline set_next_step_time(int index, int time)
 {
 	SoftTimer* tim = &stepTimers[index];
-	tim->lastTime = timer.get_ticks() - tim->period + time;
+	tim->timeLeft = time;
 }
 
 //--------------------------------------------------
 // программная эмуляция периферии на отдельном ядре
 void timers_update(void*)
 {
+	int lastTime = timer.get_ticks();
 	while(true) {
 		int time = timer.get_ticks();
+		int timeDelta = time - lastTime;
+		lastTime = time;
 		for (int i = 0; i < MAX_HARD_AXES; ++i) {
 			SoftTimer* tim = &stepTimers[i];
 			if (tim->active) {
 				// значения могут быть изменены посреди обновления, делаем транзакционно
-				int lastTime = tim->lastTime;
-				int period = tim->period;
-				if (time - lastTime > period) {
+				int timeLeft = tim->timeLeft - timeDelta;
+				if (timeLeft <= 0) {
 					++tim->steps;
 					set_pin_state(STEP_PINS[i], tim->steps & 1);
-					tim->lastTime = lastTime + period;
+					timeLeft += tim->period;
 				}
+				tim->timeLeft = timeLeft;
 			}
-			++updatesCounter;
+			updatesCounter = i;
 		}
 	}
 }
