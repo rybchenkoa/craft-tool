@@ -46,6 +46,8 @@ void main_init()
 //===============================================================
 int timeToSend; // следующая посылка координат
 int numShow;    // сколько раз подряд послать координаты
+int maxLoopTime = 0; // максимальное время цикла
+int prevLoopTS = 0;  // время предыдущего запуска цикла
 
 void main_setup()
 {
@@ -60,10 +62,14 @@ void main_setup()
 
 void main_loop()
 {
-	int stepTime = timer.get_ticks(); // время обработки одного шага
+	int stepTS = timer.get_ticks(); // время обработки одного шага
+	int loopTime = stepTS - prevLoopTS;
+	prevLoopTS = stepTS;
+	if (maxLoopTime < loopTime)
+		maxLoopTime = loopTime;
 	executor.update();
 	usart.process_receive();
-	stepTime = timer.get_ticks() - stepTime;
+	int stepTime = timer.get_ticks() - stepTime;
 	
 	if (executor.canLog)
 	{
@@ -74,6 +80,8 @@ void main_loop()
 	{
 		led.flip(0);
 		timeToSend = timer.get_ms(20);
+		//log_console("mlt %d, %d, %d\n", stepTime, loopTime, maxLoopTime);
+		maxLoopTime = 0;
 		numShow += 1; // возможность посылки короткими очередями, чтобы рассмотреть детали процесса
 	}
 	
