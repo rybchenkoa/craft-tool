@@ -69,7 +69,7 @@ void main_loop()
 		maxLoopTime = loopTime;
 	executor.update();
 	process_receive();
-	int stepTime = timer.get_ticks() - stepTime;
+	int stepTime = timer.get_ticks() - stepTS;
 	
 	if (executor.canLog)
 	{
