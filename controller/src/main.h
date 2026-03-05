@@ -34,7 +34,7 @@ void main_init()
 	led.init();
 	timer.init();
 	crc.init();
-	usart.init();
+	init_connection();
 	receiver.init();
 	tracks.init();
 	configure_gpio();
@@ -68,7 +68,7 @@ void main_loop()
 	if (maxLoopTime < loopTime)
 		maxLoopTime = loopTime;
 	executor.update();
-	usart.process_receive();
+	process_receive();
 	int stepTime = timer.get_ticks() - stepTime;
 	
 	if (executor.canLog)

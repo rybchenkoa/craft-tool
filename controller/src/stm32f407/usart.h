@@ -205,7 +205,19 @@ extern "C" void DMA2_Stream7_IRQHandler (void)
 }
 
 //----------------------------------------------------------
+void init_connection()
+{
+	usart.init();
+}
+
+//----------------------------------------------------------
 void send_packet(char *packet, int size)
 {
 	usart.send_packet(packet, size);
+}
+
+//----------------------------------------------------------
+void process_receive()
+{
+	usart.process_receive();
 }

@@ -1,10 +1,16 @@
 #pragma once
 // модуль связи по последовательному порту
 
+// какой способ связи использовать
+// чтоб не тратить процессорные такты, лишнее не включаем
+// bluetooth занимает много места
+#define CONNECTION_UART
+//#define CONNECTION_BLUETOOTH
+
+#ifdef CONNECTION_UART
 #include <driver/uart.h>
 
 void on_packet_received(char *packet, int size);
-
 
 class Usart
 {
@@ -129,10 +135,44 @@ public:
 };
 
 Usart usart;
+#endif
 
+#ifdef CONNECTION_BLUETOOTH
+#include "bluetooth.h"
+#endif
+
+//----------------------------------------------------------
+void init_connection()
+{
+#ifdef CONNECTION_UART
+	usart.init();
+#endif
+	
+#ifdef CONNECTION_BLUETOOTH
+	bluetooth.init();
+#endif
+}
 
 //----------------------------------------------------------
 void send_packet(char *packet, int size)
 {
+#ifdef CONNECTION_UART
 	usart.send_packet(packet, size);
+#endif
+	
+#ifdef CONNECTION_BLUETOOTH
+	bluetooth.send_packet(packet, size);
+#endif
+}
+
+//----------------------------------------------------------
+void process_receive()
+{
+#ifdef CONNECTION_UART
+	usart.process_receive();
+#endif
+	
+#ifdef CONNECTION_BLUETOOTH
+	bluetooth.process_receive();
+#endif
 }
