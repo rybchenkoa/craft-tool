@@ -16,7 +16,11 @@
 #define MAX_PWM_WIDTH ((1<<PWM_RESOLUTION)-1)
 
 // 16-бит максимальное время между шагами для генерации в отдельном потоке
+#ifdef STEPS_DEDICATED_CORE
 #define MAX_PERIOD (1<<16)
+#else
+#define MAX_PERIOD 0
+#endif
 #define MAX_STEP 0 // 32-битный программный счётчик, поэтому при переполнении ничего не добавляем
 
 int STEP_PINS[] = {32, 25, 27, 23, 21};
@@ -79,11 +83,13 @@ void config_pwm_timer()
 void configure_timers()
 {
 	config_pwm_timer();
+#ifdef STEPS_DEDICATED_CORE
 	// запускаем update на отдельном ядре
 	disableCore1WDT();
 	TaskHandle_t task;
 	// размер стека, параметры, приоритет, дескриптор, ядро
 	xTaskCreatePinnedToCore(timers_update, "steps", 1000, nullptr, 1, &task, 1);
+#endif
 }
 
 
