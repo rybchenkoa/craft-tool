@@ -1249,13 +1249,14 @@ void RemoteDevice::send_thread()
             {
                 std::unique_lock<std::mutex> lockQueue(queueMutex);
                 bool empty = true;
-                missedSends = 0;
+                int newMissedSends = 0;
                 for (int i = 1 ; i >= 0; --i)
                 {
                     packSends += commands[i]->send(connection);
-                    missedSends += commands[i]->missedSends;
+					newMissedSends += commands[i]->missedSends;
                     empty = empty && commands[i]->empty();
                 }
+				missedSends = newMissedSends;
                 if (empty)
                     break;
             }
