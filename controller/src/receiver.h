@@ -113,7 +113,8 @@ public:
 		}
 		else
 		{
-			send_packet_received(++_index2, 1);
+			send_packet_received(_index2, 1);
+			++_index2;
 			return true;
 		}
 		return false;
