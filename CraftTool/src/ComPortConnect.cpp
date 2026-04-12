@@ -178,7 +178,7 @@ void ComPortConnect::receive_data()
 
                 if( retcode == 0 && GetLastError() == ERROR_IO_PENDING ) //не успели прочитать
                 {
-                    WaitForSingleObject(ovRead.hEvent, INFINITE);
+                    WaitForSingleObject(ovRead.hEvent, 1000);
                     retcode = GetOverlappedResult(hCom, &ovRead, &readed, FALSE) ;
                 }
 
