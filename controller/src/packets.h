@@ -165,35 +165,35 @@ struct PacketSetCoords : public PacketCommon
 };
 
 //принимаемые от мк пакеты-----------------------------------------------------
+template <class T>
+struct PacketTail: public T
+{
+	int crc;
+};
 struct PacketReceived //сообщение о том, что пакет принят
 {
 	DeviceCommand command;
 	PacketCount packetNumber; //номер принятого пакета
 	int8_t queue;
-	int crc;
 };
 struct PacketErrorCrc //сообщение о том, что пакет испортился при передаче
 {
 	DeviceCommand command;
-	int crc;
 };
 struct PacketErrorPacketNumber //сообщение о том, что сбилась очередь пакетов
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
-	int crc;
 };
 struct PacketServiceCoords  //сообщение с текущими координатами сверла
 {
 	DeviceCommand command;
 	__packed int coords[MAX_AXES];
-	int crc;
 };
 struct PacketServiceCommand  //сообщение с текущим исполняемым пакетом
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
-	int crc;
 };
 #pragma pack(pop)
 

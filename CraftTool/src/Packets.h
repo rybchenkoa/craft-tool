@@ -52,6 +52,12 @@ struct PacketCommon
 	PacketCount packetNumber;
 };
 
+template <class T>
+struct PacketTail : public T
+{
+	int crc;
+};
+
 struct PacketMove : public PacketCommon
 {
 	int coord[MAX_AXES];
@@ -60,50 +66,42 @@ struct PacketMove : public PacketCommon
 	float acceleration;  //ускорение, мм/сек^2
 	int uLength;           //длина в микронах
 	float length;        //полная длина
-	int crc;
 };
 
 struct PacketWait : public PacketCommon
 {
 	int delay;
-	int crc;
 };
 
 struct PacketInterpolationMode : public PacketCommon
 {
 	MoveMode mode;
-	int crc;
 };
 
 struct PacketResetPacketNumber : public PacketCommon //сообщение о том, что пакет принят
 {
-	int crc;
 };
 
 struct PacketSetBounds : public PacketCommon //задать максимальные координаты
 {
 	int minCoord[MAX_AXES];
 	int maxCoord[MAX_AXES];
-	int crc;
 };
 
 struct PacketSetVelAcc : public PacketCommon //задать ускорение и скорость
 {
 	float maxVelocity[MAX_AXES];
 	float maxAcceleration[MAX_AXES];
-	int crc;
 };
 
 struct PacketSetFeed : public PacketCommon //задать подачу
 {
 	float feed;
-	int crc;
 };
 
 struct PacketSetFeedMult : public PacketCommon //задать подачу
 {
 	float feedMult;
-	int crc;
 };
 
 struct PacketSetFeedMode : public PacketCommon //настройки подачи
@@ -113,19 +111,16 @@ struct PacketSetFeedMode : public PacketCommon //настройки подачи
 
 struct PacketSetFeedNormal : public PacketSetFeedMode
 {
-	int crc;
 };
 
 struct PacketSetFeedPerRev : public PacketSetFeedMode
 {
 	float feedPerRev;
-	int crc;
 };
 
 struct PacketSetFeedStable : public PacketSetFeedMode
 {
 	float frequency;
-	int crc;
 };
 
 struct PacketSetFeedSync : public PacketSetFeedMode
@@ -133,7 +128,6 @@ struct PacketSetFeedSync : public PacketSetFeedMode
 	float step;
 	int axeIndex;
 	int pos;
-	int crc;
 };
 
 struct PacketSetFeedThrottling : public PacketSetFeedMode
@@ -141,49 +135,41 @@ struct PacketSetFeedThrottling : public PacketSetFeedMode
 	bool enable;
 	int period;
 	int duration;
-	int crc;
 };
 
 struct PacketSetFeedAdc : public PacketSetFeedMode
 {
 	bool enable;
-	int crc;
 };
 
 struct PacketSetPWM : public PacketCommon //управление шим выходами
 {
 	char pin;
 	float value;
-	int crc;
 };
 
 struct PacketSetPWMFreq : public PacketCommon //управление шим выходами
 {
 	float freq;
 	float slowFreq;
-	int crc;
 };
 
 struct PacketSetStepSize : public PacketCommon
 {
 	float stepSize[MAX_AXES];
-	int crc;
 };
 
 struct PacketFract : public PacketCommon
 {
-	int crc;
 };
 
 struct PacketPause : public PacketCommon
 {
 	char needStop;
-	int crc;
 };
 
 struct PacketBreak : public PacketCommon
 {
-	int crc;
 };
 
 struct PacketSetSwitches : public PacketCommon
@@ -191,7 +177,6 @@ struct PacketSetSwitches : public PacketCommon
 	char group;
 	char pins[MAX_AXES];
 	int16_t polarity;
-	int crc;
 };
 
 struct PacketSetSpindleParams : public PacketCommon
@@ -200,14 +185,12 @@ struct PacketSetSpindleParams : public PacketCommon
 	char marksCount;
 	char frequency;
 	char filterSize;
-	int crc;
 };
 
 struct PacketSetCoords : public PacketCommon
 {
 	int coord[MAX_AXES];
 	int16_t used;
-	int crc;
 };
 
 //принимаемые от мк пакеты
@@ -216,33 +199,28 @@ struct PacketReceived //сообщение о том, что пакет прин
 	DeviceCommand command;
 	PacketCount packetNumber; //номер принятого пакета
 	int8_t queue;
-	int crc;
 };
 
 struct PacketErrorCrc //сообщение о том, что пакет принят
 {
 	DeviceCommand command;
-	int crc;
 };
 
 struct PacketErrorPacketNumber //сообщение о том, что сбилась очередь пакетов
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
-	int crc;
 };
 
 struct PacketServiceCoords //текущие координаты устройства
 {
 	DeviceCommand command;
 	int coords[MAX_AXES];
-	int crc;
 };
 
 struct PacketServiceCommand //текущий исполняемый устройством пакет
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
-	int crc;
 };
 #pragma pack(pop)

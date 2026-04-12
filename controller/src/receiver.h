@@ -154,7 +154,7 @@ void on_packet_received(char * __restrict packet, int size)
 //=========================================================================================
 void send_wrong_crc()
 {
-	PacketErrorCrc packet;
+	PacketTail<PacketErrorCrc> packet;
 	packet.command = DeviceCommand_PACKET_ERROR_CRC;
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
 	send_packet((char*)&packet, sizeof(packet));
@@ -164,7 +164,7 @@ void send_wrong_crc()
 //=========================================================================================
 void send_packet_received(int number, int queue)
 {
-	PacketReceived packet;
+	PacketTail<PacketReceived> packet;
 	packet.command = DeviceCommand_PACKET_RECEIVED;
 	packet.packetNumber = number;
 	packet.queue = queue;
@@ -176,7 +176,7 @@ void send_packet_received(int number, int queue)
 //=========================================================================================
 void send_packet_repeat(int number, int queue)
 {
-	PacketReceived packet;
+	PacketTail<PacketReceived> packet;
 	packet.command = DeviceCommand_PACKET_REPEAT;
 	packet.packetNumber = number;
 	packet.queue = queue;
@@ -188,7 +188,7 @@ void send_packet_repeat(int number, int queue)
 //=========================================================================================
 void send_packet_queue_full(int number)
 {
-	PacketReceived packet;
+	PacketTail<PacketReceived> packet;
 	packet.command = DeviceCommand_QUEUE_FULL;
 	packet.packetNumber = number;
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
@@ -199,7 +199,7 @@ void send_packet_queue_full(int number)
 //=========================================================================================
 void send_packet_error_number(int number)
 {
-	PacketErrorPacketNumber packet;
+	PacketTail<PacketErrorPacketNumber> packet;
 	packet.command = DeviceCommand_ERROR_PACKET_NUMBER;
 	packet.packetNumber = number;
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
@@ -210,7 +210,7 @@ void send_packet_error_number(int number)
 //=========================================================================================
 void send_packet_service_coords(int coords[MAX_AXES])
 {
-	PacketServiceCoords packet;
+	PacketTail<PacketServiceCoords> packet;
 	packet.command = DeviceCommand_SERVICE_COORDS;
 	for(int i = 0; i < MAX_AXES; ++i)
 		packet.coords[i] = coords[i];
@@ -222,7 +222,7 @@ void send_packet_service_coords(int coords[MAX_AXES])
 //=========================================================================================
 void send_packet_service_command(PacketCount number)
 {
-	PacketServiceCommand packet;
+	PacketTail<PacketServiceCommand> packet;
 	packet.command = DeviceCommand_SERVICE_COMMAND;
 	packet.packetNumber = number;
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);

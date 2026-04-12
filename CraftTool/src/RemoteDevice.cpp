@@ -33,8 +33,8 @@ int get_timestamp()
 struct PacketQueued
 {
     int line;
-    int timestamp;
-    int sendCount;// 0 - не послан
+    int timestamp = 0;
+    int sendCount = 0; // 0 - не послан, -1 - принят
     std::shared_ptr<PacketCommon> data;
 };
 
@@ -306,10 +306,9 @@ template<typename T>
 void RemoteDevice::push_packet_common(T *packet)
 {
     packet->size = sizeof(*packet);
+	packet->crc = 0; // защита на случай, если забыта обёртка PacketTail
     PacketQueued element;
     element.line = pushLine;
-    element.timestamp = 0;
-    element.sendCount = 0;
     element.data.reset(packet);
 
 	{
@@ -326,10 +325,9 @@ template<typename T>
 void RemoteDevice::push_packet_modal(T *packet)
 {
     packet->size = sizeof(*packet);
+	packet->crc = 0; // защита на случай, если забыта обёртка PacketTail
     PacketQueued element;
     element.line = -1;
-    element.timestamp = 0;
-    element.sendCount = 0;
     element.data.reset(packet);
 
 	{
@@ -351,7 +349,7 @@ void RemoteDevice::set_move_mode(MoveMode mode)
 	if (mode == MoveMode_LINEAR) //если едем на G1, то не надо замедляться перед G0
 		set_fract(); //а при переходе с быстрых перемещений на силовые скорость надо сбросить заранее
 
-    auto packet = new PacketInterpolationMode;
+    auto packet = new PacketTail<PacketInterpolationMode>;
     packet->command = DeviceCommand_MOVE_MODE; //сменить режим перемещения
     packet->mode = mode; //новый режим
     push_packet_common(packet);
@@ -364,7 +362,7 @@ void RemoteDevice::set_fract()
     if(fractSended)
         return;
 
-    auto packet = new PacketFract;
+    auto packet = new PacketTail<PacketFract>;
     packet->command = DeviceCommand_SET_FRACT;
     push_packet_common(packet);
 //log_message("send fract\n");
@@ -497,7 +495,7 @@ void RemoteDevice::set_position(Coords posIn)
 	if(reference < 0)
 		return;
 
-    auto packet = new PacketMove;
+    auto packet = new PacketTail<PacketMove>;
     packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
 
 	//сначала задаем используемые координаты
@@ -534,7 +532,7 @@ void RemoteDevice::wait(double time)
 {
     set_fract();
 
-    auto packet = new PacketWait;
+    auto packet = new PacketTail<PacketWait>;
     packet->command = DeviceCommand_WAIT;
     packet->delay = int(time*1000); //задержка
     push_packet_common(packet);
@@ -544,7 +542,7 @@ void RemoteDevice::wait(double time)
 //задает номера концевиков всех осей
 void RemoteDevice::set_switches(SwitchGroup group, int pins[MAX_AXES])
 {
-	auto packet = new PacketSetSwitches;
+	auto packet = new PacketTail<PacketSetSwitches>;
 	packet->command = DeviceCommand_SET_SWITCHES;
 	packet->group = group;
 	for(int i = 0; i < MAX_AXES; ++i)
@@ -557,7 +555,7 @@ void RemoteDevice::set_switches(SwitchGroup group, int pins[MAX_AXES])
 //задает номера концевиков всех осей
 void RemoteDevice::set_spindle_params(int marksCount, int marksPin, int marksFrequency, int filterSize)
 {
-	auto packet = new PacketSetSpindleParams;
+	auto packet = new PacketTail<PacketSetSpindleParams>;
 	packet->command = DeviceCommand_SET_SPINDLE_PARAMS;
 	packet->pin = marksPin;
 	packet->marksCount = marksCount * 2; // чёрных и белых одинаковое количество
@@ -570,7 +568,7 @@ void RemoteDevice::set_spindle_params(int marksCount, int marksPin, int marksFre
 //записывает аппаратные координаты
 void RemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 {
-	auto packet = new PacketSetCoords;
+	auto packet = new PacketTail<PacketSetCoords>;
 	packet->command = DeviceCommand_SET_COORDS;
 
 	Coords pos = posIn;
@@ -602,7 +600,7 @@ void RemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 //мм/сек, мм/сек^2
 void RemoteDevice::set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])
 {
-    auto packet = new PacketSetVelAcc;
+    auto packet = new PacketTail<PacketSetVelAcc>;
     packet->command = DeviceCommand_SET_VEL_ACC; //задать макс скорость и ускорение
     for(int i = 0; i < MAX_AXES; ++i)
     {
@@ -618,7 +616,7 @@ void RemoteDevice::set_feed(double feed)
 {
     set_fract();
 
-    auto packet = new PacketSetFeed;
+    auto packet = new PacketTail<PacketSetFeed>;
     packet->command = DeviceCommand_SET_FEED;
     packet->feed = float(feed);
     push_packet_common(packet);
@@ -628,7 +626,7 @@ void RemoteDevice::set_feed(double feed)
 //============================================================
 void RemoteDevice::set_feed_multiplier(double multiplier)
 {
-    auto packet = new PacketSetFeedMult;
+    auto packet = new PacketTail<PacketSetFeedMult>;
     packet->command = DeviceCommand_SET_FEED_MULT;
     if(multiplier < 1e-3)
         multiplier = 1e-3; //защита от глюков
@@ -640,7 +638,7 @@ void RemoteDevice::set_feed_multiplier(double multiplier)
 //сбрасывает управление скоростью к обычному режиму
 void RemoteDevice::set_feed_normal()
 {
-	auto packet = new PacketSetFeedNormal;
+	auto packet = new PacketTail<PacketSetFeedNormal>;
 	packet->command = DeviceCommand_SET_FEED_MODE;
 	packet->mode = FeedType_NORMAL;
 	push_packet_common(packet);
@@ -649,7 +647,7 @@ void RemoteDevice::set_feed_normal()
 //============================================================
 void RemoteDevice::set_feed_per_rev(double feed)
 {
-	auto packet = new PacketSetFeedPerRev;
+	auto packet = new PacketTail<PacketSetFeedPerRev>;
 	packet->command = DeviceCommand_SET_FEED_MODE;
 	packet->mode = FeedType_PER_REV;
 	packet->feedPerRev = feed;
@@ -659,7 +657,7 @@ void RemoteDevice::set_feed_per_rev(double feed)
 //============================================================
 void RemoteDevice::set_feed_stable(double frequency)
 {
-	auto packet = new PacketSetFeedStable;
+	auto packet = new PacketTail<PacketSetFeedStable>;
 	packet->command = DeviceCommand_SET_FEED_MODE;
 	packet->mode = FeedType_STABLE_REV;
 	packet->frequency = frequency;
@@ -669,7 +667,7 @@ void RemoteDevice::set_feed_stable(double frequency)
 //============================================================
 void RemoteDevice::set_feed_sync(double step, double pos, int axe)
 {
-	auto packet = new PacketSetFeedSync;
+	auto packet = new PacketTail<PacketSetFeedSync>;
 	packet->command = DeviceCommand_SET_FEED_MODE;
 	packet->mode = FeedType_SYNC;
 	packet->step = step;
@@ -681,7 +679,7 @@ void RemoteDevice::set_feed_sync(double step, double pos, int axe)
 //============================================================
 void RemoteDevice::set_feed_throttling(bool enable, int period, int size)
 {
-	auto packet = new PacketSetFeedThrottling;
+	auto packet = new PacketTail<PacketSetFeedThrottling>;
 	packet->command = DeviceCommand_SET_FEED_MODE;
 	packet->mode = FeedType_THROTTLING;
 	packet->enable = enable;
@@ -693,7 +691,7 @@ void RemoteDevice::set_feed_throttling(bool enable, int period, int size)
 //============================================================
 void RemoteDevice::set_feed_adc(bool enable)
 {
-	auto packet = new PacketSetFeedAdc;
+	auto packet = new PacketTail<PacketSetFeedAdc>;
 	packet->command = DeviceCommand_SET_FEED_MODE;
 	packet->mode = FeedType_ADC;
 	packet->enable = enable;
@@ -704,7 +702,7 @@ void RemoteDevice::set_feed_adc(bool enable)
 //от 0 до 1?
 void RemoteDevice::set_spindle_vel(double value)
 {
-    auto packet = new PacketSetPWM;
+    auto packet = new PacketTail<PacketSetPWM>;
     packet->command = DeviceCommand_SET_PWM;
 	packet->pin = 0;
     packet->value = float(value);
@@ -716,7 +714,7 @@ void RemoteDevice::set_spindle_vel(double value)
 //в герцах
 void RemoteDevice::set_pwm_freq(double fast, double slow)
 {
-    auto packet = new PacketSetPWMFreq;
+    auto packet = new PacketTail<PacketSetPWMFreq>;
     packet->command = DeviceCommand_SET_PWM_FREQ;
     packet->freq = float(fast);
 	packet->slowFreq = float(slow);
@@ -726,7 +724,7 @@ void RemoteDevice::set_pwm_freq(double fast, double slow)
 //============================================================
 void RemoteDevice::set_step_size(double stepSize[MAX_AXES])
 {
-    auto packet = new PacketSetStepSize;
+    auto packet = new PacketTail<PacketSetStepSize>;
     packet->command = DeviceCommand_SET_STEP_SIZE; //задать макс скорость и ускорение
     for(int i = 0; i < MAX_AXES; ++i)
     {
@@ -738,7 +736,7 @@ void RemoteDevice::set_step_size(double stepSize[MAX_AXES])
 //============================================================
 void RemoteDevice::pause_moving(bool needStop)
 {
-    auto packet = new PacketPause;
+    auto packet = new PacketTail<PacketPause>;
     packet->command = DeviceCommand_PAUSE;
     packet->needStop = needStop ? 1 : 0;
     push_packet_modal(packet);
@@ -752,7 +750,7 @@ void RemoteDevice::break_queue()
 		commands[0]->reset();
 	}
 
-    auto packet = new PacketBreak;
+    auto packet = new PacketTail<PacketBreak>;
     packet->command = DeviceCommand_BREAK;
     push_packet_modal(packet);
 }
@@ -760,7 +758,7 @@ void RemoteDevice::break_queue()
 //============================================================
 void RemoteDevice::reset_packet_queue()
 {
-    auto packet = new PacketResetPacketNumber;
+    auto packet = new PacketTail<PacketResetPacketNumber>;
     packet->command = DeviceCommand_RESET_PACKET_NUMBER;
     push_packet_common(packet);
 }
