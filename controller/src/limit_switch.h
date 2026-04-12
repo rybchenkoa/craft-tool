@@ -9,23 +9,23 @@ class LimitSwitchController
 {
 public:
 	// данные хард лимитов
-	char limitSwitchMin[MAX_AXES]; // концевики
-	char limitSwitchMax[MAX_AXES];
-	char activeSwitch[MAX_AXES];   // концевики, в сторону которых сейчас едем
+	char limitSwitchMin[AXES_COUNT]; // концевики
+	char limitSwitchMax[AXES_COUNT];
+	char activeSwitch[AXES_COUNT];   // концевики, в сторону которых сейчас едем
 	int  activeSwitchCount;        // количество активных концевиков
 
 	// данные хоминга
-	char homeSwitch[MAX_AXES];     // датчики дома
-	float axeVelocity[MAX_AXES];   // скорость оси во время попадания в концевик
-	int  timeActivate[MAX_AXES];   // время начала остановки
-	bool homeActivated[MAX_AXES];  // при наезде на дом выставляем бит
+	char homeSwitch[AXES_COUNT];     // датчики дома
+	float axeVelocity[AXES_COUNT];   // скорость оси во время попадания в концевик
+	int  timeActivate[AXES_COUNT];   // время начала остановки
+	bool homeActivated[AXES_COUNT];  // при наезде на дом выставляем бит
 	bool homeReached;
 
 	
 	//---------------------------------------------------------------------
 	LimitSwitchController()
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < AXES_COUNT; i++)
 		{
 			limitSwitchMin[i] = -1;
 			limitSwitchMax[i] = -1;
@@ -70,7 +70,7 @@ public:
 		// при поиске дома датчик дома может быть и хард лимитом, тогда резко не тормозим
 		else
 		{
-			for (int i = 0; i < MAX_AXES; ++i)
+			for (int i = 0; i < AXES_COUNT; ++i)
 				if (size[i] != 0) //TODO для activeSwitch вроде бы неправильный индекс
 					if (activeSwitch[i] != -1 && // если концевик задан, и не равен концевику дома
 						homeSwitch[i] != activeSwitch[i] && get_pin(activeSwitch[i])) // и сработал
@@ -133,7 +133,7 @@ public:
 			case SwitchGroup_MAX: pins = limitSwitchMax; break;
 			case SwitchGroup_HOME: pins = homeSwitch; break;
 		}
-		for (int i = 0; i < MAX_AXES; ++i)
+		for (int i = 0; i < AXES_COUNT; ++i)
 			pins[i] = packet->pins[i];
 		polarity = packet->polarity;
 	}

@@ -796,6 +796,7 @@ int letter_to_axe(char letter)
 		case 'z': case 'Z': return 2;
 		case 'a': case 'A': return 3;
 		case 'b': case 'B': return 4;
+		case 'c': case 'C': return 5;
 		default:  return -1;
 	}
 }
@@ -905,7 +906,7 @@ void RemoteDevice::init()
 
 	//читаем подчиненные оси
 	std::string slave = CFG_SLAVE;
-	std::string AXE_LIST = "XYZAB";
+	std::string AXE_LIST = "XYZABC";
 	for (int i = 0; i < AXE_LIST.size(); ++i)
 	{
 		std::string value, key = slave + AXE_LIST[i];

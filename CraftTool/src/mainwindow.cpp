@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	}
     ui->setupUi(this);
 
-	std::string axes = "XYZAB";
+	std::string axes = "XYZABC";
 	for(int i = 0; i < axes.size(); ++i) {
 		buttonSet0.push_back(findChild<QAbstractButton*>(QString("ButtonSet0") + axes[i]));
 		textCoord.push_back(findChild<QLineEdit*>(QString("c_lineEdit") + axes[i]));
@@ -278,6 +278,13 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
         case Qt::Key_G:
             manual_move(4, -step, fast);
             return true;
+
+		case Qt::Key_Y:
+			manual_move(5, step, fast);
+			return true;
+		case Qt::Key_H:
+			manual_move(5, -step, fast);
+			return true;
         }
     }
     return false;

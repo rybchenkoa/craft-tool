@@ -208,12 +208,14 @@ void send_packet_error_number(int number)
 
 
 //=========================================================================================
-void send_packet_service_coords(int coords[MAX_AXES])
+void send_packet_service_coords(int coords[AXES_COUNT])
 {
 	PacketTail<PacketServiceCoords> packet;
 	packet.command = DeviceCommand_SERVICE_COORDS;
-	for(int i = 0; i < MAX_AXES; ++i)
+	for(int i = 0; i < AXES_COUNT; ++i)
 		packet.coords[i] = coords[i];
+	for(int i = AXES_COUNT; i < MAX_AXES; ++i)
+		packet.coords[i] = 0;
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
 	send_packet((char*)&packet, sizeof(packet));
 }

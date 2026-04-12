@@ -366,6 +366,7 @@ InterError GCodeInterpreter::run_modal_group_linear()
 		get_readed_coord('Z', pos.z);
 		get_readed_coord('A', pos.a);
 		get_readed_coord('B', pos.b);
+		get_readed_coord('C', pos.c);
 		coordsSet = true;
 	}
 	else if (get_new_position(pos)) {
@@ -751,7 +752,8 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
        readedFrame.have_value('Y') ||
        readedFrame.have_value('Z') ||
 	   readedFrame.have_value('A') ||
-	   readedFrame.have_value('B')
+		readedFrame.have_value('B') ||
+		readedFrame.have_value('C')
 	   )
     {
         if(runner.incremental)
@@ -770,6 +772,7 @@ bool GCodeInterpreter::get_new_position(Coords &pos)
         get_readed_coord('Z', pos.z);
 		get_readed_coord('A', pos.a);
 		get_readed_coord('B', pos.b);
+		get_readed_coord('C', pos.c);
 
         if(runner.incremental)
         {

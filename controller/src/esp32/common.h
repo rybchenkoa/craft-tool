@@ -1,7 +1,8 @@
 #pragma once
 // константы и другой общий код
 
-const int MAX_AXES = 5;
+const int MAX_AXES = 6;
+const int AXES_COUNT = 5;
 const int CORE_FREQ = 240000000;
 const int PWM_FREQ = 20000;               // дефолтные частоты
 const int PWM_SLOW_FREQ = 1000;           // частота медленного ШИМ

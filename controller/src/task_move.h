@@ -26,10 +26,10 @@
 class TaskMove : public Task
 {
 public:
-	int coord[MAX_AXES];              // текущие координаты
-	float maxVelocity[MAX_AXES];      // мм/мкс
-	float maxAcceleration[MAX_AXES];  // мм/мкс^2
-	float stepLength[MAX_AXES];       // мм/шаг
+	int coord[AXES_COUNT];              // текущие координаты
+	float maxVelocity[AXES_COUNT];      // мм/мкс
+	float maxAcceleration[AXES_COUNT];  // мм/мкс^2
+	float stepLength[AXES_COUNT];       // мм/шаг
 
 	MoveMode interpolation;           // режим движения
 	bool needPause;                   // сбросить скорость до 0
@@ -41,8 +41,8 @@ public:
 	struct LinearData
 	{
 		bool enabled = false;    // моторы включены
-		float error[MAX_AXES];   // ошибка координат
-		float velCoef[MAX_AXES]; // на что умножить скорость, чтобы получить число тактов на шаг, мм/шаг
+		float error[AXES_COUNT];   // ошибка координат
+		float velCoef[AXES_COUNT]; // на что умножить скорость, чтобы получить число тактов на шаг, мм/шаг
 		float invProj;			 // (длина опорной координаты / полную длину)
 	};
 
@@ -53,7 +53,7 @@ public:
 	//---------------------------------------------------------------------
 	TaskMove()
 	{
-		for(int i = 0; i < MAX_AXES; i++) {
+		for(int i = 0; i < AXES_COUNT; i++) {
 			coord[i] = 0;
 		}
 
@@ -66,7 +66,7 @@ public:
 	{
 		if (!linearData.enabled)
 		{
-			for (int i = 0; i < MAX_AXES; ++i)
+			for (int i = 0; i < AXES_COUNT; ++i)
 				motor[i].start(MAX_STEP_TIME);
 			virtualAxe.start(MAX_STEP_TIME);
 			linearData.enabled = true;
@@ -78,7 +78,7 @@ public:
 	{
 		if (linearData.enabled)
 		{
-			for (int i = 0; i < MAX_AXES; ++i)
+			for (int i = 0; i < AXES_COUNT; ++i)
 				motor[i].stop();
 			linearData.enabled = false;
 		}
@@ -99,16 +99,16 @@ public:
 		// задаем скорости
 		if (inertial.velocity == 0)
 		{
-			for (int i = 0; i < MAX_AXES; ++i)
+			for (int i = 0; i < AXES_COUNT; ++i)
 				motor[i].set_period(MAX_STEP_TIME);
 			virtualAxe.set_period(MAX_STEP_TIME);
 		}
 		else
 		{
 			int curTime = timer.get_ticks();
-			int stepTimeArr[MAX_AXES+1];
+			int stepTimeArr[AXES_COUNT+1];
 			switches.reset_home(true);
-			for (int i = 0; i < MAX_AXES; ++i)
+			for (int i = 0; i < AXES_COUNT; ++i)
 			{
 				if (linearData.velCoef[i] == 0)
 				{
@@ -144,14 +144,14 @@ public:
 				int stepTime = linearData.invProj / inertial.velocity;
 				if (stepTime > MAX_STEP_TIME || stepTime <= 0) // 0 возможен при переполнении разрядов
 					stepTime = MAX_STEP_TIME;
-				stepTimeArr[MAX_AXES] = stepTime;
+				stepTimeArr[AXES_COUNT] = stepTime;
 			}
 			
-			for (int i = 0; i < MAX_AXES; ++i)
+			for (int i = 0; i < AXES_COUNT; ++i)
 			{
 				motor[i].set_period(stepTimeArr[i]);
 			}
-			virtualAxe.set_period(stepTimeArr[MAX_AXES]);
+			virtualAxe.set_period(stepTimeArr[AXES_COUNT]);
 		}
 	}
 
@@ -166,7 +166,7 @@ public:
 		// вычисляем ошибку позиций
 		discretization.get_normalized_error(linearData.error);
 		
-		for (int i = 0; i < MAX_AXES; ++i)
+		for (int i = 0; i < AXES_COUNT; ++i)
 			coord[i] = motor[i]._position;
 
 		// обновляем скорости двигателей
@@ -234,7 +234,7 @@ public:
 	}
 
 	//---------------------------------------------------------------------
-	bool init(int dest[MAX_AXES], int refCoord, float acceleration, int uLength, float length, float velocity)
+	bool init(int dest[AXES_COUNT], int refCoord, float acceleration, int uLength, float length, float velocity)
 	{
 		if (tracks.decrement(uLength)) {
 			inertial.stop();
@@ -255,7 +255,7 @@ public:
 		switches.reset_home(false);
 		switches.reset_active();
 
-		for (int i = 0; i < MAX_AXES; ++i)
+		for (int i = 0; i < AXES_COUNT; ++i)
 		{
 			motor[i].set_direction(discretization.sign[i] > 0);
 			
@@ -278,7 +278,7 @@ public:
 	void process_packet_set_vel_acc(PacketSetVelAcc *packet)
 	{
 		float mks = 0.000001;
-		for(int i = 0; i < MAX_AXES; ++i)
+		for(int i = 0; i < AXES_COUNT; ++i)
 		{
 			maxVelocity[i] = packet->maxVelocity[i] * mks;
 			maxAcceleration[i] = packet->maxAcceleration[i] * mks * mks;
@@ -289,7 +289,7 @@ public:
 	//---------------------------------------------------------------------
 	void process_packet_set_coords(PacketSetCoords *packet)
 	{
-		for (int i = 0; i < MAX_AXES; ++i) {
+		for (int i = 0; i < AXES_COUNT; ++i) {
 			if (packet->used | (1 << i))
 			{
 				coord[i] = packet->coord[i];
@@ -302,7 +302,7 @@ public:
 	//---------------------------------------------------------------------
 	void process_packet_set_step_size(PacketSetStepSize *packet)
 	{
-		for(int i = 0; i < MAX_AXES; ++i)
+		for(int i = 0; i < AXES_COUNT; ++i)
 		{
 			stepLength[i] = packet->stepSize[i];
 			float mk = stepLength[i]*1000;

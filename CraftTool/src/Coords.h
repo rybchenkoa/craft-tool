@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#define MAX_AXES   5 //сколько всего есть осей на контроллере
+#define MAX_AXES   6 //сколько всего есть осей на контроллере
 using coord = double;//чтобы не путаться, координатный тип введём отдельно
 
 struct Coords   //все координаты устройства
@@ -9,7 +9,7 @@ struct Coords   //все координаты устройства
 	{
 		struct
 		{
-			coord x, y, z, a, b;
+			coord x, y, z, a, b, c;
 		};
 		struct
 		{

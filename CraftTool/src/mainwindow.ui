@@ -765,6 +765,22 @@
           <item row="5" column="1">
            <widget class="QLineEdit" name="c_lineEditB"/>
           </item>
+          <item row="6" column="0">
+           <widget class="QPushButton" name="ButtonSet0C">
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>C</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QLineEdit" name="c_lineEditC"/>
+          </item>
          </layout>
         </widget>
        </widget>
@@ -779,7 +795,7 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>290</width>
+          <width>340</width>
           <height>160</height>
          </size>
         </property>
@@ -1130,6 +1146,38 @@ Safe Z</string>
          </property>
          <property name="text">
           <string>Шаг:</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="ButtonMinusC">
+         <property name="geometry">
+          <rect>
+           <x>290</x>
+           <y>60</y>
+           <width>41</width>
+           <height>41</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>C-</string>
+         </property>
+         <property name="autoRepeat">
+          <bool>true</bool>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="ButtonPlusC">
+         <property name="geometry">
+          <rect>
+           <x>290</x>
+           <y>20</y>
+           <width>41</width>
+           <height>41</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>C+</string>
+         </property>
+         <property name="autoRepeat">
+          <bool>true</bool>
          </property>
         </widget>
        </widget>

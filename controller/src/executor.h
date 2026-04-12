@@ -59,8 +59,8 @@ bool canLog;
 	void init_move(PacketMove *packet)
 	{
 		led.flip(0);
-		int coord[MAX_AXES];
-		for (int i = 0; i < MAX_AXES; ++i)
+		int coord[AXES_COUNT];
+		for (int i = 0; i < AXES_COUNT; ++i)
 			coord[i] = packet->coord[i];
 		if (taskMove.init(coord, packet->refCoord, packet->acceleration,
 				packet->uLength, packet->length, packet->velocity))

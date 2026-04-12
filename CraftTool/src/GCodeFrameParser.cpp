@@ -13,6 +13,7 @@ BitPos GCodeFrameParser::get_bit_pos(char letter)
 		case 'Z': return BitPos::Z;
 		case 'A': return BitPos::A;
 		case 'B': return BitPos::B;
+		case 'C': return BitPos::C;
 
 		case 'I': return BitPos::I;
 		case 'J': return BitPos::J;
