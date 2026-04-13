@@ -377,8 +377,10 @@ void RemoteDevice::try_set_fract(const Coords& delta)
     {
         double scalar = 0;
         double scalar1 = 0, scalar2 = 0;
-        for(int i = 0; i < NUM_COORDS; ++i) //поворотные оси тоже учитываем, так как на них тоже действует физика
+        for(int i = 0; i < MAX_AXES; ++i) //поворотные оси тоже учитываем, так как на них тоже действует физика
         {
+			if (!usedCoords[i])
+				continue;
             scalar += lastDelta.r[i] * delta.r[i];
             scalar1 += delta.r[i] * delta.r[i];
             scalar2 += lastDelta.r[i] * lastDelta.r[i];
@@ -431,19 +433,23 @@ int RemoteDevice::calculate_new_delta(Coords& delta, const Coords& pos)
 void RemoteDevice::calculate_moving_params(const Coords& delta, double& length, double& maxVelocity, double& maxAcceleration) const
 {
 	length = 0;
-	for(int i = 0; i < NUM_COORDS; ++i) //TODO для поворотной оси неизвестно как считать
-		length += pow2(delta.r[i]);
+	for (int i = 0; i < MAX_AXES; ++i) { //TODO для поворотной оси неизвестно как считать
+		if (usedCoords[i])
+			length += pow2(delta.r[i]);
+	}
 
 	length = sqrt(length);
 
-	double lengths[NUM_COORDS]; //у подчиненных осей те же параметры, поэтому смотрим только на главные
-	for(int i = 0; i < NUM_COORDS; ++i)
-		lengths[i] = fabs(delta.r[i]);
+	double lengths[MAX_AXES]; //у подчиненных осей те же параметры, поэтому смотрим только на главные
+	for(int i = 0; i < MAX_AXES; ++i)
+		lengths[i] = usedCoords[i] ? fabs(delta.r[i]) : 0;
 
 	//находим максимальное время движения по отдельной координате
 	double timeMove = lengths[0] / velocity[0];
-	for(int i = 1; i < NUM_COORDS; ++i)
+	for(int i = 1; i < MAX_AXES; ++i)
 	{
+		if (!usedCoords[i])
+			continue;
 		double time = lengths[i] / velocity[i];
 		if(timeMove < time)
 			timeMove = time;
@@ -457,8 +463,10 @@ void RemoteDevice::calculate_moving_params(const Coords& delta, double& length, 
 
 	//находим максимальное ускорение по опорной координате
 	timeMove = lengths[0] / acceleration[0]; // в данном случае это не время, но всё равно это 1/проекция
-	for(int i = 1; i < NUM_COORDS; ++i)
+	for(int i = 1; i < MAX_AXES; ++i)
 	{
+		if (!usedCoords[i])
+			continue;
 		double time = lengths[i] / acceleration[i];
 		if(timeMove < time)
 			timeMove = time;
@@ -899,7 +907,7 @@ void RemoteDevice::init()
 	{
 		int numAxe = letter_to_axe(coordList[i]);
 		if (numAxe == -1)
-			throw(std::string("invalid value of 'usedCoords' in config: letter ") + coordList[i] + "'");
+			throw(std::string("invalid value of 'usedCoords' in config: letter '") + coordList[i] + "'");
 		usedCoords[numAxe] = true;
 	}
 	memcpy(usedAxes, usedCoords, sizeof(usedCoords));
@@ -914,7 +922,7 @@ void RemoteDevice::init()
 		{
 			int numAxe = letter_to_axe(value[0]);
 			if (value.length() != 1 || numAxe == -1 || usedAxes[numAxe] || !usedCoords[i])
-				throw("invalid value of '" + value + "' in config: '" + value + "'");
+				throw("invalid value of '" + key + "' in config: '" + value + "'");
 			
 			usedAxes[numAxe] = true; //пишем используемые станком оси
 			slaveAxes[i] = numAxe;
@@ -1122,6 +1130,12 @@ double RemoteDevice::get_min_step(int axis1, int axis2)
 		return minStep;
 	else
 		return std::min(stepSize[axis1], stepSize[axis2]);
+}
+
+//============================================================
+const bool* RemoteDevice::get_is_coord_use()
+{
+	return usedCoords;
 }
 
 //============================================================

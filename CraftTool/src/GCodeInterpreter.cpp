@@ -399,7 +399,9 @@ InterError GCodeInterpreter::run_linear_sync(Coords& pos)
 		//выбираем самую длинную ось в качестве синхронной
 		int index = 0;
 		coord delta = abs(pos.r[0] - runner.position.r[0]);
-		for (int i = 1; i < NUM_COORDS; ++i) {
+		for (int i = 1; i < MAX_AXES; ++i) {
+			if (!usedCoords[i])
+				continue;
 			coord newDelta = abs(pos.r[i] - runner.position.r[i]);
 			if (newDelta > delta) {
 				index = i;
@@ -539,14 +541,18 @@ InterError GCodeInterpreter::run_modal_group_arc()
 		double length = sqrt(std::max(0.0, radius * radius - distance * distance / 4)); //длина перпендикуляра
 		if((radius < 0) == (runner.motionMode == MotionMode::CCW_ARC))
 			length *= -1;
-		for(int i = 0; i < NUM_COORDS; ++i)
-			toCenter.r[i] = (runner.position.r[i] - pos.r[i]) * length / distance;
+		for (int i = 0; i < MAX_AXES; ++i) {
+			if (usedCoords[i])
+				toCenter.r[i] = (runner.position.r[i] - pos.r[i]) * length / distance;
+		}
 
 		std::swap(toCenter.r[ix], toCenter.r[iy]);
 		toCenter.r[iy] = -toCenter.r[iy];
 
-		for(int i = 0; i < NUM_COORDS; ++i)
-			centerPos.r[i] = (runner.position.r[i] + pos.r[i]) / 2 + toCenter.r[i];
+		for (int i = 0; i < MAX_AXES; ++i) {
+			if (usedCoords[i])
+				centerPos.r[i] = (runner.position.r[i] + pos.r[i]) / 2 + toCenter.r[i];
+		}
 
 		double angleStart = atan2(runner.position.r[iy] - centerPos.r[iy], runner.position.r[ix] - centerPos.r[ix]);
 		double angleMax = atan2(pos.r[iy] - centerPos.r[iy], pos.r[ix] - centerPos.r[ix]);
@@ -826,8 +832,10 @@ coord GCodeInterpreter::to_mm(coord value)
 //====================================================================================================
 Coords GCodeInterpreter::to_mm(Coords value)
 {
-    for(int i = 0; i < NUM_COORDS; ++i)
-        value.r[i] = to_mm(value.r[i]);
+	for (int i = 0; i < MAX_AXES; ++i) {
+		if (usedCoords[i])
+			value.r[i] = to_mm(value.r[i]);
+	}
     return value;
 }
 
@@ -974,6 +982,7 @@ void GCodeInterpreter::init()
     runner.units = UnitSystem::METRIC;
     memset(&runner.csd, 0, sizeof(runner.csd));
     coordsInited = false;
+	usedCoords = remoteDevice->get_is_coord_use();
 }
 
 //====================================================================================================

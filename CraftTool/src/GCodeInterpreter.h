@@ -72,6 +72,7 @@ public:
 	RemoteDeviceInterface *remoteDevice; //устройство, которое исполняет команды
     Trajectory *trajectory;      //или массив, в который заносятся точки пути
     bool coordsInited;        //при начальной инициализации выставляем интерпретатору координаты устройства
+	const bool* usedCoords;   //координаты, задаваемые из G-кода
 
     void init();                            //инициализация для нового файла
     bool read_file(const char *name);             //запоминает строки текстового файла

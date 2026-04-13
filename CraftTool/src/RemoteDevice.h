@@ -25,8 +25,6 @@ public:
     void set_position(Coords position) override;
     void wait(double time) override;
     void set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES]) override;
-    double get_max_velocity(int coord) override;
-    double get_max_acceleration(int coord) override;
     void set_feed(double feed) override;
     void set_feed_multiplier(double multiplier) override;
     void set_feed_normal() override;
@@ -53,6 +51,9 @@ public:
     int  get_current_line() override;
     const Coords* get_current_coords() override;
     double get_min_step(int axis1, int axis2) override;
+	double get_max_velocity(int coord) override;
+	double get_max_acceleration(int coord) override;
+	const bool* get_is_coord_use() override;
     int send_lag_ms();
 
     bool on_packet_received(char *data, int size);
