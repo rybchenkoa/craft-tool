@@ -23,7 +23,7 @@
 //===============================================================
 void init_motors()
 {
-	for (int i=0; i < MAX_HARD_AXES; ++i)
+	for (int i=0; i < AXES_COUNT; ++i)
 		motor[i]._index = i;
 }
 
