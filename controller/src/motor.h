@@ -103,7 +103,7 @@ struct Motor
 		}
 		else
 		{
-			if (period < MAX_PERIOD) //переключаем на аппаратный счёт
+			if (period < MAX_PERIOD && _index < MAX_HARD_AXES) //переключаем на аппаратный счёт
 			{
 				set_step_time(_index, period);
 				int timeLeft = _lastTime + _period - timer.get_ticks();

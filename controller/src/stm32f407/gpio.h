@@ -48,8 +48,8 @@ tim4 - выходы как замена bsrr
 
 //=====================================================================
 //разводка выводов под двигатели
-//STEP [d12, d13, d14, d15, g4]
-//DIR [d10, d11, g2, g3, g6]
+//STEP [d12, d13, d14, d15, g4, g5]
+//DIR [d10, d11, g2, g3, g6, g7]
 //выводы ШИМ [e8, e10, e12  аппаратные e9, e11, e13, e14]
 
 #define MAX_HARD_AXES 5
@@ -61,8 +61,12 @@ tim4 - выходы как замена bsrr
 #define MAX_PERIOD (1<<17)
 #define MAX_STEP 256 //8-битный счетчик шагов, 0 пропускается, вместо него 0x1 00
 
-int           DIR_PINS[]    = {10,    11,    2,     3,     6};
-GPIO_TypeDef* DIR_PORTS[]   = {GPIOD, GPIOD, GPIOG, GPIOG, GPIOG};
+int           DIR_PINS[]    = {10,    11,    2,     3,     6,     7};
+GPIO_TypeDef* DIR_PORTS[]   = {GPIOD, GPIOD, GPIOG, GPIOG, GPIOG, GPIOG};
+
+int           STEP_PINS[]   = {12,    13,    14,    15,    4,     5};
+GPIO_TypeDef* STEP_PORTS[]  = {GPIOD, GPIOD, GPIOD, GPIOD, GPIOG, GPIOG};
+
 TIM_TypeDef*  STEP_TIMERS[] = {TIM2,  TIM3, TIM6,  TIM7, TIM8};
 DMA_Stream_TypeDef* DMA_STREAMS[] = {DMA1_Stream7, DMA1_Stream2, DMA1_Stream1, DMA1_Stream4, DMA2_Stream1};
 int DMA_TRIGGERS[] = {DMA_CHANNEL_3, DMA_CHANNEL_5, DMA_CHANNEL_7, DMA_CHANNEL_1, DMA_CHANNEL_7};
@@ -112,7 +116,7 @@ void configure_gpio()
 	gpio.Mode = LL_GPIO_MODE_OUTPUT;
 	gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
 	gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    for (int i = 0; i < MAX_HARD_AXES; ++i)
+    for (int i = 0; i < MAX_AXES; ++i)
     {
 	  gpio.Pin = 1<<DIR_PINS[i];
 	  LL_GPIO_Init(DIR_PORTS[i], &gpio);
@@ -120,6 +124,10 @@ void configure_gpio()
 	
     // этот STEP через BSRR
 	gpio.Pin = LL_GPIO_PIN_4;
+	LL_GPIO_Init(GPIOG, &gpio);
+
+	// этот STEP управляется вручную
+	gpio.Pin = LL_GPIO_PIN_5;
 	LL_GPIO_Init(GPIOG, &gpio);
 
     // эти STEP управляются таймерами
@@ -311,8 +319,14 @@ int inline get_steps(int index)
 //делает шаг таймером. (делает cnt!=ccr1, а потом равным (одновременно запуская dma)
 void inline step(int index)
 {
-	STEP_TIMERS[index]->CNT = 1; //STEP_TIMERS[index]->ARR;//STEP_TIMERS[index]->CCR1;
-	STEP_TIMERS[index]->EGR = TIM_EGR_UG/* | TIM_EGR_CC1G*/;
+	if (index < MAX_HARD_AXES) {
+		STEP_TIMERS[index]->CNT = 1; //STEP_TIMERS[index]->ARR;//STEP_TIMERS[index]->CCR1;
+		STEP_TIMERS[index]->EGR = TIM_EGR_UG/* | TIM_EGR_CC1G*/;
+	}
+	else {
+		bool state = (STEP_PORTS[index]->IDR >> index) & 1;
+		set_pin_state(STEP_PORTS[index], STEP_PINS[index], !state);
+	}
 }
 
 //--------------------------------------------------

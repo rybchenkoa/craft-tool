@@ -5,7 +5,7 @@
 //#include <stdarg.h>
 
 const int MAX_AXES = 6;
-const int AXES_COUNT = 5;
+const int AXES_COUNT = 6;
 const int CORE_FREQ = 168000000;
 const int PWM_FREQ = 20000;               // дефолтные частоты
 const int PWM_SLOW_FREQ = 1000;           // частота медленного ШИМ
