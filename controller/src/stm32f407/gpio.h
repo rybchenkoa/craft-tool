@@ -85,44 +85,44 @@ int BSRR_ARRAY[MAX_STEP];
 //--------------------------------------------------
 void configure_gpio()
 {
-    LL_GPIO_InitTypeDef gpio;
+	LL_GPIO_InitTypeDef gpio;
 	gpio.Mode = LL_GPIO_MODE_INPUT;
 	gpio.Pull = LL_GPIO_PULL_UP;
-    for (int i = 0; i < 8; ++i)
-    {
-	  gpio.Pin = 1<<IN_PINS[i];
-	  LL_GPIO_Init(IN_PORTS[i], &gpio);
-    }
+	for (int i = 0; i < 8; ++i)
+	{
+		gpio.Pin = 1<<IN_PINS[i];
+		LL_GPIO_Init(IN_PORTS[i], &gpio);
+	}
 
-    //PWM
+	//PWM
 	gpio.Mode = LL_GPIO_MODE_OUTPUT;
 	gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
 	gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    for (int i = 0; i < MAX_SLOW_PWMS; ++i)
-    {
-	  gpio.Pin = 1<<OUT_PINS[i];
-	  LL_GPIO_Init(OUT_PORTS[i], &gpio);
-    }
-
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Alternate = GPIO_AF1_TIM1;
-    for (int i = MAX_SLOW_PWMS; i < MAX_SLOW_PWMS + MAX_PWM; ++i)
-    {
+	for (int i = 0; i < MAX_SLOW_PWMS; ++i)
+	{
 		gpio.Pin = 1<<OUT_PINS[i];
 		LL_GPIO_Init(OUT_PORTS[i], &gpio);
-    }
+	}
 
-    //DIR управляется вручную
+	gpio.Mode = GPIO_MODE_AF_PP;
+	gpio.Alternate = GPIO_AF1_TIM1;
+	for (int i = MAX_SLOW_PWMS; i < MAX_SLOW_PWMS + MAX_PWM; ++i)
+	{
+		gpio.Pin = 1<<OUT_PINS[i];
+		LL_GPIO_Init(OUT_PORTS[i], &gpio);
+	}
+
+	//DIR управляется вручную
 	gpio.Mode = LL_GPIO_MODE_OUTPUT;
 	gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
 	gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    for (int i = 0; i < MAX_AXES; ++i)
-    {
-	  gpio.Pin = 1<<DIR_PINS[i];
-	  LL_GPIO_Init(DIR_PORTS[i], &gpio);
-    }
+	for (int i = 0; i < MAX_AXES; ++i)
+	{
+		gpio.Pin = 1<<DIR_PINS[i];
+		LL_GPIO_Init(DIR_PORTS[i], &gpio);
+	}
 	
-    // этот STEP через BSRR
+	// этот STEP через BSRR
 	gpio.Pin = LL_GPIO_PIN_4;
 	LL_GPIO_Init(GPIOG, &gpio);
 
@@ -130,11 +130,11 @@ void configure_gpio()
 	gpio.Pin = LL_GPIO_PIN_5;
 	LL_GPIO_Init(GPIOG, &gpio);
 
-    // эти STEP управляются таймерами
-    gpio.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-    gpio.Mode = GPIO_MODE_AF_PP;
+	// эти STEP управляются таймерами
+	gpio.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+	gpio.Mode = GPIO_MODE_AF_PP;
 	gpio.Alternate = GPIO_AF2_TIM4;
-    LL_GPIO_Init(GPIOD, &gpio);
+	LL_GPIO_Init(GPIOD, &gpio);
 }
 
 //--------------------------------------------------
@@ -142,57 +142,57 @@ void configure_gpio()
 // хорош тем, что висит на шине, доступной для обращения через DMA
 void config_output_timer(TIM_TypeDef *tim, char *arr)
 {
-  for (int i = 0; i < MAX_STEP; i+=2)
-  {
-	arr[i] = -1;
-	arr[i+1] = 0;
-  }
+	for (int i = 0; i < MAX_STEP; i+=2)
+	{
+		arr[i] = -1;
+		arr[i+1] = 0;
+	}
 
-  TIM_TypeDef *timOut = TIM4;
-  timOut->CNT = 1;
-  timOut->ARR = 2;
-  timOut->CCMR1 |= LL_TIM_OCMODE_PWM1*(1 + (1<<8)); // постоянное сравнение на <=
-  timOut->CCMR2 |= LL_TIM_OCMODE_PWM1*(1 + (1<<8));
-  timOut->BDTR |= TIM_BDTR_MOE; //убираем блокировку выходов
-  timOut->CCER |= TIM_CCER_CC1E //включаем все 4 канала сравнения
-                | TIM_CCER_CC2E
-                | TIM_CCER_CC3E
-                | TIM_CCER_CC4E;
+	TIM_TypeDef *timOut = TIM4;
+	timOut->CNT = 1;
+	timOut->ARR = 2;
+	timOut->CCMR1 |= LL_TIM_OCMODE_PWM1*(1 + (1<<8)); // постоянное сравнение на <=
+	timOut->CCMR2 |= LL_TIM_OCMODE_PWM1*(1 + (1<<8));
+	timOut->BDTR |= TIM_BDTR_MOE; //убираем блокировку выходов
+	timOut->CCER |= TIM_CCER_CC1E //включаем все 4 канала сравнения
+					| TIM_CCER_CC2E
+					| TIM_CCER_CC3E
+					| TIM_CCER_CC4E;
 }
 
 //--------------------------------------------------
 //таймер, который просто генерирует запросы к DMA с нужной частотой
 void config_step_timer(TIM_TypeDef *tim)
 {
-  tim->CNT = 0;
-  tim->ARR = 32000;
-  //tim->PSC = 0; //надо ставить в зависимости от шины
-  tim->CR1 |= TIM_CR1_ARPE; //сравнение CNT == ARR (а не <= ), поэтому чтобы не пролететь мимо во время обновления
-  tim->EGR = TIM_EGR_UG;   //переносим значения из shadow регистров
-  tim->DIER |= TIM_DIER_UDE; //разрешаем DMA запрос по событию переполнения (совпадение с ARR)
+	tim->CNT = 0;
+	tim->ARR = 32000;
+	//tim->PSC = 0; //надо ставить в зависимости от шины
+	tim->CR1 |= TIM_CR1_ARPE; //сравнение CNT == ARR (а не <= ), поэтому чтобы не пролететь мимо во время обновления
+	tim->EGR = TIM_EGR_UG;   //переносим значения из shadow регистров
+	tim->DIER |= TIM_DIER_UDE; //разрешаем DMA запрос по событию переполнения (совпадение с ARR)
 }
 
 //--------------------------------------------------
 // DMA, который дергает ножкой через BSRR
 // на каждую ножку нужен отдельный массив
 void dma_bsrr_stream(DMA_Stream_TypeDef *stream, int channel,
-                    GPIO_TypeDef *port, int* arr, int bitSet, int bitReset)
+					GPIO_TypeDef *port, int* arr, int bitSet, int bitReset)
 {
-  for (int i = 0; i < MAX_STEP; i+=2)
-  {
-	arr[i] = bitSet;
-	arr[i+1] = bitReset;
-  }
+	for (int i = 0; i < MAX_STEP; i+=2)
+	{
+		arr[i] = bitSet;
+		arr[i+1] = bitReset;
+	}
 
-  stream->CR = DMA_MEMORY_TO_PERIPH
-    | DMA_SxCR_CIRC
-    | DMA_MDATAALIGN_WORD | DMA_PDATAALIGN_WORD
-    | DMA_SxCR_MINC //увеличивать указатель на память
-    | channel; //тактирование брать с этого триггера
-  stream->NDTR = MAX_STEP;
-  stream->M0AR = (int)arr;
-  stream->PAR = (int)&port->BSRR;
-  stream->CR |= DMA_SxCR_EN;
+	stream->CR = DMA_MEMORY_TO_PERIPH
+				| DMA_SxCR_CIRC
+				| DMA_MDATAALIGN_WORD | DMA_PDATAALIGN_WORD
+				| DMA_SxCR_MINC //увеличивать указатель на память
+				| channel; //тактирование брать с этого триггера
+	stream->NDTR = MAX_STEP;
+	stream->M0AR = (int)arr;
+	stream->PAR = (int)&port->BSRR;
+	stream->CR |= DMA_SxCR_EN;
 }
 
 //--------------------------------------------------
@@ -200,14 +200,14 @@ void dma_bsrr_stream(DMA_Stream_TypeDef *stream, int channel,
 void dma_oc_stream(int *outReg, DMA_Stream_TypeDef *stream, int channel, char *arr)
 {
   stream->CR = DMA_MEMORY_TO_PERIPH
-    | DMA_SxCR_CIRC
-    | DMA_MDATAALIGN_BYTE | DMA_PDATAALIGN_BYTE
-    | DMA_SxCR_MINC //увеличивать указатель на память
-    | channel; //тактирование брать с этого триггера
-  stream->NDTR = MAX_STEP;
-  stream->M0AR = (int)arr;
-  stream->PAR = (int)outReg;
-  stream->CR |= DMA_SxCR_EN;
+				| DMA_SxCR_CIRC
+				| DMA_MDATAALIGN_BYTE | DMA_PDATAALIGN_BYTE
+				| DMA_SxCR_MINC //увеличивать указатель на память
+				| channel; //тактирование брать с этого триггера
+	stream->NDTR = MAX_STEP;
+	stream->M0AR = (int)arr;
+	stream->PAR = (int)outReg;
+	stream->CR |= DMA_SxCR_EN;
 }
 
 //--------------------------------------------------
@@ -216,16 +216,16 @@ void config_pwm_timer()
 {
 	TIM1->CR1 &= ~TIM_CR1_CEN;
 	TIM1->CCMR1 = TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2   //левый шим на всех каналах
-							| TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2;
+				| TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2;
 
 	TIM1->CCMR2 = TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2
-							| TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2;
+				| TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2;
 
 	TIM1->BDTR |= TIM_BDTR_MOE;
 	TIM1->CCER |= TIM_CCER_CC1E
-							| TIM_CCER_CC2NE | TIM_CCER_CC2NP
-							| TIM_CCER_CC3NE | TIM_CCER_CC3NP
-							| TIM_CCER_CC4E; //подключаем все каналы для шим
+				| TIM_CCER_CC2NE | TIM_CCER_CC2NP
+				| TIM_CCER_CC3NE | TIM_CCER_CC3NP
+				| TIM_CCER_CC4E; //подключаем все каналы для шим
 
 	TIM1->PSC = 0;
 	TIM1->ARR = CORE_FREQ / PWM_FREQ - 1;
@@ -240,17 +240,17 @@ int inline to_tim_clock(int interval) { return interval >> 1; }
 //подключение шаговых таймеров
 void connect_step_channels()
 {
-    //TIM1->PSC = 1; //приводим частоту всех таймеров к одному значению (минимальному)
-    TIM8->PSC = 1; //дальше будет вызвано EGR_UG
+	//TIM1->PSC = 1; //приводим частоту всех таймеров к одному значению (минимальному)
+	TIM8->PSC = 1; //дальше будет вызвано EGR_UG
 
 	for (int i = 0; i < MAX_HARD_AXES; ++i) //настраиваем таймера, генерирующие шаги
 		config_step_timer(STEP_TIMERS[i]);
 
-    config_output_timer(TIM4, OC_ARRAY); //включаем таймер, шим каналы которого управляют ножками
-    for (int i = 0; i < 4; ++i)
-      dma_oc_stream((int*)&TIM4->CCR1 + i, DMA_STREAMS[i], DMA_TRIGGERS[i], OC_ARRAY);
+	config_output_timer(TIM4, OC_ARRAY); //включаем таймер, шим каналы которого управляют ножками
+	for (int i = 0; i < 4; ++i)
+	  dma_oc_stream((int*)&TIM4->CCR1 + i, DMA_STREAMS[i], DMA_TRIGGERS[i], OC_ARRAY);
 
-    dma_bsrr_stream(DMA_STREAMS[4], DMA_TRIGGERS[4], GPIOG, BSRR_ARRAY, GPIO_BSRR_BR4, GPIO_BSRR_BS4);
+	dma_bsrr_stream(DMA_STREAMS[4], DMA_TRIGGERS[4], GPIOG, BSRR_ARRAY, GPIO_BSRR_BR4, GPIO_BSRR_BS4);
 }
 
 //--------------------------------------------------

@@ -7,13 +7,13 @@
 
 namespace Ui
 {
-    class Scene3d;
+	class Scene3d;
 }
 
 struct TrackPoint
 {
-    bool isFast;
-    glm::vec3 position;
+	bool isFast;
+	glm::vec3 position;
 };
 
 enum class View
@@ -28,96 +28,96 @@ enum class View
 
 struct Camera
 {
-    float     scale;          //масштаб изображени¤
-    glm::vec3 position;       //где находитс¤ камера
-    glm::vec3 look;           //нормализованный вектор взгл¤да
-    glm::vec3 top;            //вектор ориентации камеры
-    float     screenAngle;    //поворот экрана
-    glm::mat4 viewProjection; //матрица камеры
+	float     scale;          //масштаб изображения
+	glm::vec3 position;       //где находится камера
+	glm::vec3 look;           //нормализованный вектор взгляда
+	glm::vec3 top;            //вектор ориентации камеры
+	float     screenAngle;    //поворот экрана
+	glm::mat4 viewProjection; //матрица камеры
 
-    void recalc_matrix(int width, int height);     //пересчитать матрицу проекции
-    void rotate_cursor(float x, float y, float deltaX, float deltaY); //обработка поворота камеры
+	void recalc_matrix(int width, int height);     //пересчитать матрицу проекции
+	void rotate_cursor(float x, float y, float deltaX, float deltaY); //обработка поворота камеры
 	void screen_matrix(int width, int height);     //вывод 2d графики
 };
 
 struct Vertex
 {
-    glm::vec3 position;
-    glm::vec4 color;
+	glm::vec3 position;
+	glm::vec4 color;
 
-    Vertex(glm::vec3 _position, glm::vec4 _color):
-        position(_position), color(_color) {};
+	Vertex(glm::vec3 _position, glm::vec4 _color):
+		position(_position), color(_color) {};
 };
 
 struct Object3d
 {
-    glm::vec3           position; //положение
-    glm::vec3           ortX;     //ориентаци¤
-    glm::vec3           ortY;
-    std::vector<Vertex> verts;    //вершины
-    std::vector<int>    indices;  //треугольники
+	glm::vec3           position; //положение
+	glm::vec3           ortX;     //ориентация
+	glm::vec3           ortY;
+	std::vector<Vertex> verts;    //вершины
+	std::vector<int>    indices;  //треугольники
 
-    void draw(); //нарисовать треугольники
+	void draw(); //нарисовать треугольники
 };
 
 class Scene3d :  public QGLWidget
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    Scene3d(QWidget *parent = 0);
-    ~Scene3d();
+	Scene3d(QWidget *parent = 0);
+	~Scene3d();
 	void set_view(View view);
 
 protected:
-    void initializeGL();
-    void resizeGL(int nWidth, int nHeight);
-    void paintGL();
-    void mousePressEvent(QMouseEvent* pe);
-    void mouseMoveEvent(QMouseEvent* pe);
-    void mouseReleaseEvent(QMouseEvent* pe);
-    void wheelEvent(QWheelEvent* pe);
-    //void keyPressEvent(QKeyEvent* pe);
+	void initializeGL();
+	void resizeGL(int nWidth, int nHeight);
+	void paintGL();
+	void mousePressEvent(QMouseEvent* pe);
+	void mouseMoveEvent(QMouseEvent* pe);
+	void mouseReleaseEvent(QMouseEvent* pe);
+	void wheelEvent(QWheelEvent* pe);
+	//void keyPressEvent(QKeyEvent* pe);
 
-    void recalc_matrices();
-    void draw_bounds();
-    void draw_3d_grid();
+	void recalc_matrices();
+	void draw_bounds();
+	void draw_3d_grid();
 	void draw_grid();
-    void draw_track();
-    void draw_real_track();
-    void draw_border();
-    void draw_fps();
+	void draw_track();
+	void draw_real_track();
+	void draw_border();
+	void draw_fps();
 
 public:
-    int    m_windowWidth;  //размеры окна
-    int    m_windowHeight;
+	int    m_windowWidth;  //размеры окна
+	int    m_windowHeight;
 
-    float  m_zoneWidth;  //размеры зоны станка
-    float  m_zoneHeight;
-    float  m_zoneTop;
+	float  m_zoneWidth;  //размеры зоны станка
+	float  m_zoneHeight;
+	float  m_zoneTop;
 
-    bool   m_showGrid;   //показывать ли сетку масштаба
-    float  m_gridStep;   //размер ¤чейки сетки
+	bool   m_showGrid;   //показывать ли сетку масштаба
+	float  m_gridStep;   //размер ячейки сетки
 
-    QPoint m_lastMousePosition;
-    bool   m_mousePressed;
+	QPoint m_lastMousePosition;
+	bool   m_mousePressed;
 
-    Camera camera;
-    Object3d tool;
+	Camera camera;
+	Object3d tool;
 
-    std::vector<TrackPoint> track; //траектори¤ фрезы
-    std::vector<glm::vec3> realTrack; //пройденна¤ фрезой траектори¤
+	std::vector<TrackPoint> track; //траектория фрезы
+	std::vector<glm::vec3> realTrack; //пройденная фрезой траектория
 
-    int _drawCalls; //вызовов отрисовки за последнюю секунду
-    int _fps;
+	int _drawCalls; //вызовов отрисовки за последнюю секунду
+	int _fps;
 	QTime _time;
 
-    QTimer updateTimer;
+	QTimer updateTimer;
 
 public slots:
-    void update_tool_coords(float x, float y, float z);
+	void update_tool_coords(float x, float y, float z);
 };
 
-void make_cylinder(Object3d& edge, int divs); //из границы в плоскости XZ создаЄт объект вращени¤ вокруг z
+void make_cylinder(Object3d& edge, int divs); //из границы в плоскости XZ создаёт объект вращения вокруг z
 
-void make_tool_simple(Object3d& tool); //создаЄт объект сверло
+void make_tool_simple(Object3d& tool); //создаёт объект сверло

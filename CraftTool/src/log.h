@@ -5,11 +5,11 @@
 
 class Logger : public QObject
 {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    void log_console_string(QColor color, const char *value);
+	void log_console_string(QColor color, const char *value);
 signals:
-    void send_string(QColor color, QString value);
+	void send_string(QColor color, QString value);
 };
 
 void log_console(QColor color, const char *format, ...);

@@ -10,13 +10,13 @@ class Adc
 	
 	void init()
 	{
-        LL_GPIO_InitTypeDef gpio;
-        gpio.Pin = LL_GPIO_PIN_3;
-        gpio.Mode = LL_GPIO_MODE_ANALOG;
-        gpio.Pull = LL_GPIO_PULL_NO;
-        LL_GPIO_Init(GPIOF, &gpio);
+		LL_GPIO_InitTypeDef gpio;
+		gpio.Pin = LL_GPIO_PIN_3;
+		gpio.Mode = LL_GPIO_MODE_ANALOG;
+		gpio.Pull = LL_GPIO_PULL_NO;
+		LL_GPIO_Init(GPIOF, &gpio);
 
-        ADC_TypeDef *adc = ADC3;
+		ADC_TypeDef *adc = ADC3;
 		adc->CR2 |= ADC_CR2_ADON;            //включаем сам adc
 		//adc->SR & ADC_SR_STRT              //ждём, пока заведётся
 		

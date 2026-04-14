@@ -18,286 +18,286 @@ unsigned crc32_stm32(unsigned init_crc, unsigned *buf, int len);
 //====================================================================================================
 enum class Queue
 {
-    None = -1,
-    Default,
-    High,
+	None = -1,
+	Default,
+	High,
 };
 
 //====================================================================================================
 int get_timestamp()
 {
-  return clock();
+	return clock();
 }
 
 //====================================================================================================
 struct PacketQueued
 {
-    int line;
-    int timestamp = 0;
-    int sendCount = 0; // 0 - не послан, -1 - принят
-    std::shared_ptr<PacketCommon> data;
+	int line;
+	int timestamp = 0;
+	int sendCount = 0; // 0 - не послан, -1 - принят
+	std::shared_ptr<PacketCommon> data;
 };
 
 //====================================================================================================
 // обработка пересылки пакетов
 struct RemoteDevice::ConnectData
 {
-    int NUMBER;    //номер очереди команд
-    PacketCount packetNumber; //номер очередного добавляемого в очередь пакета
-    std::deque<PacketQueued> commands; //очередь команд
+	int NUMBER;    //номер очереди команд
+	PacketCount packetNumber; //номер очередного добавляемого в очередь пакета
+	std::deque<PacketQueued> commands; //очередь команд
 
-    int BUFFER_LEN;  //длина буфера посылки в пакетах
-    int resendTime; //время ожидания прихода пакетов
-    int RESEND_TIME_MAX;
-    int RESEND_TIME_MIN;
+	int BUFFER_LEN;  //длина буфера посылки в пакетах
+	int resendTime; //время ожидания прихода пакетов
+	int RESEND_TIME_MAX;
+	int RESEND_TIME_MIN;
 
-    //посланные устройству пакеты, которые ещё не исполнены
-    //соответствует концу очереди команд
-    bool keepSent; //запоминать ли принятые устройством пакеты
-    std::deque<PacketQueued> forwarded;
-    int missedSends; //потеряно пакетов по таймауту
-    bool connected;
+	//посланные устройству пакеты, которые ещё не исполнены
+	//соответствует концу очереди команд
+	bool keepSent; //запоминать ли принятые устройством пакеты
+	std::deque<PacketQueued> forwarded;
+	int missedSends; //потеряно пакетов по таймауту
+	bool connected;
 	RemoteDevice *parent;
 
-    ConnectData()
-    {
-      NUMBER = -1;
-      packetNumber = -1;
-      BUFFER_LEN = 3;
-      resendTime = 30;
-      RESEND_TIME_MAX = 100;
-      RESEND_TIME_MIN = 1;
-      keepSent = false;
-      missedSends = 0;
-      connected = false;
-    }
+	ConnectData()
+	{
+		NUMBER = -1;
+		packetNumber = -1;
+		BUFFER_LEN = 3;
+		resendTime = 30;
+		RESEND_TIME_MAX = 100;
+		RESEND_TIME_MIN = 1;
+		keepSent = false;
+		missedSends = 0;
+		connected = false;
+	}
 
-    bool empty() { return commands.empty(); }
+	bool empty() { return commands.empty(); }
 
-    void reset()
-    {
-        packetNumber = -1;
-        commands.clear();
-        forwarded.clear();
-    }
+	void reset()
+	{
+		packetNumber = -1;
+		commands.clear();
+		forwarded.clear();
+	}
 
-    void send_packet(UniversalConnection *connection, PacketQueued& p)
-    {
-        PacketCommon *packet = p.data.get();
-        make_crc((char*)packet);
-        connection->send_data(&packet->size + 1, packet->size - 1);
+	void send_packet(UniversalConnection *connection, PacketQueued& p)
+	{
+		PacketCommon *packet = p.data.get();
+		make_crc((char*)packet);
+		connection->send_data(&packet->size + 1, packet->size - 1);
 
-        if (LOG_CONNECT)
-        {
-            const char *re = p.sendCount > 1? "re" : "";
-            log_message("[%d] connect: %ssend pack %d, time %d\n", get_timestamp(), re, packet->packetNumber, p.timestamp);
-        }
-    }
+		if (LOG_CONNECT)
+		{
+			const char *re = p.sendCount > 1? "re" : "";
+			log_message("[%d] connect: %ssend pack %d, time %d\n", get_timestamp(), re, packet->packetNumber, p.timestamp);
+		}
+	}
 
-    int send(UniversalConnection *connection)
-    {
-        int baudRate = 230400/8;
-        float timeFactor = baudRate/1000;
-        int timeInc = 0;
-        int packSends = 0;
-        auto timestamp = get_timestamp();
-        for (int i = 0; i < BUFFER_LEN && i < commands.size(); ++i)
-        {
-            auto it = commands.begin() + i;
-            if ((timestamp - it->timestamp) > resendTime && it->sendCount != -1)
-            {
-                if (it->sendCount > 0)
-                    ++missedSends;
-                
-                it->timestamp = timestamp + timeInc;
-                ++it->sendCount;
-                send_packet(connection, *it);
-                timeInc += it->data->size / timeFactor;
-                ++packSends;
-            }
+	int send(UniversalConnection *connection)
+	{
+		int baudRate = 230400/8;
+		float timeFactor = baudRate/1000;
+		int timeInc = 0;
+		int packSends = 0;
+		auto timestamp = get_timestamp();
+		for (int i = 0; i < BUFFER_LEN && i < commands.size(); ++i)
+		{
+			auto it = commands.begin() + i;
+			if ((timestamp - it->timestamp) > resendTime && it->sendCount != -1)
+			{
+				if (it->sendCount > 0)
+					++missedSends;
 
-            if (!connected)
-                break;
-        }
-        return packSends;
-    }
+				it->timestamp = timestamp + timeInc;
+				++it->sendCount;
+				send_packet(connection, *it);
+				timeInc += it->data->size / timeFactor;
+				++packSends;
+			}
 
-    bool packet_received(PacketReceived *p)
-    {//устройство приняло посланный пакет
-        if(commands.empty())
-            return false;
-        int offset = PacketCount(p->packetNumber - commands.front().data->packetNumber);
-        if (offset > BUFFER_LEN || commands.size() <= offset)
-        {
-            if (resendTime < RESEND_TIME_MAX)
-                ++resendTime;
-            if (LOG_CONNECT)
-                log_message("[%d] connect: inc time %d\n", get_timestamp(), resendTime);
-            return false;
-        }
+			if (!connected)
+				break;
+		}
+		return packSends;
+	}
 
-        auto it = commands.begin() + offset;
-        int delta = get_timestamp() - it->timestamp;
-        if (it->sendCount == 1)
-        {
-            if (resendTime < delta + 10)
-            {
-                resendTime = std::min(RESEND_TIME_MAX, delta + 10);
-                if (LOG_CONNECT)
-                    log_message("[%d] connect: + time %d\n", get_timestamp(), resendTime);
-            }
-            if (resendTime > RESEND_TIME_MIN)
-            {
-                --resendTime;
-                if (LOG_CONNECT)
-                    log_message("[%d] connect: dec time %d\n", get_timestamp(), resendTime);
-            }
-        }
+	bool packet_received(PacketReceived *p)
+	{//устройство приняло посланный пакет
+		if(commands.empty())
+			return false;
+		int offset = PacketCount(p->packetNumber - commands.front().data->packetNumber);
+		if (offset > BUFFER_LEN || commands.size() <= offset)
+		{
+			if (resendTime < RESEND_TIME_MAX)
+				++resendTime;
+			if (LOG_CONNECT)
+				log_message("[%d] connect: inc time %d\n", get_timestamp(), resendTime);
+			return false;
+		}
 
-        it->sendCount = -1;
-        //log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
-        //выкидываем сплошной кусок отправленных пакетов
-        while(!commands.empty())
-        {
-            auto it = commands.begin();
-            if (it->sendCount != -1)
-                break;
-            if (keepSent)
-                forwarded.push_back(commands.front());
-            if (LOG_CONNECT)
-                log_message("[%d] connect: pop pack %d\n", get_timestamp(), it->data->packetNumber);
+		auto it = commands.begin() + offset;
+		int delta = get_timestamp() - it->timestamp;
+		if (it->sendCount == 1)
+		{
+			if (resendTime < delta + 10)
+			{
+				resendTime = std::min(RESEND_TIME_MAX, delta + 10);
+				if (LOG_CONNECT)
+					log_message("[%d] connect: + time %d\n", get_timestamp(), resendTime);
+			}
+			if (resendTime > RESEND_TIME_MIN)
+			{
+				--resendTime;
+				if (LOG_CONNECT)
+					log_message("[%d] connect: dec time %d\n", get_timestamp(), resendTime);
+			}
+		}
 
-            if (it->data->command == DeviceCommand::DeviceCommand_BREAK)
-            {
-                for(int i = 0; i < MAX_AXES; ++i)
-                {
-                    parent->lastPosition.r[i]   = HUGE_VAL;
-                    parent->currentCoords.r[i]  = HUGE_VAL;
-                    parent->lastDelta.r[i]      = HUGE_VAL;
-                }
-                parent->fractSended = false;
-                reset();
-            }
-            else
-                commands.pop_front();
-            connected = true;
-        }
-        return true;
-    }
+		it->sendCount = -1;
+		//log_message("suc receive number %d\n", ((PacketReceived*)data)->packetNumber);
+		//выкидываем сплошной кусок отправленных пакетов
+		while(!commands.empty())
+		{
+			auto it = commands.begin();
+			if (it->sendCount != -1)
+				break;
+			if (keepSent)
+				forwarded.push_back(commands.front());
+			if (LOG_CONNECT)
+				log_message("[%d] connect: pop pack %d\n", get_timestamp(), it->data->packetNumber);
 
-    bool packet_executed(PacketCount index, int &line)
-    {
-        for (auto it = forwarded.begin(); it != forwarded.end(); ++it)
-            if (it->data->packetNumber == index)
-            {
-                line = it->line;
-                forwarded.erase(forwarded.begin(), it);
-                return true;
-            }
-        for (int i = 0; i < BUFFER_LEN && i < commands.size(); ++i)
-        {
-            auto it = commands.begin() + i;
-            if (it->sendCount == 0)
-                continue;
-            line = it->line;
-            return true;
-        }
-        return false;
-    }
+			if (it->data->command == DeviceCommand::DeviceCommand_BREAK)
+			{
+				for(int i = 0; i < MAX_AXES; ++i)
+				{
+					parent->lastPosition.r[i]   = HUGE_VAL;
+					parent->currentCoords.r[i]  = HUGE_VAL;
+					parent->lastDelta.r[i]      = HUGE_VAL;
+				}
+				parent->fractSended = false;
+				reset();
+			}
+			else
+				commands.pop_front();
+			connected = true;
+		}
+		return true;
+	}
+
+	bool packet_executed(PacketCount index, int &line)
+	{
+		for (auto it = forwarded.begin(); it != forwarded.end(); ++it)
+			if (it->data->packetNumber == index)
+			{
+				line = it->line;
+				forwarded.erase(forwarded.begin(), it);
+				return true;
+			}
+		for (int i = 0; i < BUFFER_LEN && i < commands.size(); ++i)
+		{
+			auto it = commands.begin() + i;
+			if (it->sendCount == 0)
+				continue;
+			line = it->line;
+			return true;
+		}
+		return false;
+	}
 };
 
 //====================================================================================================
 inline double pow2(double x)
 {
-    return x*x;
+	return x*x;
 }
 
 //============================================================
 RemoteDevice::RemoteDevice()
 {
-    init_crc();
-    missedSends = 0;
-    missedReceives = 0;
-    missedHalfSend = 0;
-    packSends = 0;
-    pushLine = -1;
-    workLine = -1;
+	init_crc();
+	missedSends = 0;
+	missedReceives = 0;
+	missedHalfSend = 0;
+	packSends = 0;
+	pushLine = -1;
+	workLine = -1;
 	inited = false;
 
-    for(int i = 0; i < MAX_AXES; ++i)
-    {
-        scale[i]            = HUGE_VAL;
-        lastPosition.r[i]   = HUGE_VAL;
-        velocity[i]         = HUGE_VAL;
-        acceleration[i]     = HUGE_VAL;
-        currentCoords.r[i]  = HUGE_VAL;
-        lastDelta.r[i]      = HUGE_VAL;
-    }
-    minStep = HUGE_VAL;
-    feed = HUGE_VAL;
-    moveMode = MoveMode_LINEAR;
-    fractSended = false;
+	for(int i = 0; i < MAX_AXES; ++i)
+	{
+		scale[i]            = HUGE_VAL;
+		lastPosition.r[i]   = HUGE_VAL;
+		velocity[i]         = HUGE_VAL;
+		acceleration[i]     = HUGE_VAL;
+		currentCoords.r[i]  = HUGE_VAL;
+		lastDelta.r[i]      = HUGE_VAL;
+	}
+	minStep = HUGE_VAL;
+	feed = HUGE_VAL;
+	moveMode = MoveMode_LINEAR;
+	fractSended = false;
 
-    sendThread = std::thread(&RemoteDevice::send_thread, this);
-    connection = nullptr;
+	sendThread = std::thread(&RemoteDevice::send_thread, this);
+	connection = nullptr;
 }
 
 //============================================================
 RemoteDevice::~RemoteDevice()
 {
-    stop_token = true;
-    eventPacketReceived.notify_all();
-    eventQueueAdd.notify_all();
-    sendThread.join();
+	stop_token = true;
+	eventPacketReceived.notify_all();
+	eventQueueAdd.notify_all();
+	sendThread.join();
 }
 
 //============================================================
 #define CRC32_POLY 0x04C11DB7
 void init_crc()
 {
-    unsigned crc;
-    for (int i = 0; i < 256; ++i)
-    {
-        crc = i << 24;
-        for (int j = 8; j > 0; --j)
-            crc = crc & 0x80000000 ? (crc << 1) ^ CRC32_POLY : (crc << 1);
-        crc32Table[i] = crc;
-    }
+	unsigned crc;
+	for (int i = 0; i < 256; ++i)
+	{
+		crc = i << 24;
+		for (int j = 8; j > 0; --j)
+			crc = crc & 0x80000000 ? (crc << 1) ^ CRC32_POLY : (crc << 1);
+		crc32Table[i] = crc;
+	}
 }
 
 //============================================================
 unsigned crc32_stm32(unsigned init_crc, unsigned *buf, int len)
 {
-    unsigned v;
-    unsigned crc;
-    crc = init_crc;
-    while(len >= 4)
-    {
-        v = htonl(*buf++);
-        crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v ) )];
-        crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 8) )];
-        crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 16) )];
-        crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 24) )];
-        len -= 4;
-    }
+	unsigned v;
+	unsigned crc;
+	crc = init_crc;
+	while(len >= 4)
+	{
+		v = htonl(*buf++);
+		crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v ) )];
+		crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 8) )];
+		crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 16) )];
+		crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 24) )];
+		len -= 4;
+	}
 
-    uint8_t *cbuf = (uint8_t*)buf;
-    while(len-- != 0)
-    {
-        v = htonl(*cbuf++);
-        crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v ) )];
-        crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 8) )];
-        crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 16) )];
-        crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 24) )];
-    }
-    return crc;
+	uint8_t *cbuf = (uint8_t*)buf;
+	while(len-- != 0)
+	{
+		v = htonl(*cbuf++);
+		crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v ) )];
+		crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 8) )];
+		crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 16) )];
+		crc = ( crc << 8 ) ^ crc32Table[0xFF & ( (crc >> 24) ^ (v >> 24) )];
+	}
+	return crc;
 }
 
 
 //============================================================
 int RemoteDevice::send_lag_ms()
 {
-    return commands[0]->resendTime;
+	return commands[0]->resendTime;
 }
 
 
@@ -305,11 +305,11 @@ int RemoteDevice::send_lag_ms()
 template<typename T>
 void RemoteDevice::push_packet_common(T *packet)
 {
-    packet->size = sizeof(*packet);
+	packet->size = sizeof(*packet);
 	packet->crc = 0; // защита на случай, если забыта обёртка PacketTail
-    PacketQueued element;
-    element.line = pushLine;
-    element.data.reset(packet);
+	PacketQueued element;
+	element.line = pushLine;
+	element.data.reset(packet);
 
 	{
 		std::unique_lock<std::mutex> lock(queueMutex);
@@ -317,18 +317,18 @@ void RemoteDevice::push_packet_common(T *packet)
 		commands[0]->commands.push_back(element);
 	}
 
-    eventQueueAdd.notify_all();
+	eventQueueAdd.notify_all();
 }
 
 //============================================================
 template<typename T>
 void RemoteDevice::push_packet_modal(T *packet)
 {
-    packet->size = sizeof(*packet);
+	packet->size = sizeof(*packet);
 	packet->crc = 0; // защита на случай, если забыта обёртка PacketTail
-    PacketQueued element;
-    element.line = -1;
-    element.data.reset(packet);
+	PacketQueued element;
+	element.line = -1;
+	element.data.reset(packet);
 
 	{
 		std::unique_lock<std::mutex> lock(queueMutex);
@@ -336,62 +336,62 @@ void RemoteDevice::push_packet_modal(T *packet)
 		commands[1]->commands.push_back(element);
 	}
 
-    eventQueueAdd.notify_all();
+	eventQueueAdd.notify_all();
 }
 
 //============================================================
 void RemoteDevice::set_move_mode(MoveMode mode)
 {
-    if(mode == moveMode)
-        return;
-    moveMode = mode;
+	if(mode == moveMode)
+		return;
+	moveMode = mode;
 
 	if (mode == MoveMode_LINEAR) //если едем на G1, то не надо замедляться перед G0
 		set_fract(); //а при переходе с быстрых перемещений на силовые скорость надо сбросить заранее
 
-    auto packet = new PacketTail<PacketInterpolationMode>;
-    packet->command = DeviceCommand_MOVE_MODE; //сменить режим перемещения
-    packet->mode = mode; //новый режим
-    push_packet_common(packet);
+	auto packet = new PacketTail<PacketInterpolationMode>;
+	packet->command = DeviceCommand_MOVE_MODE; //сменить режим перемещения
+	packet->mode = mode; //новый режим
+	push_packet_common(packet);
 }
 
 //============================================================
 //оповещение о конце траектории
 void RemoteDevice::set_fract()
 {
-    if(fractSended)
-        return;
+	if(fractSended)
+		return;
 
-    auto packet = new PacketTail<PacketFract>;
-    packet->command = DeviceCommand_SET_FRACT;
-    push_packet_common(packet);
+	auto packet = new PacketTail<PacketFract>;
+	packet->command = DeviceCommand_SET_FRACT;
+	push_packet_common(packet);
 //log_message("send fract\n");
-    fractSended = true;
+	fractSended = true;
 }
 
 //============================================================
 //проверка изменения направления, посылка сообщения при необходимости
 void RemoteDevice::try_set_fract(const Coords& delta)
 {
-    if(lastDelta.r[0] != HUGE_VAL)
-    {
-        double scalar = 0;
-        double scalar1 = 0, scalar2 = 0;
-        for(int i = 0; i < MAX_AXES; ++i) //поворотные оси тоже учитываем, так как на них тоже действует физика
-        {
+	if(lastDelta.r[0] != HUGE_VAL)
+	{
+		double scalar = 0;
+		double scalar1 = 0, scalar2 = 0;
+		for(int i = 0; i < MAX_AXES; ++i) //поворотные оси тоже учитываем, так как на них тоже действует физика
+		{
 			if (!usedCoords[i])
 				continue;
-            scalar += lastDelta.r[i] * delta.r[i];
-            scalar1 += delta.r[i] * delta.r[i];
-            scalar2 += lastDelta.r[i] * lastDelta.r[i];
-        }
-        double cosA = scalar / sqrt(scalar1 * scalar2);
+			scalar += lastDelta.r[i] * delta.r[i];
+			scalar1 += delta.r[i] * delta.r[i];
+			scalar2 += lastDelta.r[i] * lastDelta.r[i];
+		}
+		double cosA = scalar / sqrt(scalar1 * scalar2);
 
-        if(cosA < 1 - fractValue) //если направление движения сильно изменилось
-            set_fract();
-    }
+		if(cosA < 1 - fractValue) //если направление движения сильно изменилось
+			set_fract();
+	}
 
-    lastDelta = delta;
+	lastDelta = delta;
 }
 
 //============================================================
@@ -494,7 +494,7 @@ Coords RemoteDevice::to_hard(const Coords& pos) const
 //============================================================
 void RemoteDevice::set_position(Coords posIn)
 {
-    //emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
+	//emit coords_changed(pos.r[0], pos.r[1], pos.r[2]);
 
 	Coords pos = to_hard(posIn);
 	Coords delta;
@@ -503,11 +503,11 @@ void RemoteDevice::set_position(Coords posIn)
 	if(reference < 0)
 		return;
 
-    auto packet = new PacketTail<PacketMove>;
-    packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
+	auto packet = new PacketTail<PacketMove>;
+	packet->command = DeviceCommand_MOVE; //двигаться в заданную точку
 
 	//сначала задаем используемые координаты
-    for (int i = 0; i < MAX_AXES; ++i)
+	for (int i = 0; i < MAX_AXES; ++i)
 	{
 		int index = toDeviceIndex[i];
 		if (usedAxes[i])
@@ -521,29 +521,29 @@ void RemoteDevice::set_position(Coords posIn)
 	double accValue; //максимальное ускорение в заданном направлении
 	calculate_moving_params(delta, length, velValue, accValue);
 
-    packet->refCoord = toDeviceIndex[reference];
-    packet->length = float(length);
-    packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
-    packet->velocity = float(velValue);
-    packet->acceleration = float(accValue);
+	packet->refCoord = toDeviceIndex[reference];
+	packet->length = float(length);
+	packet->uLength = length * 1000; //в микронах, чтобы хватило разрядов и точности
+	packet->velocity = float(velValue);
+	packet->acceleration = float(accValue);
 
 	try_set_fract(delta);
-    //log_message("   GO TO %d, %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2], packet->coord[3]);
-    push_packet_common(packet);
+	//log_message("   GO TO %d, %d, %d, %d\n", packet->coord[0], packet->coord[1], packet->coord[2], packet->coord[3]);
+	push_packet_common(packet);
 
-    fractSended = false;
+	fractSended = false;
 }
 
 
 //============================================================
 void RemoteDevice::wait(double time)
 {
-    set_fract();
+	set_fract();
 
-    auto packet = new PacketTail<PacketWait>;
-    packet->command = DeviceCommand_WAIT;
-    packet->delay = int(time*1000); //задержка
-    push_packet_common(packet);
+	auto packet = new PacketTail<PacketWait>;
+	packet->command = DeviceCommand_WAIT;
+	packet->delay = int(time*1000); //задержка
+	push_packet_common(packet);
 }
 
 //============================================================
@@ -582,7 +582,7 @@ void RemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 	Coords pos = posIn;
 	int usedBit = 0;
 	//сначала задаем используемые координаты
-    for (int i = 0; i < MAX_AXES; ++i)
+	for (int i = 0; i < MAX_AXES; ++i)
 	{
 		int index = toDeviceIndex[i];
 		if (usedAxes[i])
@@ -608,38 +608,38 @@ void RemoteDevice::set_coord(Coords posIn, bool used[MAX_AXES])
 //мм/сек, мм/сек^2
 void RemoteDevice::set_velocity_and_acceleration(double velocity[MAX_AXES], double acceleration[MAX_AXES])
 {
-    auto packet = new PacketTail<PacketSetVelAcc>;
-    packet->command = DeviceCommand_SET_VEL_ACC; //задать макс скорость и ускорение
-    for(int i = 0; i < MAX_AXES; ++i)
-    {
-        packet->maxVelocity[toDeviceIndex[i]] = float(velocity[i]);
-        packet->maxAcceleration[toDeviceIndex[i]] = float(acceleration[i]);
-    }
-    push_packet_common(packet);
+	auto packet = new PacketTail<PacketSetVelAcc>;
+	packet->command = DeviceCommand_SET_VEL_ACC; //задать макс скорость и ускорение
+	for(int i = 0; i < MAX_AXES; ++i)
+	{
+		packet->maxVelocity[toDeviceIndex[i]] = float(velocity[i]);
+		packet->maxAcceleration[toDeviceIndex[i]] = float(acceleration[i]);
+	}
+	push_packet_common(packet);
 }
 
 //============================================================
 //мм/сек
 void RemoteDevice::set_feed(double feed)
 {
-    set_fract();
+	set_fract();
 
-    auto packet = new PacketTail<PacketSetFeed>;
-    packet->command = DeviceCommand_SET_FEED;
-    packet->feed = float(feed);
-    push_packet_common(packet);
-    this->feed = feed;
+	auto packet = new PacketTail<PacketSetFeed>;
+	packet->command = DeviceCommand_SET_FEED;
+	packet->feed = float(feed);
+	push_packet_common(packet);
+	this->feed = feed;
 }
 
 //============================================================
 void RemoteDevice::set_feed_multiplier(double multiplier)
 {
-    auto packet = new PacketTail<PacketSetFeedMult>;
-    packet->command = DeviceCommand_SET_FEED_MULT;
-    if(multiplier < 1e-3)
-        multiplier = 1e-3; //защита от глюков
-    packet->feedMult = float(multiplier);
-    push_packet_modal(packet);
+	auto packet = new PacketTail<PacketSetFeedMult>;
+	packet->command = DeviceCommand_SET_FEED_MULT;
+	if(multiplier < 1e-3)
+		multiplier = 1e-3; //защита от глюков
+	packet->feedMult = float(multiplier);
+	push_packet_modal(packet);
 }
 
 //============================================================
@@ -710,44 +710,44 @@ void RemoteDevice::set_feed_adc(bool enable)
 //от 0 до 1?
 void RemoteDevice::set_spindle_vel(double value)
 {
-    auto packet = new PacketTail<PacketSetPWM>;
-    packet->command = DeviceCommand_SET_PWM;
+	auto packet = new PacketTail<PacketSetPWM>;
+	packet->command = DeviceCommand_SET_PWM;
 	packet->pin = 0;
-    packet->value = float(value);
-    push_packet_common(packet);
-    this->spindleSpeed = value;
+	packet->value = float(value);
+	push_packet_common(packet);
+	this->spindleSpeed = value;
 }
 
 //============================================================
 //в герцах
 void RemoteDevice::set_pwm_freq(double fast, double slow)
 {
-    auto packet = new PacketTail<PacketSetPWMFreq>;
-    packet->command = DeviceCommand_SET_PWM_FREQ;
-    packet->freq = float(fast);
+	auto packet = new PacketTail<PacketSetPWMFreq>;
+	packet->command = DeviceCommand_SET_PWM_FREQ;
+	packet->freq = float(fast);
 	packet->slowFreq = float(slow);
-    push_packet_common(packet);
+	push_packet_common(packet);
 }
 
 //============================================================
 void RemoteDevice::set_step_size(double stepSize[MAX_AXES])
 {
-    auto packet = new PacketTail<PacketSetStepSize>;
-    packet->command = DeviceCommand_SET_STEP_SIZE; //задать макс скорость и ускорение
-    for(int i = 0; i < MAX_AXES; ++i)
-    {
-        packet->stepSize[toDeviceIndex[i]] = float(stepSize[i]);
-    }
-    push_packet_common(packet);
+	auto packet = new PacketTail<PacketSetStepSize>;
+	packet->command = DeviceCommand_SET_STEP_SIZE; //задать макс скорость и ускорение
+	for(int i = 0; i < MAX_AXES; ++i)
+	{
+		packet->stepSize[toDeviceIndex[i]] = float(stepSize[i]);
+	}
+	push_packet_common(packet);
 }
 
 //============================================================
 void RemoteDevice::pause_moving(bool needStop)
 {
-    auto packet = new PacketTail<PacketPause>;
-    packet->command = DeviceCommand_PAUSE;
-    packet->needStop = needStop ? 1 : 0;
-    push_packet_modal(packet);
+	auto packet = new PacketTail<PacketPause>;
+	packet->command = DeviceCommand_PAUSE;
+	packet->needStop = needStop ? 1 : 0;
+	push_packet_modal(packet);
 }
 
 //============================================================
@@ -758,17 +758,17 @@ void RemoteDevice::break_queue()
 		commands[0]->reset();
 	}
 
-    auto packet = new PacketTail<PacketBreak>;
-    packet->command = DeviceCommand_BREAK;
-    push_packet_modal(packet);
+	auto packet = new PacketTail<PacketBreak>;
+	packet->command = DeviceCommand_BREAK;
+	push_packet_modal(packet);
 }
 
 //============================================================
 void RemoteDevice::reset_packet_queue()
 {
-    auto packet = new PacketTail<PacketResetPacketNumber>;
-    packet->command = DeviceCommand_RESET_PACKET_NUMBER;
-    push_packet_common(packet);
+	auto packet = new PacketTail<PacketResetPacketNumber>;
+	packet->command = DeviceCommand_RESET_PACKET_NUMBER;
+	push_packet_common(packet);
 }
 
 //============================================================
@@ -831,7 +831,7 @@ bool read_double(const std::string &str, int &pos, double &value)
 //============================================================
 void RemoteDevice::homing()
 {
-    //строка формата [[координата сдвиг ...], ...]
+	//строка формата [[координата сдвиг ...], ...]
 	std::vector<std::string> moves = split(homingScript, ',');
 	double feed = 600; //по умолчанию сантиметр в секунду
 	auto lastMode = moveMode;
@@ -871,32 +871,32 @@ void RemoteDevice::homing()
 //============================================================
 void RemoteDevice::init()
 {
-    commands[0].reset(new ConnectData());
-    commands[0]->NUMBER = 0;
-    commands[0]->parent = this;
-    commands[0]->keepSent = true;
+	commands[0].reset(new ConnectData());
+	commands[0]->NUMBER = 0;
+	commands[0]->parent = this;
+	commands[0]->keepSent = true;
 
-    commands[1].reset(new ConnectData());
-    commands[1]->NUMBER = 1;
-    commands[1]->parent = this;
+	commands[1].reset(new ConnectData());
+	commands[1]->NUMBER = 1;
+	commands[1]->parent = this;
 
-    reset_packet_queue();
+	reset_packet_queue();
 
-    auto try_get_float = [](const char *key) -> float
-    {
-        float value;
-        if(!g_config->get_float(key, value))
-            throw(std::string("key not found in config: ") + key);
-        return value;
-    };
+	auto try_get_float = [](const char *key) -> float
+	{
+		float value;
+		if(!g_config->get_float(key, value))
+			throw(std::string("key not found in config: ") + key);
+		return value;
+	};
 
 	auto try_get_string = [](const char *key) -> std::string
-    {
-        std::string value;
-        if(!g_config->get_string(key, value))
-            throw(std::string("key not found in config: ") + key);
-        return value;
-    };
+	{
+		std::string value;
+		if(!g_config->get_string(key, value))
+			throw(std::string("key not found in config: ") + key);
+		return value;
+	};
 
 	std::string coordList = try_get_string(CFG_USED_COORDS); //читаем используемые интерпретатором координаты
 
@@ -969,7 +969,7 @@ void RemoteDevice::init()
 			acceleration[slave] = acceleration[i] * reScale;
 		}
 
-    double feed = 10.0;
+	double feed = 10.0;
 
 	//назначаем группы выводов, которые будут генерировать сигнал
 	std::string pinsMap = try_get_string(CFG_AXE_MAP);
@@ -1086,10 +1086,10 @@ void RemoteDevice::init()
 	g_config->get_int(CFG_DEFAULT_ADC_USE, feedAdc);
 	set_feed_adc(feedAdc);
 
-    set_velocity_and_acceleration(velocity, acceleration);
-    set_feed(feed);
-    set_step_size(stepSize);
-    set_fract();
+	set_velocity_and_acceleration(velocity, acceleration);
+	set_feed(feed);
+	set_step_size(stepSize);
+	set_fract();
 	set_pwm_freq(try_get_float(CFG_PWM_FREQ), try_get_float(CFG_SLOW_PWM_FREQ));
 	set_feed_normal();
 
@@ -1099,29 +1099,29 @@ void RemoteDevice::init()
 //============================================================
 void make_crc(char *packet)
 {
-    int size = *packet-1;
-    char *buffer = packet+1;
-    int &crc = *(int*)(buffer+size-4);
+	int size = *packet-1;
+	char *buffer = packet+1;
+	int &crc = *(int*)(buffer+size-4);
 
-    crc = crc32_stm32(0xFFFFFFFF, (unsigned int*)(buffer), size-4);
+	crc = crc32_stm32(0xFFFFFFFF, (unsigned int*)(buffer), size-4);
 }
 
 //============================================================
 void RemoteDevice::set_current_line(int line)
 {
-    pushLine = line;
+	pushLine = line;
 }
 
 //============================================================
 int RemoteDevice::get_current_line()
 {
-    return workLine;
+	return workLine;
 }
 
 //============================================================
 const Coords* RemoteDevice::get_current_coords()
 {
-    return &currentCoords;
+	return &currentCoords;
 }
 
 double RemoteDevice::get_min_step(int axis1, int axis2)
@@ -1141,111 +1141,111 @@ const bool* RemoteDevice::get_is_coord_use()
 //============================================================
 int RemoteDevice::queue_size()
 {
-    std::unique_lock<std::mutex> lock(queueMutex);
-    return commands[0]->commands.size();
+	std::unique_lock<std::mutex> lock(queueMutex);
+	return commands[0]->commands.size();
 }
 
 
 //============================================================
 bool RemoteDevice::process_packet(char *data, int size)
 {
-    Q_UNUSED(size)
-    switch(*data)
-    {
-    case DeviceCommand_SERVICE_COORDS:
-    {
+	Q_UNUSED(size)
+	switch(*data)
+	{
+	case DeviceCommand_SERVICE_COORDS:
+	{
 		if (!inited) return true;
-        PacketServiceCoords *packet = (PacketServiceCoords*) data;
-        for(int i = 0; i < MAX_AXES; ++i)
-            currentCoords.r[i] = packet->coords[toDeviceIndex[i]] / scale[i] * (invertAxe[i] ? -1 : 1);
-        emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]); //TODO: переделать на правильные координаты?
-        //log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
-        return true;
-    }
-    case DeviceCommand_SERVICE_COMMAND:
-    {
-        PacketServiceCommand *packet = (PacketServiceCommand*) data; //находим строку, которая сейчас исполняется
-        std::unique_lock<std::mutex> lock(queueMutex);
-        if (!commands[0]->packet_executed(packet->packetNumber, workLine))
-            log_warning("executed undefined packet %d\n", packet->packetNumber);
-        return true;
-    }
-    case DeviceCommand_TEXT_MESSAGE:
-        log_message("%s", data+1);
-        return true;
-    default:
-        log_warning("%20s", data);
-        return false;
-    }
+		PacketServiceCoords *packet = (PacketServiceCoords*) data;
+		for(int i = 0; i < MAX_AXES; ++i)
+			currentCoords.r[i] = packet->coords[toDeviceIndex[i]] / scale[i] * (invertAxe[i] ? -1 : 1);
+		emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]); //TODO: переделать на правильные координаты?
+		//log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
+		return true;
+	}
+	case DeviceCommand_SERVICE_COMMAND:
+	{
+		PacketServiceCommand *packet = (PacketServiceCommand*) data; //находим строку, которая сейчас исполняется
+		std::unique_lock<std::mutex> lock(queueMutex);
+		if (!commands[0]->packet_executed(packet->packetNumber, workLine))
+			log_warning("executed undefined packet %d\n", packet->packetNumber);
+		return true;
+	}
+	case DeviceCommand_TEXT_MESSAGE:
+		log_message("%s", data+1);
+		return true;
+	default:
+		log_warning("%20s", data);
+		return false;
+	}
 }
 
 //============================================================
 //обработка пакетов протокола
 bool RemoteDevice::on_packet_received(char *data, int size)
 {
-    if(size < 4)
-        return false;
-    unsigned crc = crc32_stm32(0xFFFFFFFF, (unsigned*)data, size-4);
-    unsigned receivedCrc = *(unsigned*)(data+size-4);
-    if(crc != receivedCrc)
-    {
-        //for(int i=0; i<size; i++)
-        //    log_warning("%c", data[i]);
-        missedReceives++;
-        return false;
-    }
+	if(size < 4)
+		return false;
+	unsigned crc = crc32_stm32(0xFFFFFFFF, (unsigned*)data, size-4);
+	unsigned receivedCrc = *(unsigned*)(data+size-4);
+	if(crc != receivedCrc)
+	{
+		//for(int i=0; i<size; i++)
+		//    log_warning("%c", data[i]);
+		missedReceives++;
+		return false;
+	}
 
-    switch(*data)
-    {
-    case DeviceCommand_PACKET_RECEIVED:
-    case DeviceCommand_PACKET_REPEAT:
-    {
-        //log_message("packet received %d\n", ((PacketReceived*)data)->packetNumber);
-        auto p = (PacketReceived*)data;
-        if (LOG_CONNECT)
-            if (*data == DeviceCommand_PACKET_RECEIVED)
-                log_message("[%d] connect: received pack %d\n", get_timestamp(), p->packetNumber);
-            else
-                log_message("[%d] connect: repeat pack %d\n", get_timestamp(), p->packetNumber);
+	switch(*data)
+	{
+	case DeviceCommand_PACKET_RECEIVED:
+	case DeviceCommand_PACKET_REPEAT:
+	{
+		//log_message("packet received %d\n", ((PacketReceived*)data)->packetNumber);
+		auto p = (PacketReceived*)data;
+		if (LOG_CONNECT)
+			if (*data == DeviceCommand_PACKET_RECEIVED)
+				log_message("[%d] connect: received pack %d\n", get_timestamp(), p->packetNumber);
+			else
+				log_message("[%d] connect: repeat pack %d\n", get_timestamp(), p->packetNumber);
         
-        std::unique_lock<std::mutex> lock(queueMutex);
-        if ((size_t)p->queue < 2 && commands[p->queue]->packet_received(p))
-        {
-            lock.unlock();
-            eventPacketReceived.notify_all();
-            return true;
-        }
-        if (LOG_CONNECT)
-            log_message("[%d] connect: err pack %d\n", get_timestamp(), p->packetNumber);
-        lock.unlock();
-        eventPacketReceived.notify_all();
-        return false;
-    }
+		std::unique_lock<std::mutex> lock(queueMutex);
+		if ((size_t)p->queue < 2 && commands[p->queue]->packet_received(p))
+		{
+			lock.unlock();
+			eventPacketReceived.notify_all();
+			return true;
+		}
+		if (LOG_CONNECT)
+			log_message("[%d] connect: err pack %d\n", get_timestamp(), p->packetNumber);
+		lock.unlock();
+		eventPacketReceived.notify_all();
+		return false;
+	}
 
-    case DeviceCommand_QUEUE_FULL:
-    {
-        if (LOG_CONNECT)
-            log_message("[%d] connect: queue full\n", get_timestamp());
-        return false;
-    }
-    case DeviceCommand_PACKET_ERROR_CRC:
-        missedHalfSend++;
-        if (LOG_CONNECT)
-            log_message("[%d] connect: error crc\n", get_timestamp());
-        eventPacketReceived.notify_all();
-        return true;
+	case DeviceCommand_QUEUE_FULL:
+	{
+		if (LOG_CONNECT)
+			log_message("[%d] connect: queue full\n", get_timestamp());
+		return false;
+	}
+	case DeviceCommand_PACKET_ERROR_CRC:
+		missedHalfSend++;
+		if (LOG_CONNECT)
+			log_message("[%d] connect: error crc\n", get_timestamp());
+		eventPacketReceived.notify_all();
+		return true;
 
-    case DeviceCommand_ERROR_PACKET_NUMBER:
-    {
-        if (LOG_CONNECT)
-            log_message("[%d] connect: wrong pack number %d\n", get_timestamp(), ((PacketErrorPacketNumber*)data)->packetNumber);
-        return false;
-    }
+	case DeviceCommand_ERROR_PACKET_NUMBER:
+	{
+		if (LOG_CONNECT)
+			log_message("[%d] connect: wrong pack number %d\n", get_timestamp(), ((PacketErrorPacketNumber*)data)->packetNumber);
+		return false;
+	}
 
-    default:
-        return process_packet(data, size - 4);
-    }
-    return false;
+	default:
+		return process_packet(data, size - 4);
+	}
+	return false;
 }
 
 
@@ -1253,34 +1253,33 @@ bool RemoteDevice::on_packet_received(char *data, int size)
 void RemoteDevice::send_thread()
 {
 	std::mutex dummyMutex;
-    std::unique_lock<std::mutex> lock(dummyMutex);
-    while(!stop_token)
-    {
-        eventQueueAdd.wait(lock);
-        while(!stop_token)
-        {
-            {
-                std::unique_lock<std::mutex> lockQueue(queueMutex);
-                bool empty = true;
-                int newMissedSends = 0;
-                for (int i = 1 ; i >= 0; --i)
-                {
-                    packSends += commands[i]->send(connection);
+	std::unique_lock<std::mutex> lock(dummyMutex);
+	while(!stop_token)
+	{
+		eventQueueAdd.wait(lock);
+		while(!stop_token)
+		{
+			{
+				std::unique_lock<std::mutex> lockQueue(queueMutex);
+				bool empty = true;
+				int newMissedSends = 0;
+				for (int i = 1 ; i >= 0; --i)
+				{
+					packSends += commands[i]->send(connection);
 					newMissedSends += commands[i]->missedSends;
-                    empty = empty && commands[i]->empty();
-                }
+					empty = empty && commands[i]->empty();
+				}
 				missedSends = newMissedSends;
-                if (empty)
-                    break;
-            }
+				if (empty)
+					break;
+			}
 
-            auto result = eventPacketReceived.wait_for(lock, std::chrono::milliseconds(100));
-            if(result == std::cv_status::timeout)
-            {
+			auto result = eventPacketReceived.wait_for(lock, std::chrono::milliseconds(100));
+			if(result == std::cv_status::timeout)
+			{
 				//log_message("send timeout\n");
-            }
+			}
 			//std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        }
-    }
+		}
+	}
 }
-

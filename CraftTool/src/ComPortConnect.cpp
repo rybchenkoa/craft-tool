@@ -111,9 +111,9 @@ std::string ComPortConnect::get_state()
 
 void ComPortConnect::send_data(char *buffer, int count)
 {
-    DWORD write;
+	DWORD write;
 	BOOL result = WriteFile(hCom, buffer, count, &write, &ovWrite);
-    if (!result)
+	if (!result)
 	{
 		auto err = GetLastError();
 		if (err != ERROR_IO_PENDING)
@@ -130,17 +130,17 @@ void ComPortConnect::send_data(char *buffer, int count)
 
 void ComPortConnect::receive_data()
 {
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-    DWORD eventMask = 0;
-    DWORD readed = 0;
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	DWORD eventMask = 0;
+	DWORD readed = 0;
 
-    const int bufferSize = 10;
-    char inData[bufferSize+2];
-    memset(inData, 0, sizeof(inData));
+	const int bufferSize = 10;
+	char inData[bufferSize+2];
+	memset(inData, 0, sizeof(inData));
 
-    do
-    {
-        int retcode = WaitCommEvent(hCom, &eventMask, &ovRead);
+	do
+	{
+		int retcode = WaitCommEvent(hCom, &eventMask, &ovRead);
 
 		// если порт не инициализирован или отключен, переинициализируем
 		auto error = GetLastError();
@@ -151,69 +151,69 @@ void ComPortConnect::receive_data()
 			continue;
 		}
 
-        if ( retcode = 0 && GetLastError() == ERROR_IO_PENDING )
-        {
-            //printf("COM: wait event\n");
-            WaitForSingleObject(ovRead.hEvent, 1);
-        }
+		if ( retcode = 0 && GetLastError() == ERROR_IO_PENDING )
+		{
+			//printf("COM: wait event\n");
+			WaitForSingleObject(ovRead.hEvent, 1);
+		}
 
-        //printf("COM: event %d\n", eventMask);
+		//printf("COM: event %d\n", eventMask);
 
-        if (eventMask & EV_ERR)
-        {
-            DWORD ErrorMask = 0; // сюда будет занесен код ошибки порта, если таковая была
-            COMSTAT CStat;
+		if (eventMask & EV_ERR)
+		{
+			DWORD ErrorMask = 0; // сюда будет занесен код ошибки порта, если таковая была
+			COMSTAT CStat;
 
-            ClearCommError(hCom, &ErrorMask, &CStat);
+			ClearCommError(hCom, &ErrorMask, &CStat);
 
-            //DWORD quelen = CStat.cbInQue; //размер буфера порта
-        }
-        if (eventMask & EV_RXCHAR)
-        {
-            //printf("COM: bytes received \n");
-            while(true)
-            {
-                memset(inData, 0, sizeof(inData));
-                retcode = ReadFile(hCom, inData, bufferSize, &readed, &ovRead);
+			//DWORD quelen = CStat.cbInQue; //размер буфера порта
+		}
+		if (eventMask & EV_RXCHAR)
+		{
+			//printf("COM: bytes received \n");
+			while(true)
+			{
+				memset(inData, 0, sizeof(inData));
+				retcode = ReadFile(hCom, inData, bufferSize, &readed, &ovRead);
 
-                if( retcode == 0 && GetLastError() == ERROR_IO_PENDING ) //не успели прочитать
-                {
-                    WaitForSingleObject(ovRead.hEvent, 1000);
-                    retcode = GetOverlappedResult(hCom, &ovRead, &readed, FALSE) ;
-                }
+				if( retcode == 0 && GetLastError() == ERROR_IO_PENDING ) //не успели прочитать
+				{
+					WaitForSingleObject(ovRead.hEvent, 1000);
+					retcode = GetOverlappedResult(hCom, &ovRead, &readed, FALSE) ;
+				}
 
-                if (readed > 0) //если прочитали данные
-                {
-                    //printf("%d байт прочитано: '%s'\n", readed, inData);
-                    //printf(inData);
+				if (readed > 0) //если прочитали данные
+				{
+					//printf("%d байт прочитано: '%s'\n", readed, inData);
+					//printf(inData);
 					on_bytes_received(inData, readed);
-                }
-                else
-                    break;
-                    //printf("не удалось прочитать, ошибка %d\n", GetLastError());
-                //break;
-            }
-        }
-        if (eventMask & EV_TXEMPTY)
-        {
-            //printf("COM: bytes sended\n");
-        }
+				}
+				else
+					break;
+					//printf("не удалось прочитать, ошибка %d\n", GetLastError());
+				//break;
+			}
+		}
+		if (eventMask & EV_TXEMPTY)
+		{
+			//printf("COM: bytes sended\n");
+		}
 
 
-        eventMask=0;
-        ResetEvent(ovRead.hEvent);
-    }
-    while(!stop_token);
+		eventMask=0;
+		ResetEvent(ovRead.hEvent);
+	}
+	while(!stop_token);
 
-    CloseHandle(hCom);
-    hCom = INVALID_HANDLE_VALUE;
+	CloseHandle(hCom);
+	hCom = INVALID_HANDLE_VALUE;
 }
 
 
 ComPortConnect::ComPortConnect(void)
 {
-    memset(&ovRead,0,sizeof(ovRead));
-    memset(&ovWrite,0,sizeof(ovWrite));
+	memset(&ovRead,0,sizeof(ovRead));
+	memset(&ovWrite,0,sizeof(ovWrite));
 	ovRead.hEvent = CreateEvent(NULL, TRUE, TRUE, NULL);
 	ovWrite.hEvent = CreateEvent(NULL, TRUE, TRUE, NULL);
 }
@@ -221,7 +221,7 @@ ComPortConnect::ComPortConnect(void)
 
 ComPortConnect::~ComPortConnect(void)
 {
-    CloseHandle(hCom);
-    stop_token = true;
-    receiveThread.join();
+	CloseHandle(hCom);
+	stop_token = true;
+	receiveThread.join();
 }

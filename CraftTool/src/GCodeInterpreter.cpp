@@ -12,17 +12,17 @@ using namespace Interpreter;
 //====================================================================================================
 coord length(Coords from, Coords to)
 {
-    Coords delta;
-    delta.x = from.x - to.x;
-    delta.y = from.y - to.y;
-    delta.z = from.z - to.z;
-    return sqrtl(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+	Coords delta;
+	delta.x = from.x - to.x;
+	delta.y = from.y - to.y;
+	delta.z = from.z - to.z;
+	return sqrtl(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
 }
 
 //====================================================================================================
 inline double pow2(double x)
 {
-    return x*x;
+	return x*x;
 }
 
 //====================================================================================================
@@ -36,7 +36,7 @@ inline std::string double_to_string(double value)
 //====================================================================================================
 GCodeInterpreter::GCodeInterpreter(void)
 {
-    remoteDevice = nullptr;
+	remoteDevice = nullptr;
 }
 
 //====================================================================================================
@@ -47,25 +47,25 @@ GCodeInterpreter::~GCodeInterpreter(void)
 //====================================================================================================
 InterError GCodeInterpreter::execute_frame(const char *frame)
 {
-    InterError state;
+	InterError state;
 
-    state = lexer.parse_codes(frame); //проверяем строку на валидность, читаем значения в массив
-    if(state.code) return state;
+	state = lexer.parse_codes(frame); //проверяем строку на валидность, читаем значения в массив
+	if(state.code) return state;
 
-    state = readedFrame.make_new_state(lexer); //читаем все коды и по ним создаём команды изменения состояния
-    if(state.code) return state;
+	state = readedFrame.make_new_state(lexer); //читаем все коды и по ним создаём команды изменения состояния
+	if(state.code) return state;
 
-    state = run_modal_groups(); //исполняем коды или пересылаем их устройству
-    if(state.code) return state;
+	state = run_modal_groups(); //исполняем коды или пересылаем их устройству
+	if(state.code) return state;
 
-    return state;
+	return state;
 }
 
 //====================================================================================================
 //исполняет прочитанный фрейм в нужном порядке
 InterError GCodeInterpreter::run_modal_groups()
 {
-    double value;
+	double value;
 	InterError error;
 
 	if (readedFrame.plane != Plane::NONE) { // задаём плоскость обработки
@@ -90,9 +90,9 @@ InterError GCodeInterpreter::run_modal_groups()
 	error = run_feed_rate(); // подача (F)
 	if (error.code) return error;
 
-    if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
-        if (!trajectory)
-            remoteDevice->set_spindle_vel(value);
+	if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
+		if (!trajectory)
+			remoteDevice->set_spindle_vel(value);
 
 	update_motion_mode(); // обработка смены режима перемещения (G0, G1, G32...)
 	error = update_cycle_params(); // обновление параметров постоянных циклов (G80...)
@@ -102,9 +102,9 @@ InterError GCodeInterpreter::run_modal_groups()
 	if (error.code) return error;
 
 	if(runner.cycle != CannedCycle::NONE) //включен постоянный цикл
-    {
+	{
 		return run_modal_group_cycles();
-    }
+	}
 	else if(runner.motionMode == MotionMode::FAST ||
 			runner.motionMode == MotionMode::LINEAR ||
 			runner.motionMode == MotionMode::LINEAR_SYNC) //движение по прямой
@@ -112,11 +112,11 @@ InterError GCodeInterpreter::run_modal_groups()
 		return run_modal_group_linear();
 	}
 	else if(runner.motionMode == MotionMode::CW_ARC || runner.motionMode == MotionMode::CCW_ARC)
-    {
+	{
 		return run_modal_group_arc();
-    }
+	}
 
-    return InterError();
+	return InterError();
 }
 
 //====================================================================================================
@@ -681,23 +681,23 @@ InterError GCodeInterpreter::run_modal_group_cycles()
 //====================================================================================================
 void GCodeInterpreter::set_move_mode(MoveMode mode)
 {
-    runner.deviceMoveMode = mode;
-    if (!trajectory)
-        remoteDevice->set_move_mode(mode);
+	runner.deviceMoveMode = mode;
+	if (!trajectory)
+		remoteDevice->set_move_mode(mode);
 }
 
 //====================================================================================================
 void GCodeInterpreter::move_to(Coords position)
 {
-    if (!trajectory)
-        remoteDevice->set_position(position);
-    else
-    {
-        TrajectoryPoint point;
-        point.position = position;
-        point.isFast = (runner.deviceMoveMode == MoveMode_FAST);
-        trajectory->push_back(point);
-    }
+	if (!trajectory)
+		remoteDevice->set_position(position);
+	else
+	{
+		TrajectoryPoint point;
+		point.position = position;
+		point.isFast = (runner.deviceMoveMode == MoveMode_FAST);
+		trajectory->push_back(point);
+	}
 }
 
 //====================================================================================================
@@ -715,118 +715,118 @@ bool GCodeInterpreter::is_screw(Coords center)
 //====================================================================================================
 //рисует винтовую линию или просто круг
 void GCodeInterpreter::draw_screw(Coords center, double radius, double ellipseCoef,
-                double angleStart, double angleMax, double angleToHeight,
-                int ix, int iy, int iz)
+				double angleStart, double angleMax, double angleToHeight,
+				int ix, int iy, int iz)
 {
-    double accuracy = remoteDevice->get_min_step(ix, iy);
-    //шаг угла выбираем таким, чтобы точность была в пределах одного шага
-    //ряд Тейлора для синуса sin(x) = x +...
-    //при повороте от оси Х на заданный угол ошибка по второй оси должна быть равна погрешности
-    //  r - r*cos(a) = accuracy
-    //  1 - cos(a) = acc/r
-    //  cos(a) = sqrt(1-sin^2(a)) ~= sqrt(1-a^2)
-    //  1 - sqrt(1 - step^2) = acc / r;
-    //  1 - step^2 = (1 - acc/r)^2
-    //  step = sqrt(1-(1-acc/r)^2)
-    double step = sqrt(1-pow2(1-accuracy/radius));
+	double accuracy = remoteDevice->get_min_step(ix, iy);
+	//шаг угла выбираем таким, чтобы точность была в пределах одного шага
+	//ряд Тейлора для синуса sin(x) = x +...
+	//при повороте от оси Х на заданный угол ошибка по второй оси должна быть равна погрешности
+	//  r - r*cos(a) = accuracy
+	//  1 - cos(a) = acc/r
+	//  cos(a) = sqrt(1-sin^2(a)) ~= sqrt(1-a^2)
+	//  1 - sqrt(1 - step^2) = acc / r;
+	//  1 - step^2 = (1 - acc/r)^2
+	//  step = sqrt(1-(1-acc/r)^2)
+	double step = sqrt(1-pow2(1-accuracy/radius));
 
-    double aScale = 1;
+	double aScale = 1;
 	if(runner.motionMode == MotionMode::CW_ARC)
-        aScale = -1;
+		aScale = -1;
 
-    Coords curPos = center;
+	Coords curPos = center;
 	auto moveTo = [&] (double angle)
 	{
 		curPos.r[ix] = center.r[ix] + radius * cos(angleStart + angle * aScale);
-        curPos.r[iy] = center.r[iy] + radius * sin(angleStart + angle * aScale) * ellipseCoef;
-        curPos.r[iz] = center.r[iz] + angle * angleToHeight;
-        move_to(curPos);
+		curPos.r[iy] = center.r[iy] + radius * sin(angleStart + angle * aScale) * ellipseCoef;
+		curPos.r[iz] = center.r[iz] + angle * angleToHeight;
+		move_to(curPos);
 	};
 
-    double angle = 0;
-    for(; angle < angleMax; angle += step)
+	double angle = 0;
+	for(; angle < angleMax; angle += step)
 		moveTo(angle);
-    moveTo(angleMax);
-    runner.position = curPos;
+	moveTo(angleMax);
+	runner.position = curPos;
 }
 
 //====================================================================================================
 //чтение новых координат с учётом модальных кодов
 bool GCodeInterpreter::get_new_position(Coords &pos)
 {
-    if(readedFrame.have_value('X') ||
-       readedFrame.have_value('Y') ||
-       readedFrame.have_value('Z') ||
-	   readedFrame.have_value('A') ||
+	if(readedFrame.have_value('X') ||
+		readedFrame.have_value('Y') ||
+		readedFrame.have_value('Z') ||
+		readedFrame.have_value('A') ||
 		readedFrame.have_value('B') ||
 		readedFrame.have_value('C')
-	   )
-    {
-        if(runner.incremental)
-        {
-            pos = Coords();
-        }
-        else
-        {
-            pos = runner.position;
-            to_local(pos);
-        }
+		)
+	{
+		if(runner.incremental)
+		{
+			pos = Coords();
+		}
+		else
+		{
+			pos = runner.position;
+			to_local(pos);
+		}
 
-        //координаты указаны в локальной системе
-        get_readed_coord('X', pos.x);
-        get_readed_coord('Y', pos.y);
-        get_readed_coord('Z', pos.z);
+		//координаты указаны в локальной системе
+		get_readed_coord('X', pos.x);
+		get_readed_coord('Y', pos.y);
+		get_readed_coord('Z', pos.z);
 		get_readed_coord('A', pos.a);
 		get_readed_coord('B', pos.b);
 		get_readed_coord('C', pos.c);
 
-        if(runner.incremental)
-        {
-            pos += runner.position;
-        }
-        else
-            to_global(pos);
+		if(runner.incremental)
+		{
+			pos += runner.position;
+		}
+		else
+			to_global(pos);
 
-        return true;
-    }
+		return true;
+	}
 
-    return false;
+	return false;
 }
 
 //====================================================================================================
 //сдвиг в глобальные координаты
 void GCodeInterpreter::to_global(Coords &coords)
 {
-    if(runner.coordSystemNumber == -1)
-        return;
+	if(runner.coordSystemNumber == -1)
+		return;
 
-    coords += runner.csd[runner.coordSystemNumber].pos0;
+	coords += runner.csd[runner.coordSystemNumber].pos0;
 }
 
 //====================================================================================================
 //получение локальных координат из глобальных
 void GCodeInterpreter::to_local(Coords &coords)
 {
-    if(runner.coordSystemNumber == -1)
-        return;
+	if(runner.coordSystemNumber == -1)
+		return;
 
-    coords -= runner.csd[runner.coordSystemNumber].pos0;
+	coords -= runner.csd[runner.coordSystemNumber].pos0;
 }
 
 //====================================================================================================
 //преобразования локальных координат
 void GCodeInterpreter::local_deform(Coords &coords)
 {
-    Q_UNUSED(coords)
+	Q_UNUSED(coords)
 }
 
 //====================================================================================================
 //перевод в мм
 coord GCodeInterpreter::to_mm(coord value)
 {
-    if(runner.units == UnitSystem::INCHES)
-        value *= MM_PER_INCHES;
-    return value;
+	if(runner.units == UnitSystem::INCHES)
+		value *= MM_PER_INCHES;
+	return value;
 }
 
 //====================================================================================================
@@ -836,111 +836,111 @@ Coords GCodeInterpreter::to_mm(Coords value)
 		if (usedCoords[i])
 			value.r[i] = to_mm(value.r[i]);
 	}
-    return value;
+	return value;
 }
 
 //====================================================================================================
 double move_length(double t, double v, double a)
 {
-    double t1 = v/a;
-    if (t1 > t)
-        return a*t*t*0.5;
-    else
-        return a*t1*t1*0.5 + v*(t-t1);
+	double t1 = v/a;
+	if (t1 > t)
+		return a*t*t*0.5;
+	else
+		return a*t1*t1*0.5 + v*(t-t1);
 }
 
 //====================================================================================================
 void GCodeInterpreter::move(int coordNumber, coord add, bool fast)
 {
-    //во время исполнения ничего не двигаем
-    if(remoteDevice->queue_size() > 0)
-        return;
+	//во время исполнения ничего не двигаем
+	if(remoteDevice->queue_size() > 0)
+		return;
 
 	runner.motionMode = MotionMode::FAST;
-    remoteDevice->set_move_mode(MoveMode_FAST);
+	remoteDevice->set_move_mode(MoveMode_FAST);
 
-    //если только подключились к устройству, то координаты могут быть очень разными
-    if(!coordsInited)
-    {
-        runner.position = *remoteDevice->get_current_coords();
-        coordsInited = true;
-    }
+	//если только подключились к устройству, то координаты могут быть очень разными
+	if(!coordsInited)
+	{
+		runner.position = *remoteDevice->get_current_coords();
+		coordsInited = true;
+	}
 
-    double delta = abs(runner.position.r[coordNumber] - remoteDevice->get_current_coords()->r[coordNumber]);
+	double delta = abs(runner.position.r[coordNumber] - remoteDevice->get_current_coords()->r[coordNumber]);
 
-    if(delta > 10) //защита от багов
-        return;
+	if(delta > 10) //защита от багов
+		return;
 
-    if (!fast)
-      runner.position.r[coordNumber] += add;
-    else
-    {
-      const double LATENCY = 0.3; //0.3 секунд на остановку после отпускания кнопки
-      double vel = remoteDevice->get_max_velocity(coordNumber);
-      double acc = remoteDevice->get_max_acceleration(coordNumber);
-      double maxLen = move_length(LATENCY, vel, acc);
+	if (!fast)
+		runner.position.r[coordNumber] += add;
+	else
+	{
+		const double LATENCY = 0.3; //0.3 секунд на остановку после отпускания кнопки
+		double vel = remoteDevice->get_max_velocity(coordNumber);
+		double acc = remoteDevice->get_max_acceleration(coordNumber);
+		double maxLen = move_length(LATENCY, vel, acc);
 
-      if (maxLen > 10) //защита от багов
-        maxLen = 10;
+		if (maxLen > 10) //защита от багов
+		maxLen = 10;
 
-      double accWall = std::max(delta, abs(add)) * 5;
-      if (maxLen > accWall) //защита от слишком быстрого разгона
-        maxLen = accWall;
+		double accWall = std::max(delta, abs(add)) * 5;
+		if (maxLen > accWall) //защита от слишком быстрого разгона
+		maxLen = accWall;
 
-      int intDelta = abs((maxLen - delta) / add);
-      runner.position.r[coordNumber] += add * intDelta;
-    }
-    remoteDevice->set_position(runner.position);
+		int intDelta = abs((maxLen - delta) / add);
+		runner.position.r[coordNumber] += add * intDelta;
+	}
+	remoteDevice->set_position(runner.position);
 }
 
 //====================================================================================================
 bool GCodeInterpreter::get_readed_coord(char letter, coord &value)
 {
-    if(readedFrame.get_value(letter, value))
-    {
-        value = to_mm(value);
-        return true;
-    }
-    return false;
+	if(readedFrame.get_value(letter, value))
+	{
+		value = to_mm(value);
+		return true;
+	}
+	return false;
 }
 
 //====================================================================================================
 //читает строки в список
 bool GCodeInterpreter::read_file(const char *name)
 {
-    std::ifstream file(name); //открываем файл
+	std::ifstream file(name); //открываем файл
 
-    inputFile.clear();
-    while(file) //пока он не закончился
-    {
-        std::string str;
-        std::getline(file, str); //читаем строку
-        inputFile.push_back(str); //добавляем в конец списка
-    }
+	inputFile.clear();
+	while(file) //пока он не закончился
+	{
+		std::string str;
+		std::getline(file, str); //читаем строку
+		inputFile.push_back(str); //добавляем в конец списка
+	}
 
-    return true;
+	return true;
 }
 
 //====================================================================================================
 //читает строки в список
 void GCodeInterpreter::execute_file(Trajectory *trajectory)
 {
-    this->trajectory = trajectory;
-    Runner runnerDump;
-    if (trajectory)
-        runnerDump = runner;
-    int lineNumber = 0;
-    for(const auto& line : inputFile)
-    {
-        if (!trajectory)
-            remoteDevice->set_current_line(lineNumber);
-        auto result = execute_frame(line.c_str());
-        if(result.code)
-            log_warning("[E] line %d, %s\n", lineNumber + 1, result.description.c_str());
-        ++lineNumber;
-    };
-    if (trajectory)
-        runner = runnerDump;
+	this->trajectory = trajectory;
+	Runner runnerDump;
+	if (trajectory)
+		runnerDump = runner;
+	int lineNumber = 0;
+	for(const auto& line : inputFile)
+	{
+		if (!trajectory)
+			remoteDevice->set_current_line(lineNumber);
+		auto result = execute_frame(line.c_str());
+		if(result.code)
+			log_warning("[E] line %d, %s\n", lineNumber + 1, result.description.c_str());
+		++lineNumber;
+	};
+	if (trajectory)
+		runner = runnerDump;
 }
 
 //====================================================================================================
@@ -948,23 +948,23 @@ void GCodeInterpreter::execute_file(Trajectory *trajectory)
 void GCodeInterpreter::execute_line(std::string line)
 {
 	this->trajectory = nullptr;
-    remoteDevice->set_current_line(0);
-    auto result = execute_frame(line.c_str());
-    if(result.code)
-        log_warning("execute_frame error %s\n", result.description.c_str());
+	remoteDevice->set_current_line(0);
+	auto result = execute_frame(line.c_str());
+	if(result.code)
+		log_warning("execute_frame error %s\n", result.description.c_str());
 }
 
 //====================================================================================================
 void GCodeInterpreter::init()
 {
-    lexer.state = InterError();
+	lexer.state = InterError();
 
-    runner.coordSystemNumber = 0;
-    runner.cutterLength = 0;
-    runner.cutterRadius = 0;
+	runner.coordSystemNumber = 0;
+	runner.cutterLength = 0;
+	runner.cutterRadius = 0;
 	runner.feedMode = FeedMode::PER_MIN;
 	runner.feedModeRollback = FeedMode::PER_MIN;
-    runner.feed = 600; // сейчас это значение справочное
+	runner.feed = 600; // сейчас это значение справочное
 	runner.feedPerRev = 0.05;
 	runner.feedStableFreq = 10;
 	runner.spindleAngle = 0;
@@ -972,16 +972,16 @@ void GCodeInterpreter::init()
 	runner.threadIndex = 0;
 	runner.feedThrottling = false;
 	runner.feedAdc = g_config->get_int_def(CFG_DEFAULT_ADC_USE, 0);
-    runner.incremental = false;
+	runner.incremental = false;
 	runner.motionMode = MotionMode::FAST;
-    runner.deviceMoveMode = MoveMode_FAST;
+	runner.deviceMoveMode = MoveMode_FAST;
 	runner.cycle = CannedCycle::NONE;
-    runner.cycle81Incremental = g_config->get_int_def(CFG_G81_INCREMENTAL, 0);
+	runner.cycle81Incremental = g_config->get_int_def(CFG_G81_INCREMENTAL, 0);
 	runner.plane = Plane::XY;
-    runner.position = Coords();
-    runner.units = UnitSystem::METRIC;
-    memset(&runner.csd, 0, sizeof(runner.csd));
-    coordsInited = false;
+	runner.position = Coords();
+	runner.units = UnitSystem::METRIC;
+	memset(&runner.csd, 0, sizeof(runner.csd));
+	coordsInited = false;
 	usedCoords = remoteDevice->get_is_coord_use();
 }
 
@@ -1031,4 +1031,3 @@ std::vector<std::string> GCodeInterpreter::get_active_codes()
 
 	return result;
 }
-

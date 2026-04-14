@@ -32,14 +32,14 @@ class Usart
 //----------------------------------------------------------
 	void init()
 	{
-        LL_GPIO_InitTypeDef gpio;
-        gpio.Pin = LL_GPIO_PIN_9|LL_GPIO_PIN_10;
-        gpio.Mode = LL_GPIO_MODE_ALTERNATE;
-        gpio.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-        gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-        gpio.Pull = LL_GPIO_PULL_UP;
-        gpio.Alternate = GPIO_AF7_USART1;
-        LL_GPIO_Init(GPIOA, &gpio);
+		LL_GPIO_InitTypeDef gpio;
+		gpio.Pin = LL_GPIO_PIN_9|LL_GPIO_PIN_10;
+		gpio.Mode = LL_GPIO_MODE_ALTERNATE;
+		gpio.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+		gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+		gpio.Pull = LL_GPIO_PULL_UP;
+		gpio.Alternate = GPIO_AF7_USART1;
+		LL_GPIO_Init(GPIOA, &gpio);
 
 		USART1->BRR = 84000000 / 1000000;// 115200 230400 500000
 		
@@ -53,11 +53,11 @@ class Usart
 		
 		DMA_Stream_TypeDef *stream = DMA2_Stream7;
 		stream->CR = DMA_MEMORY_TO_PERIPH   // направление от памяти в периферию
-		            | DMA_MDATAALIGN_BYTE   // размер данных 8 бит
-		            | DMA_PDATAALIGN_BYTE   // размер периферии 8 бит
-		            | DMA_SxCR_MINC   // память инкрементировать
-		            | DMA_SxCR_TCIE | DMA_SxCR_TEIE //прерывание на полную посылку
-                    | DMA_CHANNEL_4;
+					| DMA_MDATAALIGN_BYTE   // размер данных 8 бит
+					| DMA_PDATAALIGN_BYTE   // размер периферии 8 бит
+					| DMA_SxCR_MINC   // память инкрементировать
+					| DMA_SxCR_TCIE | DMA_SxCR_TEIE //прерывание на полную посылку
+					| DMA_CHANNEL_4;
 		stream->PAR = (uint32_t)&USART1->DR;           // адрес перифериии
 
 		NVIC_EnableIRQ(DMA2_Stream7_IRQn);
@@ -68,11 +68,11 @@ class Usart
 		packPos = 0;
 		stream = DMA2_Stream2;
 		stream->CR = DMA_PERIPH_TO_MEMORY   // читаем из порта в кольцевой буфер
-		            | DMA_MDATAALIGN_BYTE   // размер данных 8 бит
-		            | DMA_PDATAALIGN_BYTE   // размер периферии 8 бит
-		            | DMA_SxCR_MINC   // память инкрементировать
-		            | DMA_SxCR_CIRC   // циклично
-                    | DMA_CHANNEL_4;
+					| DMA_MDATAALIGN_BYTE   // размер данных 8 бит
+					| DMA_PDATAALIGN_BYTE   // размер периферии 8 бит
+					| DMA_SxCR_MINC   // память инкрементировать
+					| DMA_SxCR_CIRC   // циклично
+					| DMA_CHANNEL_4;
 		stream->NDTR = RECEIVE_SIZE;
 		stream->M0AR = (int)receiveBuffer;
 		stream->PAR = (int)&USART1->DR;

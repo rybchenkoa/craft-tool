@@ -10,10 +10,10 @@ struct Led
 	{
 		LL_GPIO_InitTypeDef gpio;
 		gpio.Pin = LL_GPIO_PIN_9 | LL_GPIO_PIN_10;
-	    gpio.Mode = LL_GPIO_MODE_OUTPUT;
-	    gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
-	    gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-	    LL_GPIO_Init(GPIOF, &gpio);
+		gpio.Mode = LL_GPIO_MODE_OUTPUT;
+		gpio.Speed = LL_GPIO_SPEED_FREQ_LOW;
+		gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+		LL_GPIO_Init(GPIOF, &gpio);
 	}
 //---------------------------------------
 	void flip(int i)

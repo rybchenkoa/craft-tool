@@ -4,16 +4,15 @@
 
 class LogConsole : public QPlainTextEdit
 {
-   Q_OBJECT
+	Q_OBJECT
 public:
-   explicit LogConsole(QWidget *parent = 0);
-   void scrollDown();
+	explicit LogConsole(QWidget *parent = 0);
+	void scrollDown();
 protected:
-   void keyPressEvent(QKeyEvent *){}
-   void mousePressEvent(QMouseEvent *);
-   void mouseDoubleClickEvent(QMouseEvent *){}
-   void contextMenuEvent(QContextMenuEvent *){}
+	void keyPressEvent(QKeyEvent *){}
+	void mousePressEvent(QMouseEvent *);
+	void mouseDoubleClickEvent(QMouseEvent *){}
+	void contextMenuEvent(QContextMenuEvent *){}
 public slots:
-   void output(QColor color, QString message);
+	void output(QColor color, QString message);
 };
-

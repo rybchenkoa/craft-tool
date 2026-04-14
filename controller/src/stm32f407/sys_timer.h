@@ -9,16 +9,16 @@ public:
 	int highCounter; //таймер тикает на уменьшение, поэтому здесь лежит накопленное время + макс. значение
 	void init()
 	{
-	  //таймер максимального разрешения
-	  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-	  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+		//таймер максимального разрешения
+		CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
-	  //таймер в микросекундах
-	  TIM5->PSC = 83; //APB1*2 - 84 МГц
-	  TIM5->CNT = 0;
-	  TIM5->ARR = -1;
-	  TIM5->EGR |= TIM_EGR_UG; //обновляем значение в PSC
-	  TIM5->CR1 |= TIM_CR1_CEN;
+		//таймер в микросекундах
+		TIM5->PSC = 83; //APB1*2 - 84 МГц
+		TIM5->CNT = 0;
+		TIM5->ARR = -1;
+		TIM5->EGR |= TIM_EGR_UG; //обновляем значение в PSC
+		TIM5->CR1 |= TIM_CR1_CEN;
 	}
 
 	inline int get_ticks()
