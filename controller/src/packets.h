@@ -6,31 +6,36 @@
 typedef char PacketCount;
 enum DeviceCommand : char //какие команды получает устройство
 {
-	DeviceCommand_MOVE = 1,         //in
-	DeviceCommand_WAIT,             //in
-	DeviceCommand_MOVE_MODE,        //in
-	DeviceCommand_PACKET_RECEIVED,  //out
-	DeviceCommand_PACKET_REPEAT,    //out
-	DeviceCommand_QUEUE_FULL,       //out
-	DeviceCommand_PACKET_ERROR_CRC, //out
-	DeviceCommand_RESET_PACKET_NUMBER,//in
+// управление подключением
+	DeviceCommand_RESET_PACKET_NUMBER = 1,//in
+	DeviceCommand_PACKET_RECEIVED,    //out
+	DeviceCommand_PACKET_REPEAT,      //out
+	DeviceCommand_QUEUE_FULL,         //out
+	DeviceCommand_PACKET_ERROR_CRC,   //out
 	DeviceCommand_ERROR_PACKET_NUMBER,//out
+
+	DeviceCommand_PAUSE,            //in
+	DeviceCommand_BREAK,            //in
+// состояние устройства
+	DeviceCommand_TEXT_MESSAGE,     //out
+	DeviceCommand_SERVICE_COMMAND,  //out
+	DeviceCommand_SERVICE_COORDS,   //out
+// настройка
 	DeviceCommand_SET_VEL_ACC,      //in
+	DeviceCommand_SET_STEP_SIZE,    //in
 	DeviceCommand_SET_SWITCHES,     //in
 	DeviceCommand_SET_SPINDLE_PARAMS,//in
+	DeviceCommand_SET_PWM_FREQ,     //in
+// выполнение
+	DeviceCommand_MOVE,             //in
+	DeviceCommand_WAIT,             //in
+	DeviceCommand_MOVE_MODE,        //in
+	DeviceCommand_SET_FRACT,        //in
 	DeviceCommand_SET_COORDS,       //in
 	DeviceCommand_SET_FEED,         //in
 	DeviceCommand_SET_FEED_MULT,    //in
 	DeviceCommand_SET_FEED_MODE,    //in
 	DeviceCommand_SET_PWM,          //in
-	DeviceCommand_SET_PWM_FREQ,     //in
-	DeviceCommand_SET_STEP_SIZE,    //in
-	DeviceCommand_SERVICE_COORDS,   //out
-	DeviceCommand_TEXT_MESSAGE,     //out
-	DeviceCommand_SERVICE_COMMAND,  //out
-	DeviceCommand_SET_FRACT,        //in
-	DeviceCommand_PAUSE,            //in
-	DeviceCommand_BREAK,            //in
 };
 enum MoveMode : char //режим движения/интерполяции
 {

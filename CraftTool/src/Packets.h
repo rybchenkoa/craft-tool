@@ -7,31 +7,35 @@ using PacketCount = char;
 
 enum DeviceCommand:char //какие команды получает устройство
 {
-	DeviceCommand_MOVE = 1,
-	DeviceCommand_WAIT,
-	DeviceCommand_MOVE_MODE,
-	DeviceCommand_PACKET_RECEIVED,     //пакет принят
-	DeviceCommand_PACKET_REPEAT,       //пакет повторился
-	DeviceCommand_QUEUE_FULL,          //очередь заполнена
-	DeviceCommand_PACKET_ERROR_CRC,    //пакет пришёл побитым
-	DeviceCommand_RESET_PACKET_NUMBER, //сбросить очередь пакетов
-	DeviceCommand_ERROR_PACKET_NUMBER, //пришёл пакет с неправильным номером
-	DeviceCommand_SET_VEL_ACC,
-	DeviceCommand_SET_SWITCHES,
-	DeviceCommand_SET_SPINDLE_PARAMS,
-	DeviceCommand_SET_COORDS,
+	DeviceCommand_RESET_PACKET_NUMBER = 1, // сбросить очередь пакетов
+	DeviceCommand_PACKET_RECEIVED,     // * пакет принят
+	DeviceCommand_PACKET_REPEAT,       // * пакет повторился
+	DeviceCommand_QUEUE_FULL,          // * очередь заполнена
+	DeviceCommand_PACKET_ERROR_CRC,    // * пакет пришёл побитым
+	DeviceCommand_ERROR_PACKET_NUMBER, // * пришёл пакет с неправильным номером
+
+	DeviceCommand_PAUSE,               // приостанавливает выполнение очереди
+	DeviceCommand_BREAK,               // сбрасывает выполнение очереди пакетов
+
+	DeviceCommand_TEXT_MESSAGE,        // * логи
+	DeviceCommand_SERVICE_COMMAND,     // * какой пакет начал выполняться
+	DeviceCommand_SERVICE_COORDS,      // * координаты устройства
+
+	DeviceCommand_SET_VEL_ACC,         // ограничения физики осей
+	DeviceCommand_SET_STEP_SIZE,       // задать размер шагов
+	DeviceCommand_SET_SWITCHES,        // концевики осей
+	DeviceCommand_SET_SPINDLE_PARAMS,  // настройки датчика шпинделя
+	DeviceCommand_SET_PWM_FREQ,        // задание настроек ШИМ
+
+	DeviceCommand_MOVE,                // двигаться в заданную точку
+	DeviceCommand_WAIT,                // ожидать миллисекунд
+	DeviceCommand_MOVE_MODE,           // быстрое перемещение / рабоча подача
+	DeviceCommand_SET_FRACT,           // конец траектории из нескольких отрезков
+	DeviceCommand_SET_COORDS,          // задание аппаратных координат
 	DeviceCommand_SET_FEED, //выпилить?
-	DeviceCommand_SET_FEED_MULT,
-	DeviceCommand_SET_FEED_MODE,
-	DeviceCommand_SET_PWM,
-	DeviceCommand_SET_PWM_FREQ,
-	DeviceCommand_SET_STEP_SIZE,
-	DeviceCommand_SERVICE_COORDS,
-	DeviceCommand_TEXT_MESSAGE,
-	DeviceCommand_SERVICE_COMMAND,
-	DeviceCommand_SET_FRACT,
-	DeviceCommand_PAUSE,
-	DeviceCommand_BREAK,
+	DeviceCommand_SET_FEED_MULT,       // ручное управление подачей
+	DeviceCommand_SET_FEED_MODE,       // синхронизация со шпинделем и т.п.
+	DeviceCommand_SET_PWM,             // управление ШИМ пина
 };
 
 enum FeedType:char

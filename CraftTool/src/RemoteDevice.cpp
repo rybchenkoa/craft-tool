@@ -733,7 +733,7 @@ void RemoteDevice::set_pwm_freq(double fast, double slow)
 void RemoteDevice::set_step_size(double stepSize[MAX_AXES])
 {
 	auto packet = new PacketTail<PacketSetStepSize>;
-	packet->command = DeviceCommand_SET_STEP_SIZE; //задать макс скорость и ускорение
+	packet->command = DeviceCommand_SET_STEP_SIZE;
 	for(int i = 0; i < MAX_AXES; ++i)
 	{
 		packet->stepSize[toDeviceIndex[i]] = float(stepSize[i]);
