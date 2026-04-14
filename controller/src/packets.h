@@ -20,6 +20,7 @@ enum DeviceCommand : char //какие команды получает устр�
 	DeviceCommand_TEXT_MESSAGE,     //out
 	DeviceCommand_SERVICE_COMMAND,  //out
 	DeviceCommand_SERVICE_COORDS,   //out
+	DeviceCommand_SERVICE_STATE,    //out
 // настройка
 	DeviceCommand_SET_VEL_ACC,      //in
 	DeviceCommand_SET_STEP_SIZE,    //in
@@ -199,6 +200,14 @@ struct PacketServiceCommand  //сообщение с текущим исполн
 {
 	DeviceCommand command;
 	PacketCount packetNumber;
+};
+struct PacketServiceState  //сообщение с текущим состоянием станка
+{
+	DeviceCommand command;
+	int inputs;
+	float velocity;
+	float spindlePosition;
+	float spindleVelocity;
 };
 #pragma pack(pop)
 

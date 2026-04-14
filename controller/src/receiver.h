@@ -230,3 +230,18 @@ void send_packet_service_command(PacketCount number)
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
 	send_packet((char*)&packet, sizeof(packet));
 }
+
+
+//=========================================================================================
+void send_packet_service_state(int inputs, float velocity, float spindlePosition, float spindleVelocity)
+{
+	PacketTail<PacketServiceState> packet;
+	packet.command = DeviceCommand_SERVICE_STATE;
+	packet.inputs = inputs;
+	//packet.outputs = outputs; // здесь может быть шим
+	packet.velocity = velocity;
+	packet.spindlePosition = spindlePosition;
+	packet.spindleVelocity = spindleVelocity;
+	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
+	send_packet((char*)&packet, sizeof(packet));
+}

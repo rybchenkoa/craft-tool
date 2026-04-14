@@ -1159,7 +1159,13 @@ bool RemoteDevice::process_packet(char *data, int size)
 		for(int i = 0; i < MAX_AXES; ++i)
 			currentCoords.r[i] = packet->coords[toDeviceIndex[i]] / scale[i] * (invertAxe[i] ? -1 : 1);
 		emit coords_changed(currentCoords.r[0], currentCoords.r[1], currentCoords.r[2]); //TODO: переделать на правильные координаты?
-		//log_message("eto ono (%d, %d, %d)\n", packet->coords[0], packet->coords[1], packet->coords[2]);
+		return true;
+	}
+	case DeviceCommand_SERVICE_STATE:
+	{
+		if (!inited) return true;
+		PacketServiceState *packet = (PacketServiceState*)data;
+		//packet->inputs; //TODO добавить отображение
 		return true;
 	}
 	case DeviceCommand_SERVICE_COMMAND:

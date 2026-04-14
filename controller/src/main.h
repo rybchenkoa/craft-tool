@@ -48,6 +48,7 @@ int timeToSend; // следующая посылка координат
 int numShow;    // сколько раз подряд послать координаты
 int maxLoopTime = 0; // максимальное время цикла
 int prevLoopTS = 0;  // время предыдущего запуска цикла
+int sendSelector = 0;  // какую информацию послать на этой итерации
 
 void main_setup()
 {
@@ -73,13 +74,29 @@ void main_loop()
 	
 	if (executor.canLog)
 	{
-		send_packet_service_coords(executor.taskMove.coord);
+		switch (sendSelector)
+		{
+			case 0:
+				send_packet_service_coords(executor.taskMove.coord);
+				break;
+			case 1:
+				int inputs = 0;
+				for(int i = 0; i < INPUTS_COUNT; ++i)
+					inputs |= (get_pin(i) ? 1 : 0) << i;
+				
+				send_packet_service_state(inputs, 
+					executor.taskMove.inertial.velocity * CORE_FREQ,
+					spindle.position, spindle.velocity);
+				break;
+		}
+		if (++sendSelector > 1)
+			sendSelector = 0;
 	}
 	
 	if(!timer.check(timeToSend))
 	{
 		led.flip(0);
-		timeToSend = timer.get_ms(20);
+		timeToSend = timer.get_ms(10);
 		//log_console("mlt %d, %d, %d\n", stepTime, loopTime, maxLoopTime);
 		maxLoopTime = 0;
 		numShow += 1; // возможность посылки короткими очередями, чтобы рассмотреть детали процесса
