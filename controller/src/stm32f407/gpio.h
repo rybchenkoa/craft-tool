@@ -88,7 +88,7 @@ void configure_gpio()
 	LL_GPIO_InitTypeDef gpio;
 	gpio.Mode = LL_GPIO_MODE_INPUT;
 	gpio.Pull = LL_GPIO_PULL_UP;
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < INPUTS_COUNT; ++i)
 	{
 		gpio.Pin = 1<<IN_PINS[i];
 		LL_GPIO_Init(IN_PORTS[i], &gpio);
@@ -283,6 +283,8 @@ void inline set_dir(int index, bool state)
 //получает сигнал на ножке
 bool inline get_pin(int index)
 {
+	if (index >= INPUTS_COUNT)
+		return false;
 	int pinNum = IN_PINS[index];
 	return ((IN_PORTS[index]->IDR >> pinNum) ^ (polarity >> index)) & 1;
 }

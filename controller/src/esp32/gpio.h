@@ -50,7 +50,7 @@ void timers_update(void*);
 void configure_gpio()
 {
 	// входы
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < INPUTS_COUNT; ++i) {
 		pinMode(IN_PINS[i], INPUT);
 	}
 
@@ -113,6 +113,8 @@ void inline set_dir(int index, bool state)
 //получает сигнал на ножке
 bool inline get_pin(int index)
 {
+	if (index >= INPUTS_COUNT)
+		return false;
 	int pinNum = IN_PINS[index];
 	//return ((digitalRead(pinNum) == HIGH ? 1 : 0) ^ (polarity >> index)) & 1;
 	return (gpio_ll_get_level(&GPIO, (gpio_num_t)pinNum) ^ (polarity >> index)) & 1;
