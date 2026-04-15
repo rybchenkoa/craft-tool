@@ -800,7 +800,7 @@ void GCodeInterpreter::to_global(Coords &coords)
 	if(runner.coordSystemNumber == -1)
 		return;
 
-	coords += runner.csd[runner.coordSystemNumber].pos0;
+	coords += runner.get_current_system().pos0;
 }
 
 //====================================================================================================
@@ -810,7 +810,7 @@ void GCodeInterpreter::to_local(Coords &coords)
 	if(runner.coordSystemNumber == -1)
 		return;
 
-	coords -= runner.csd[runner.coordSystemNumber].pos0;
+	coords -= runner.get_current_system().pos0;
 }
 
 //====================================================================================================

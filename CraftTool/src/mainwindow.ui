@@ -616,7 +616,7 @@
        <widget class="QGroupBox" name="groupBox_2">
         <property name="minimumSize">
          <size>
-          <width>200</width>
+          <width>190</width>
           <height>0</height>
          </size>
         </property>
@@ -632,7 +632,7 @@
         <widget class="QPushButton" name="c_machineCoordsButton">
          <property name="geometry">
           <rect>
-           <x>160</x>
+           <x>150</x>
            <y>20</y>
            <width>31</width>
            <height>31</height>
@@ -659,7 +659,7 @@
           <rect>
            <x>10</x>
            <y>20</y>
-           <width>147</width>
+           <width>131</width>
            <height>141</height>
           </rect>
          </property>
@@ -782,6 +782,22 @@
            <widget class="QLineEdit" name="c_lineEditC"/>
           </item>
          </layout>
+        </widget>
+        <widget class="QComboBox" name="c_comboBoxCoordSystem">
+         <property name="geometry">
+          <rect>
+           <x>150</x>
+           <y>60</y>
+           <width>31</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="toolTip">
+          <string>Отображаемая система координат</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QComboBox { padding: 4px; } QComboBox::drop-down { width: 0px; }</string>
+         </property>
         </widget>
        </widget>
       </item>

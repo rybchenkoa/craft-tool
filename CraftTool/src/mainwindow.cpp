@@ -56,8 +56,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->c_stepSwitch->setCurrentIndex(2);
 
 	for(int i = 0; i < axes.size(); ++i) {
-		connect(buttonSet0[i], &QAbstractButton::clicked, [i]() {
-			g_inter->runner.csd[0].pos0.r[i] = g_device->currentCoords.r[i];
+		connect(buttonSet0[i], &QAbstractButton::clicked, [i, this]() {
+			int index = ui->c_comboBoxCoordSystem->currentIndex();
+			g_inter->runner.csd[index].pos0.r[i] = g_device->currentCoords.r[i];
 		});
 
 		connect(buttonPlusCoord[i], &QAbstractButton::clicked, [this, i]() {
@@ -68,6 +69,17 @@ MainWindow::MainWindow(QWidget *parent) :
 			manual_move(i, -1, false);
 		});
 	}
+
+	for (int i = 0; i < 5; ++i) {
+		ui->c_comboBoxCoordSystem->addItem("G" + QString::number(54 + i));
+	}
+	ui->c_comboBoxCoordSystem->setCurrentIndex(0);
+	//TODO убрать после того, как интерпретатор начнет показывать состояние текущей строки
+	connect(ui->c_comboBoxCoordSystem, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+		[](int index) {
+			g_inter->runner.coordSystemNumber = index;
+		}
+	);
 
 	connect(ui->menuOpenProgram, SIGNAL(triggered()), this, SLOT(menu_open_program()));
 	connect(ui->menuCloseProgram, SIGNAL(triggered()), this, SLOT(menu_close_program()));
@@ -113,9 +125,6 @@ void MainWindow::dropEvent( QDropEvent* event )
 
 void MainWindow::on_c_refHomeButton_clicked()
 {
-	//g_inter->runner.csd[0].pos0.x = g_device->currentCoords.r[0];
-	//g_inter->runner.csd[0].pos0.y = g_device->currentCoords.r[1];
-	//g_inter->runner.csd[0].pos0.z = g_device->currentCoords.r[2];
 	g_device->homing();
 }
 
@@ -136,8 +145,10 @@ void MainWindow::update_state()
 		ui->c_commandList->setCurrentRow(currentLine);
 
 	Coords coords = g_device->currentCoords;
-	if (!ui->c_machineCoordsButton->isChecked())
-		coords -= g_inter->runner.csd[0].pos0;
+	if (!ui->c_machineCoordsButton->isChecked()) {
+		int index = ui->c_comboBoxCoordSystem->currentIndex();
+		coords -= g_inter->runner.csd[index].pos0;
+	}
 	for (int i = 0; i < MAX_AXES; ++i)
 		textCoord[i]->setText(QString::number(coords.r[i]));
 

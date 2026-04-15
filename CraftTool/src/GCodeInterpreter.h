@@ -57,6 +57,11 @@ struct Runner
 	double cycleDeepLevel;   //глубина сверления задаётся в Z
 	double cycleStep;        //глубина одного шага Q
 	int    cycleWait;        //задержка в цикле P
+
+	CoordSystemData& get_current_system()
+	{
+		return csd[coordSystemNumber];
+	}
 };
 
 // интерпретатор G-кода
