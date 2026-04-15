@@ -36,6 +36,10 @@ MainWindow::MainWindow(QWidget *parent) :
 		buttonMinusCoord.push_back(findChild<QAbstractButton*>(QString("ButtonMinus") + axes[i]));
 	}
 
+	for (int i = 0; i < 10; ++i) {
+		inputPin.push_back(findChild<QLabel*>(QString("c_labelInPin") + ('0' + i)));
+	}
+
 	const char* views[] = {"Top", "Bottom", "Left", "Right", "Front", "Back"};
 	for(int i = 0; i < 6; ++i) {
 		auto button = findChild<QAbstractButton*>(QString("ButtonView") + views[i]);
@@ -147,6 +151,15 @@ void MainWindow::update_state()
 	}
 
 	ui->c_modalCodesLabel->setText(QString(codesText.c_str()));
+
+	for (int i = 0; i < inputPin.size(); ++i) {
+		inputPin[i]->setStyleSheet(g_device->currentInputs & (1 << i) ?
+			"QLabel { color : #0F0; }" : "QLabel { color : black; }");
+	}
+
+	ui->c_labelVelocity->setText(QString::number(int(g_device->currentVelocity * 60)) + " мм/мин");
+	ui->c_labelSpindlePosition->setText(QString::number(int(g_device->currentSpindlePosition * 360)) + " гр");
+	ui->c_labelSpindleVelocity->setText(QString::number(g_device->currentSpindleVelocity, 'f', 1) + " об/сек");
 }
 
 bool MainWindow::connect_to_device()

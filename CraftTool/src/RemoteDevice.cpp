@@ -1165,7 +1165,10 @@ bool RemoteDevice::process_packet(char *data, int size)
 	{
 		if (!inited) return true;
 		PacketServiceState *packet = (PacketServiceState*)data;
-		//packet->inputs; //TODO добавить отображение
+		currentInputs = packet->inputs;
+		currentVelocity = packet->velocity;
+		currentSpindlePosition = packet->spindlePosition;
+		currentSpindleVelocity = packet->spindleVelocity;
 		return true;
 	}
 	case DeviceCommand_SERVICE_COMMAND:

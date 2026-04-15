@@ -10,6 +10,7 @@ namespace Ui {
 
 class QLineEdit;
 class QAbstractButton;
+class QLabel;
 
 class MainWindow : public QMainWindow
 {
@@ -36,6 +37,7 @@ public:
 	std::vector<QAbstractButton*> buttonPlusCoord;
 	std::vector<QAbstractButton*> buttonMinusCoord;
 	std::vector<double> steps;
+	std::vector<QLabel*> inputPin;
 
 public slots:
 	void menu_open_program();

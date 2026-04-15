@@ -241,7 +241,7 @@ void send_packet_service_state(int inputs, float velocity, float spindlePosition
 	//packet.outputs = outputs; // здесь может быть шим
 	packet.velocity = velocity;
 	packet.spindlePosition = spindlePosition;
-	packet.spindleVelocity = spindleVelocity;
+	packet.spindleVelocity = spindleVelocity * 1000000; // об/мкс -> об/сек
 	packet.crc = calc_crc((char*)&packet, sizeof(packet) - 4);
 	send_packet((char*)&packet, sizeof(packet));
 }

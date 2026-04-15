@@ -95,6 +95,10 @@ public:
 
 	//состояние удалённого устройства
 	Coords currentCoords;              //текущие координаты
+	int currentInputs = 0;             //состояние входов
+	float currentVelocity = 0;         //скорость движения, мм/сек
+	float currentSpindlePosition = 0;  //позиция шпинделя (точное значение при движении) [0..1]
+	float currentSpindleVelocity = 0;  //скорость шпинделя, об/сек
 
 protected:
 	void set_switches(SwitchGroup group, int pins[MAX_AXES]);
