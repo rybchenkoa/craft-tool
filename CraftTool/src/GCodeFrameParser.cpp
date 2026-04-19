@@ -87,6 +87,7 @@ void GCodeFrameParser::reset()
 	incremental = -1;
 	motionMode = MotionMode::NONE;
 	feedMode = FeedMode::NONE;
+	spindleMode = SpindleMode::NONE;
 	cycle = CannedCycle::NONE;
 	cycleLevel = CannedLevel::NONE;
 }
@@ -173,10 +174,14 @@ InterError GCodeFrameParser::make_new_state(GCodeLexer& lexer)
 				break;
 			}
 
-			case 'M': //пока у меня никакого охлаждения нет
+			case 'M':
 			{
 				switch (intValue)
 				{
+					case 3: spindleMode = SpindleMode::FORWARD; break;
+					case 4: spindleMode = SpindleMode::REVERSE; break;
+					case 5: spindleMode = SpindleMode::STOP; break;
+
 					default: break; //return InterError_INVALID_STATEMENT;
 				}
 				break;

@@ -73,7 +73,9 @@ public:
 	Coords lastPosition;               //последняя переданная позиция
 	Coords lastDelta;                  //последний вектор сдвига
 	double feed;                       //подача
-	double spindleSpeed;               //скорость шпинделя
+	double spindleSpeedMax;            //скорость шпинделя, при которой ШИМ максимальный
+	int spindleEnablePin;              //пин, выдающий ШИМ скорости
+	int spindleDirectionPin;           //пин, выдающий направление вращения
 	MoveMode moveMode;                 //режим перемещения
 	double velocity[MAX_AXES];         //максимальная скорость по каждой оси
 	double acceleration[MAX_AXES];     //максимальное ускорение по каждой оси
@@ -105,6 +107,7 @@ protected:
 	void set_spindle_params(int marksCount, int marksPin, int marksFrequency, int filterSize);
 	void set_coord(Coords pos, bool used[MAX_AXES]);
 	void set_pwm_freq(double fast, double slow);
+	void set_pwm(int pin, double value); // задать сигнал на пине, коэффициент заполнения [0..1]
 
 	template<typename T>
 	void push_packet_common(T *packet);

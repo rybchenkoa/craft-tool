@@ -19,6 +19,14 @@ namespace Interpreter
 		ADC,        // управление подачей через напряжение, G94.2
 	};
 
+	enum class SpindleMode
+	{
+		NONE = 0,
+		FORWARD,    // вращение по часовой
+		REVERSE,    // против часовой
+		STOP,       // остановить шпиндель
+	};
+
 	enum class MotionMode //режимы перемещения
 	{
 		NONE = 0,

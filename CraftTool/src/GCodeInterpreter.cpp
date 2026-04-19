@@ -65,7 +65,6 @@ InterError GCodeInterpreter::execute_frame(const char *frame)
 //исполняет прочитанный фрейм в нужном порядке
 InterError GCodeInterpreter::run_modal_groups()
 {
-	double value;
 	InterError error;
 
 	if (readedFrame.plane != Plane::NONE) { // задаём плоскость обработки
@@ -90,9 +89,8 @@ InterError GCodeInterpreter::run_modal_groups()
 	error = run_feed_rate(); // подача (F)
 	if (error.code) return error;
 
-	if(readedFrame.get_value('S', value)) //скорость вращения шпинделя
-		if (!trajectory)
-			remoteDevice->set_spindle_vel(value);
+	error = run_spindle(); // включение и скорость шпинделя
+	if (error.code) return error;
 
 	update_motion_mode(); // обработка смены режима перемещения (G0, G1, G32...)
 	error = update_cycle_params(); // обновление параметров постоянных циклов (G80...)
@@ -212,6 +210,31 @@ InterError GCodeInterpreter::run_feed_rate()
 				runner.feedPerRev = value;
 				break;
 		}
+	}
+
+	return InterError();
+}
+
+//====================================================================================================
+// управление шпинделем
+InterError GCodeInterpreter::run_spindle()
+{
+	bool stateChanged = false;
+	if (readedFrame.spindleMode != SpindleMode::NONE) { // вращение шпинделя
+		runner.spindleMode = readedFrame.spindleMode;
+		stateChanged = true;
+	}
+
+	if (readedFrame.get_value('S', runner.spindleSpeed)) { //скорость вращения шпинделя
+		stateChanged = true;
+	}
+
+	if (stateChanged) {
+		double value = runner.spindleMode == SpindleMode::FORWARD ? runner.spindleSpeed :
+			runner.spindleMode == SpindleMode::REVERSE ? -runner.spindleSpeed :
+			0;
+		if (!trajectory)
+			remoteDevice->set_spindle_vel(value);
 	}
 
 	return InterError();
@@ -972,6 +995,8 @@ void GCodeInterpreter::init()
 	runner.threadIndex = 0;
 	runner.feedThrottling = false;
 	runner.feedAdc = g_config->get_int_def(CFG_DEFAULT_ADC_USE, 0);
+	runner.spindleMode = SpindleMode::STOP;
+	runner.spindleSpeed = 0;
 	runner.incremental = false;
 	runner.motionMode = MotionMode::FAST;
 	runner.deviceMoveMode = MoveMode_FAST;
@@ -1022,6 +1047,12 @@ std::vector<std::string> GCodeInterpreter::get_active_codes()
 
 	if (runner.feedAdc)
 		result.push_back("G94.2");
+
+	if (runner.spindleMode != SpindleMode::STOP)
+		result.push_back(runner.spindleMode == SpindleMode::FORWARD ? "M3" : "M4");
+
+	if (runner.spindleSpeed != 0)
+		result.push_back("S" + double_to_string(runner.spindleSpeed));
 
 	result.push_back("G" + std::to_string(17 + plane));
 	result.push_back(runner.units == UnitSystem::INCHES ? "G20" : "G21");

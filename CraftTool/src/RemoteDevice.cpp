@@ -707,15 +707,29 @@ void RemoteDevice::set_feed_adc(bool enable)
 }
 
 //============================================================
-//от 0 до 1?
+//от -max до max
 void RemoteDevice::set_spindle_vel(double value)
 {
+	value = value / spindleSpeedMax; // нормируем и обрезаем
+	value = std::max(-1.0, std::min(value, 1.0));
+
+	set_pwm(spindleDirectionPin, value >= 0 ? 0 : 1);
+	set_pwm(spindleEnablePin, abs(value));
+}
+
+//============================================================
+//от 0 до 1
+void RemoteDevice::set_pwm(int pin, double value)
+{
+	if (pin < 0) {
+		//log_warning("invalid pin %d for pwm", pin);
+		return;
+	}
 	auto packet = new PacketTail<PacketSetPWM>;
 	packet->command = DeviceCommand_SET_PWM;
-	packet->pin = 0;
+	packet->pin = pin;
 	packet->value = float(value);
 	push_packet_common(packet);
-	this->spindleSpeed = value;
 }
 
 //============================================================
@@ -1072,6 +1086,13 @@ void RemoteDevice::init()
 	set_switches(SwitchGroup_MAX, switchMax);
 	set_switches(SwitchGroup_HOME, switchHome);
 	
+	// настройки шпинделя
+	spindleEnablePin = -1;
+	spindleDirectionPin = -1;
+	spindleSpeedMax = try_get_float(CFG_SPINDLE_SPEED_MAX);
+	g_config->get_int(CFG_SPINDLE_ENABLE_PIN, spindleEnablePin);
+	g_config->get_int(CFG_SPINDLE_DIR_PIN, spindleDirectionPin);
+
 	int spindleMarksCount = 1; // число меток на шпинделе
 	int spindleMarksPin = -1;  // вход датчика меток
 	int spindleMarksFrequency = 1; // минимальная частота, при которой разрешена автокалибровка

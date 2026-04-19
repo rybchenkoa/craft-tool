@@ -70,6 +70,7 @@ namespace Interpreter
 
 		MotionMode motionMode;
 		FeedMode feedMode;
+		SpindleMode spindleMode;
 
 		GCodeFrameParser()
 		{
