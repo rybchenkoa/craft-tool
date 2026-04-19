@@ -27,6 +27,13 @@ namespace Interpreter
 		STOP,       // остановить шпиндель
 	};
 
+	enum class CoolantMode
+	{
+		NONE = 0,
+		ENABLED,   // охлаждение включено
+		DISABLED,  // охлаждение выключено
+	};
+
 	enum class MotionMode //режимы перемещения
 	{
 		NONE = 0,

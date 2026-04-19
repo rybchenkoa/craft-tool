@@ -46,6 +46,7 @@ struct Runner
 	bool feedAdc;            //включено ли управление подачей напряжением
 	SpindleMode spindleMode; //крутится ли шпиндель и в какую сторону
 	double spindleSpeed;     //скорость вращения шпинделя
+	CoolantMode coolantMode; //включено ли охлаждение
 	double cutterRadius;     //радиус фрезы
 	double cutterLength;     //длина фрезы
 	int coordSystemNumber;   //номер выбранной координатной системы
@@ -90,6 +91,7 @@ public:
 	InterError run_feed_mode();             //обработка режима подачи
 	InterError run_feed_rate();             //обработка значения подачи
 	InterError run_spindle();               //обработка включения и скорости шпинделя
+	InterError run_coolant();               //обработка включения охлаждения
 	void update_motion_mode();              //читает режим перемещения
 	InterError update_cycle_params();       //читает параметры циклов
 	InterError run_dwell();                 //обработка паузы

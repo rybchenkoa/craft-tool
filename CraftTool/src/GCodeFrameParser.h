@@ -19,7 +19,7 @@ namespace Interpreter
 		STOP, //M0, M1, M2, M30, M60
 		TOOL_CHANGE, //M6
 		TURN_TOOL, //M3, M4, M5
-		GREASER, //M7, M8, M9
+		COOLANT, //M7, M8, M9
 	};
 
 	enum class BitPos
@@ -70,7 +70,8 @@ namespace Interpreter
 
 		MotionMode motionMode;
 		FeedMode feedMode;
-		SpindleMode spindleMode;
+		SpindleMode spindleMode; // M3, M4, M5
+		CoolantMode coolantMode; // M8, M9
 
 		GCodeFrameParser()
 		{

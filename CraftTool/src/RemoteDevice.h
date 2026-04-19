@@ -35,6 +35,7 @@ public:
 	void set_feed_adc(bool enable) override;
 	void set_step_size(double stepSize[MAX_AXES]) override;
 	void set_spindle_vel(double feed) override;
+	void set_coolant(bool enabled) override;
 	void pause_moving(bool needStop) override;
 	void break_queue() override;
 	void homing() override;
@@ -76,6 +77,7 @@ public:
 	double spindleSpeedMax;            //скорость шпинделя, при которой ШИМ максимальный
 	int spindleEnablePin;              //пин, выдающий ШИМ скорости
 	int spindleDirectionPin;           //пин, выдающий направление вращения
+	int coolantPin;                    //пин, включающий охлаждение
 	MoveMode moveMode;                 //режим перемещения
 	double velocity[MAX_AXES];         //максимальная скорость по каждой оси
 	double acceleration[MAX_AXES];     //максимальное ускорение по каждой оси

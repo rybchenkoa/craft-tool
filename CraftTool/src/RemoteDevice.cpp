@@ -744,6 +744,12 @@ void RemoteDevice::set_pwm_freq(double fast, double slow)
 }
 
 //============================================================
+void RemoteDevice::set_coolant(bool enabled)
+{
+	set_pwm(coolantPin, enabled ? 1 : 0);
+}
+
+//============================================================
 void RemoteDevice::set_step_size(double stepSize[MAX_AXES])
 {
 	auto packet = new PacketTail<PacketSetStepSize>;
@@ -1102,6 +1108,9 @@ void RemoteDevice::init()
 	g_config->get_int(CFG_SPINDLE_MARKS_FREQ, spindleMarksFrequency);
 	g_config->get_int(CFG_SPINDLE_FILTER_SIZE, spindleFilterSize);
 	set_spindle_params(spindleMarksCount, spindleMarksPin, spindleMarksFrequency, spindleFilterSize);
+
+	coolantPin = -1;
+	g_config->get_int(CFG_COOLANT_PIN, coolantPin);
 
 	int feedAdc = 0;
 	g_config->get_int(CFG_DEFAULT_ADC_USE, feedAdc);

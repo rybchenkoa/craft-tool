@@ -32,3 +32,4 @@
 #define CFG_SPINDLE_MARKS_PIN  "spindleMarksPin"
 #define CFG_SPINDLE_MARKS_FREQ "spindleMarksFrequency"
 #define CFG_SPINDLE_FILTER_SIZE "spindleFilterSize"
+#define CFG_COOLANT_PIN        "coolantPin"

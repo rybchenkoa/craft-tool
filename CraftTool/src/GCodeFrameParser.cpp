@@ -88,6 +88,7 @@ void GCodeFrameParser::reset()
 	motionMode = MotionMode::NONE;
 	feedMode = FeedMode::NONE;
 	spindleMode = SpindleMode::NONE;
+	coolantMode = CoolantMode::NONE;
 	cycle = CannedCycle::NONE;
 	cycleLevel = CannedLevel::NONE;
 }
@@ -181,6 +182,9 @@ InterError GCodeFrameParser::make_new_state(GCodeLexer& lexer)
 					case 3: spindleMode = SpindleMode::FORWARD; break;
 					case 4: spindleMode = SpindleMode::REVERSE; break;
 					case 5: spindleMode = SpindleMode::STOP; break;
+
+					case 8: coolantMode = CoolantMode::ENABLED; break;
+					case 9: coolantMode = CoolantMode::DISABLED; break;
 
 					default: break; //return InterError_INVALID_STATEMENT;
 				}
@@ -284,7 +288,7 @@ ModalGroup GCodeFrameParser::get_modal_group(char letter, double value)
 			return ModalGroup::TURN_TOOL;
 
 		case 7: case 8: case 9:
-			return ModalGroup::GREASER;
+			return ModalGroup::COOLANT;
 
 		default:
 			return ModalGroup::NONE;

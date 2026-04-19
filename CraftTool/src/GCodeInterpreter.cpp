@@ -92,6 +92,9 @@ InterError GCodeInterpreter::run_modal_groups()
 	error = run_spindle(); // включение и скорость шпинделя
 	if (error.code) return error;
 
+	error = run_coolant(); // включение/выключение охлаждения
+	if (error.code) return error;
+
 	update_motion_mode(); // обработка смены режима перемещения (G0, G1, G32...)
 	error = update_cycle_params(); // обновление параметров постоянных циклов (G80...)
 	if (error.code) return error;
@@ -235,6 +238,19 @@ InterError GCodeInterpreter::run_spindle()
 			0;
 		if (!trajectory)
 			remoteDevice->set_spindle_vel(value);
+	}
+
+	return InterError();
+}
+
+//====================================================================================================
+// управление охлаждением
+InterError GCodeInterpreter::run_coolant()
+{
+	if (readedFrame.coolantMode != CoolantMode::NONE) {
+		runner.coolantMode = readedFrame.coolantMode;
+		if (!trajectory)
+			remoteDevice->set_coolant(runner.coolantMode == CoolantMode::ENABLED);
 	}
 
 	return InterError();
@@ -1053,6 +1069,9 @@ std::vector<std::string> GCodeInterpreter::get_active_codes()
 
 	if (runner.spindleSpeed != 0)
 		result.push_back("S" + double_to_string(runner.spindleSpeed));
+
+	if (runner.coolantMode == CoolantMode::ENABLED)
+		result.push_back("M8");
 
 	result.push_back("G" + std::to_string(17 + plane));
 	result.push_back(runner.units == UnitSystem::INCHES ? "G20" : "G21");

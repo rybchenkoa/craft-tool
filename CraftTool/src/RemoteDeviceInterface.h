@@ -30,7 +30,8 @@ public:
 	virtual void set_feed_throttling(bool enable, int period, int size)=0; //движение рывками
 	virtual void set_feed_adc(bool enable)=0; //управление подачей через напряжение
 	
-	virtual void set_spindle_vel(double feed)=0; //скорость вращения шпинделя
+	virtual void set_spindle_vel(double feed) = 0; //скорость вращения шпинделя
+	virtual void set_coolant(bool enabled) = 0; //охлаждение
 	virtual void set_step_size(double stepSize[MAX_AXES])=0; //длина одного шага
 	virtual void pause_moving(bool needStop)=0; //временная остановка движения
 	virtual void break_queue()=0; //полная остановка с прерыванием программы
